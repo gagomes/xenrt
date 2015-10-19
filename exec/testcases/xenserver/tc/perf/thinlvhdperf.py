@@ -68,7 +68,7 @@ class ThinLVHDPerfBase(testcases.xenserver.tc.perf.libperf.PerfTestCase):
         """Create a SR with given parameters"""
 
         if self.srtype=="lvmoiscsi":
-            size = srsize * xenrt.KILO # converting size to MiB
+            size = srsize * xenrt.GIGA # converting size from GiB to bytes
             if self.luntype=="default": # xenrt default lun for the host, usually a netapp backend
                 sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, "lvmoiscsi", thin_prov=self.thinprov)
                 sr.create(subtype="lvm", physical_size=size, findSCSIID=True)
@@ -146,8 +146,12 @@ class TCIOLatency(ThinLVHDPerfBase):
             "thinprov": [False, "thinprov", "THINPROV"],
             "goldvm": ["vm00", "goldvm"],
             "edisks": [1, "edisks"],
+            "vdisize": [2, "vdisize", "VDISIZE"],          # VDI size for the edisks used in the test, default 2GiB: TODO: make this do something
             "bufsize": [512, "bufsize"],
             "groupsize": [1, "groupsize"],
+            "tool": ["fio", "tool"],   # fio or dprofiler
+            "zone": [2097152, "zone"], # for fio: zonesize=bufsize, and zone=zonesize+zoneskip. Ie, write bufsize bytes, then skip (zone - bufsize), until end of srsize
+            "iodepth": [1, "iodepth"], # only in fio this will be >1
     }
 
     def __init__(self, tcid=None):
@@ -156,6 +160,7 @@ class TCIOLatency(ThinLVHDPerfBase):
         self.clones = []
         self.edisk = ( None, 2, False )  # definition of an extra disk of 2GiB.
         self.diskprefix = None  # can be "hd" for KVM or "xvd" for Xen
+        self.logpath = "/tmp/fio" # in the guest
 
     def prepare(self, arglist=[]):
 
@@ -189,9 +194,19 @@ class TCIOLatency(ThinLVHDPerfBase):
 
         self.diskprefix = self.goldenVM.vendorInstallDevicePrefix()
 
-    def collectMetrics(self, guest):
-        """Collect iolatency metrics for a given guest"""
+    def runFio(self, guest):
+        cmd = "/root/fio/fio --name=jobname --direct=1 --filename=/dev/%sb --ioengine=libaio --iodepth=%s --rw=write --bs=%s --zonesize=%s --zoneskip=%s --write_lat_log=%s --write_bw_log=%s --write_iops_log=%s --io_limit=%s" % (self.diskprefix, self.iodepth, self.bufsize, self.bufsize, (self.zone - self.bufsize), self.logpath, self.logpath, self.logpath, (self.bufsize * (self.vdisize * xenrt.GIGA / self.zone)) )
+        xenrt.TEC().logverbose("fio cmd for guest = %s" % (cmd,))
+        results = guest.execguest(cmd)
+        xenrt.TEC().logverbose("fio results for guest = %s" % (results,))
+        guest.addExtraLogFile("%s_lat.1.log" % (self.logpath,) )
+        guest.addExtraLogFile("%s_slat.1.log" % (self.logpath,) )
+        guest.addExtraLogFile("%s_clat.1.log" % (self.logpath,) )
+        guest.addExtraLogFile("%s_iops.1.log" % (self.logpath,) )
+        guest.addExtraLogFile("%s_bw.1.log" % (self.logpath,) )
+        return results
 
+    def runDProfiler(self, guest):
         # This test makes use of the disk profiler tool from performance team
         # to gather the read/write latency of the given block device.
         # The tool opens the block device in O_DIRECT mode.
@@ -218,23 +233,53 @@ class TCIOLatency(ThinLVHDPerfBase):
         f.write("------------------------------------------\n")
         f.close()
 
+    def collectMetrics(self, guest):
+        """Collect iolatency metrics for a given guest"""
+
+        if self.tool == "fio":
+            self.runFio(guest)
+        elif self.tool == "dprofiler":
+            self.runDProfiler(guest)
+        else:
+            raise xenrt.XRTError("unknown tool %s" % (self.tool,))
+
     def cloneStart(self, clone):
         """Start the cloned guest"""
 
         clone.tailored = True
         clone.start()
 
-    def run(self, arglist=None):
+    def installFioOnLinuxGuest(self, guest):
+        disturl = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+        filename = "fio-2.2.7-22-g36870.tar.bz2"
+        fiourl = "%s/performance/support-files/%s" % (disturl, filename)
+        xenrt.TEC().logverbose("Getting fio from %s" % (fiourl,))
+        fiofile = xenrt.TEC().getFile(fiourl,fiourl)
+        sftp = guest.sftpClient()
+        rootfiotar = "/root/%s" % filename
+        sftp.copyTo(fiofile, rootfiotar)
+        guest.execguest('tar xjf %s' % rootfiotar)
+        guest.execguest('cd /root/fio && make')
 
+    def installDProfilerOnLinuxGuest(self, guest):
         # Install disk profiler tool to golden image 'vm00'
-        if self.goldenVM.execcmd('test -e /root/perf-latency/diskprofiler/dprofiler', retval='code') != 0:
-            self.goldenVM.execguest("cd /root && wget '%s/perf-latency.tgz'" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
-            self.goldenVM.execguest("cd /root && tar -xzf perf-latency.tgz")
-            self.goldenVM.execguest("cd /root/perf-latency/diskprofiler && gcc dprofiler.c -o dprofiler -lrt && chmod +x dprofiler")
+        if guest.execcmd('test -e /root/perf-latency/diskprofiler/dprofiler', retval='code') != 0:
+            guest.execguest("cd /root && wget '%s/perf-latency.tgz'" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
+            guest.execguest("cd /root && tar -xzf perf-latency.tgz")
+            guest.execguest("cd /root/perf-latency/diskprofiler && gcc dprofiler.c -o dprofiler -lrt && chmod +x dprofiler")
 
         # Check, if installed correctly.
-        if self.goldenVM.execcmd('test -e /root/perf-latency/diskprofiler/dprofiler', retval='code') != 0:
+        if guest.execcmd('test -e /root/perf-latency/diskprofiler/dprofiler', retval='code') != 0:
             raise xenrt.XRTError("Disk profiler tool is not installed correctly.")
+
+    def run(self, arglist=None):
+
+        if self.tool == "fio":
+            self.installFioOnLinuxGuest(self.goldenVM)
+        elif self.tool == "dprofiler":
+            self.installDProfilerOnLinuxGuest(self.goldenVM)
+        else:
+            raise xenrt.XRTError("unknown tool %s" % (self.tool,))
 
         # Shutdown the golden image before proceeding to generate multiple copies.
         self.goldenVM.shutdown()

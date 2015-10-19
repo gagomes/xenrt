@@ -228,9 +228,9 @@ class PowerShellBindings(XenRTAPIv2Swagger):
 
 Set-StrictMode -Version Latest
 
-$XenRTCreds = New-Object object |
+$XenRTCreds = New-Object -TypeName PSObject |
     Add-Member -MemberType NoteProperty -Name "ApiKey" -Value "" -Passthru |
-    Add-Member -MemberType NoteProperty -Name "Server" -Value "%s" -Passthru
+    Add-Member -MemberType NoteProperty -Name "Server" -Value "%s" -Passthru |
     Add-Member -MemberType NoteProperty -Name "MasterServer" -Value "%s" -Passthru
 
 function Connect-XenRT {

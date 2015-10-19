@@ -29,6 +29,10 @@ class Path(object):
             return param
 
     def powerShellType(self, typename, items):
+        if type(typename) is list:
+            # Find the first non-null item in the list
+            typename = filter(lambda t: t != "null", typename)[0]
+
         if typename == "file":
             return "string"
         elif typename == "object":

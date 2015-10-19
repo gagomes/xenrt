@@ -108,7 +108,7 @@ class UnlicenseTrigger(PingTriggerStrategy):
         self.__adapter = adapter
         self.__pool=pool
 
-    def execute():
+    def execute(self):
         self.__adapter.releaseLicense(self.__pool)
 
 class DotNetAgentTestCases(xenrt.TestCase):

@@ -1076,8 +1076,8 @@ class ISCSIStorageRepository(StorageRepository):
                                                jumbo=jumbo,
                                                mpprdac=mpp_rdac,
                                                ttype = ttype)
-            if not lun.getID():
-                findSCSIID = True
+        if not lun.getID():
+            findSCSIID = True
 
         self.lun = lun
         self.subtype = subtype

@@ -1,0 +1,34 @@
+ <xenrt>
+    <variables>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+  </variables>
+  <prepare>
+    <pool id="0">
+      <host id="0">
+        <vm name="VM_on_master">
+          <distro>debian70</distro>
+          <memory>256</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+      </host>
+      <host id="1">
+        <vm name="VM_on_slave">
+          <distro>debian70</distro>
+          <memory>256</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+      </host>
+    </pool>
+  </prepare>  
+  <testsequence>
+    <!-- This Sequence Disables Soft Reboot on VM and reboots VM's-->
+    <testcase id="xenserver.tc.guest.VmRebootedOnce" tc="TC-27029" >
+    <arg>VM_on_master</arg>        
+    <arg>VM_on_slave</arg>
+    </testcase>
+    </testsequence>
+</xenrt>

@@ -1,0 +1,841 @@
+{
+  "GUEST_LIMITATIONS": {
+    "centos45": {
+      "MAXMEMORY": "16384",
+      "MINMEMORY": "256"
+    },
+    "centos46": {
+      "MAXMEMORY": "16384",
+      "MINMEMORY": "256"
+    },
+    "centos47": {
+      "MAXMEMORY": "16384",
+      "MINMEMORY": "256"
+    },
+    "centos48": {
+      "MAXMEMORY": "16384",
+      "MINMEMORY": "256"
+    },
+    "centos50": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "16384",
+      "MINMEMORY": "512"
+    },
+    "centos51": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "16384",
+      "MINMEMORY": "512"
+    },
+    "centos510": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MAX_VM_VCPUS": "32",
+      "MAX_VM_VCPUS64": "32",
+      "MINMEMORY": "512"
+    },
+    "centos511": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MAX_VM_VCPUS": "32",
+      "MAX_VM_VCPUS64": "32",
+      "MINMEMORY": "512"
+    },
+    "centos52": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "16384",
+      "MINMEMORY": "512"
+    },
+    "centos53": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "16384",
+      "MINMEMORY": "512"
+    },
+    "centos54": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "16384",
+      "MINMEMORY": "512"
+    },
+    "centos55": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "16384",
+      "MINMEMORY": "512"
+    },
+    "centos56": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "16384",
+      "MINMEMORY": "512"
+    },
+    "centos57": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "16384",
+      "MINMEMORY": "512"
+    },
+    "centos58": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "512"
+    },
+    "centos59": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "512"
+    },
+    "centos6": {
+      "MAXMEMORY": "8192",
+      "MAXMEMORY64": "32768",
+      "MINMEMORY": "1024"
+    },
+    "centos61": {
+      "MAXMEMORY": "8192",
+      "MAXMEMORY64": "32768",
+      "MINMEMORY": "1024"
+    },
+    "centos62": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "1024"
+    },
+    "centos63": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "1024"
+    },
+    "centos64": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "1024"
+    },
+    "centos65": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MAX_VM_VCPUS": "32",
+      "MAX_VM_VCPUS64": "32",
+      "MINMEMORY": "1024"
+    },
+    "centos66": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MAX_VM_VCPUS": "32",
+      "MAX_VM_VCPUS64": "32",
+      "MINMEMORY": "1024",
+      "STATICMINMEMORY": "512"
+    },
+    "centos7": {
+      "MAXMEMORY64": "6291456",
+      "MAX_VM_VCPUS64": "240",
+      "MINMEMORY": "1024"
+    },
+    "centos71": {
+      "MAXMEMORY64": "6291456",
+      "MAX_VM_VCPUS64": "240",
+      "MINMEMORY": "1024"
+    },
+    "coreos-stable": {
+      "MAXMEMORY64": "6291456",
+      "MAX_VM_VCPUS64": "240",
+      "MINMEMORY": "1024"
+    },
+    "debian50": {
+      "MAXMEMORY": "32768",
+      "MAXMEMORY64": "32768",
+      "MINMEMORY": "256"
+    },
+    "debian60": {
+      "MAXMEMORY": "32768",
+      "MAXMEMORY64": "32768",
+      "MAX_VM_VCPUS": "32",
+      "MAX_VM_VCPUS64": "32",
+      "MINMEMORY": "256"
+    },
+    "debian70": {
+      "MAXMEMORY": "65536",
+      "MAXMEMORY64": "131072",
+      "MAX_VM_VCPUS": "32",
+      "MAX_VM_VCPUS64": "32",
+      "MINMEMORY": "256",
+      "STATICMINMEMORY": "128"
+    },
+    "debian80": {
+      "MAXMEMORY": "65536",
+      "MAXMEMORY64": "131072",
+      "MAX_VM_VCPUS": "32",
+      "MAX_VM_VCPUS64": "32",
+      "MINMEMORY": "256",
+      "STATICMINMEMORY": "128"
+    },
+    "debiantesting": {
+      "MAXMEMORY": "65536",
+      "MAXMEMORY64": "131072",
+      "MAX_VM_VCPUS": "32",
+      "MAX_VM_VCPUS64": "32",
+      "MINMEMORY": "256",
+      "STATICMINMEMORY": "128"
+    },
+    "fedoralatest": {
+      "MAXMEMORY64": "6291456",
+      "MAX_VM_VCPUS64": "240",
+      "MINMEMORY": "1024"
+    },
+    "oel510": {
+      "MAXMEMORY": "65536",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "512"
+    },
+    "oel511": {
+      "MAXMEMORY": "65536",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "512"
+    },
+    "oel53": {
+      "MAXMEMORY": "65536",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "512"
+    },
+    "oel54": {
+      "MAXMEMORY": "65536",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "512"
+    },
+    "oel55": {
+      "MAXMEMORY": "65536",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "512"
+    },
+    "oel56": {
+      "MAXMEMORY": "65536",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "512"
+    },
+    "oel57": {
+      "MAXMEMORY": "65536",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "512"
+    },
+    "oel58": {
+      "MAXMEMORY": "65536",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "512"
+    },
+    "oel59": {
+      "MAXMEMORY": "65536",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "512"
+    },
+    "oel6": {
+      "MAXMEMORY": "8192",
+      "MAXMEMORY64": "32768",
+      "MINMEMORY": "512"
+    },
+    "oel61": {
+      "MAXMEMORY": "8192",
+      "MAXMEMORY64": "32768",
+      "MINMEMORY": "512"
+    },
+    "oel62": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "512"
+    },
+    "oel63": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "512"
+    },
+    "oel64": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "512"
+    },
+    "oel65": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MAX_VM_VCPUS": "32",
+      "MAX_VM_VCPUS64": "32",
+      "MINMEMORY": "512"
+    },
+    "oel66": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MAX_VM_VCPUS": "32",
+      "MAX_VM_VCPUS64": "32",
+      "MINMEMORY": "512"
+    },
+    "oel7": {
+      "MAXMEMORY64": "6291456",
+      "MAX_VM_VCPUS64": "240",
+      "MINMEMORY": "1024"
+    },
+    "oel71": {
+      "MAXMEMORY64": "6291456",
+      "MAX_VM_VCPUS64": "240",
+      "MINMEMORY": "1024"
+    },
+    "rhel38": {
+      "MAXMEMORY": "4096",
+      "MINMEMORY": "64"
+    },
+    "rhel45": {
+      "MAXMEMORY": "4096",
+      "MINMEMORY": "256"
+    },
+    "rhel46": {
+      "MAXMEMORY": "4096",
+      "MINMEMORY": "256"
+    },
+    "rhel47": {
+      "MAXMEMORY": "4096",
+      "MINMEMORY": "256"
+    },
+    "rhel48": {
+      "MAXMEMORY": "4096",
+      "MINMEMORY": "256"
+    },
+    "rhel5": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "16384",
+      "MINMEMORY": "512"
+    },
+    "rhel51": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "16384",
+      "MINMEMORY": "512"
+    },
+    "rhel510": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "512"
+    },
+    "rhel511": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "512"
+    },
+    "rhel52": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "16384",
+      "MINMEMORY": "512"
+    },
+    "rhel53": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "16384",
+      "MINMEMORY": "512"
+    },
+    "rhel54": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "16384",
+      "MINMEMORY": "512"
+    },
+    "rhel55": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "16384",
+      "MINMEMORY": "512"
+    },
+    "rhel56": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "16384",
+      "MINMEMORY": "512"
+    },
+    "rhel57": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "16384",
+      "MINMEMORY": "512"
+    },
+    "rhel58": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "512"
+    },
+    "rhel59": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "512"
+    },
+    "rhel6": {
+      "MAXMEMORY": "8192",
+      "MAXMEMORY64": "32768",
+      "MINMEMORY": "1024"
+    },
+    "rhel61": {
+      "MAXMEMORY": "8192",
+      "MAXMEMORY64": "32768",
+      "MINMEMORY": "1024"
+    },
+    "rhel62": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "1024"
+    },
+    "rhel63": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "1024"
+    },
+    "rhel64": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "1024"
+    },
+    "rhel65": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "1024"
+    },
+    "rhel66": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "1024",
+      "STATICMINMEMORY": "512"
+    },
+    "rhel7": {
+      "MAXMEMORY64": "6291456",
+      "MAX_VM_VCPUS64": "240",
+      "MINMEMORY": "1024"
+    },
+    "rhel71": {
+      "MAXMEMORY64": "6291456",
+      "MAX_VM_VCPUS64": "240",
+      "MINMEMORY": "1024"
+    },
+    "rheld66": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "1024",
+      "STATICMINMEMORY": "512"
+    },
+    "rhelw66": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
+      "MINMEMORY": "1024",
+      "STATICMINMEMORY": "512"
+    },
+    "sl511": {
+      "MAXMEMORY": "8192",
+      "MAXMEMORY64": "32768",
+      "MAX_VM_VCPUS": "16",
+      "MAX_VM_VCPUS64": "16",
+      "MINMEMORY": "1024"
+    },
+    "sl66": {
+      "MAXMEMORY": "8192",
+      "MAXMEMORY64": "32768",
+      "MAX_VM_VCPUS": "16",
+      "MAX_VM_VCPUS64": "16",
+      "MINMEMORY": "1024"
+    },
+    "sl7": {
+      "MAXMEMORY64": "6291456",
+      "MAX_VM_VCPUS64": "240",
+      "MINMEMORY": "1024"
+    },
+    "sl71": {
+      "MAXMEMORY64": "6291456",
+      "MAX_VM_VCPUS64": "240",
+      "MINMEMORY": "1024"
+    },
+    "sled113": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "524288",
+      "MAX_VM_VCPUS": "32",
+      "MAX_VM_VCPUS64": "32",
+      "MINMEMORY": "1024",
+      "STATICMINMEMORY": "512"
+    },
+    "sled12": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "524288",
+      "MINMEMORY": "1024",
+      "STATICMINMEMORY": "512"
+    },
+    "sles101": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "491520",
+      "MINMEMORY": "512"
+    },
+    "sles102": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "491520",
+      "MINMEMORY": "512"
+    },
+    "sles103": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "491520",
+      "MINMEMORY": "512"
+    },
+    "sles104": {
+      "MAXMEMORY": "491520",
+      "MAX_VM_VCPUS": "32",
+      "MAX_VM_VCPUS64": "32",
+      "MINMEMORY": "512"
+    },
+    "sles11": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "524288",
+      "MINMEMORY": "512"
+    },
+    "sles111": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "524288",
+      "MINMEMORY": "512"
+    },
+    "sles112": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "524288",
+      "MINMEMORY": "4096"
+    },
+    "sles113": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "524288",
+      "MAX_VM_VCPUS": "32",
+      "MAX_VM_VCPUS64": "32",
+      "MINMEMORY": "4096",
+      "STATICMINMEMORY": "512"
+    },
+    "sles114": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "524288",
+      "MAX_VM_VCPUS": "32",
+      "MAX_VM_VCPUS64": "32",
+      "MINMEMORY": "4096",
+      "STATICMINMEMORY": "512"
+    },
+    "sles12": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "524288",
+      "MINMEMORY": "4096",
+      "STATICMINMEMORY": "512"
+    },
+    "sles92": {
+      "MAXMEMORY": "16384",
+      "MINMEMORY": "256"
+    },
+    "sles93": {
+      "MAXMEMORY": "16384",
+      "MINMEMORY": "256"
+    },
+    "sles94": {
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "16384",
+      "MINMEMORY": "256"
+    },
+    "solaris10u9": {
+      "MAXMEMORY": "131072",
+      "MINMEMORY": "1024"
+    },
+    "ubuntu1004": {
+      "MAXMEMORY": "32768",
+      "MAXMEMORY64": "32768",
+      "MAX_VM_VCPUS": "8",
+      "MAX_VM_VCPUS64": "32",
+      "MINMEMORY": "256"
+    },
+    "ubuntu1204": {
+      "MAXMEMORY": "32768",
+      "MAXMEMORY64": "131072",
+      "MAX_VM_VCPUS": "8",
+      "MAX_VM_VCPUS64": "64",
+      "MINMEMORY": "256"
+    },
+    "ubuntu1404": {
+      "MAXMEMORY": "32768",
+      "MAXMEMORY64": "131072",
+      "MAX_VM_VCPUS": "8",
+      "MAX_VM_VCPUS64": "16",
+      "MINMEMORY": "256"
+    },
+    "ubuntudevel": {
+      "MAXMEMORY": "32768",
+      "MAXMEMORY64": "131072",
+      "MAX_VM_VCPUS": "8",
+      "MAX_VM_VCPUS64": "16",
+      "MINMEMORY": "256"
+    },
+    "vistaee": {
+      "MAXMEMORY": "4096",
+      "MAXSOCKETS": "2",
+      "MAX_VM_VCPUS": "2",
+      "MINMEMORY": "1024"
+    },
+    "vistaee-x64": {
+      "MAXMEMORY": "131072",
+      "MAXSOCKETS": "2",
+      "MAX_VM_VCPUS": "2",
+      "MINMEMORY": "1024"
+    },
+    "vistaeesp1": {
+      "MAXMEMORY": "4096",
+      "MAXSOCKETS": "2",
+      "MAX_VM_VCPUS": "2",
+      "MINMEMORY": "1024"
+    },
+    "vistaeesp1-x64": {
+      "MAXMEMORY": "131072",
+      "MAXSOCKETS": "2",
+      "MAX_VM_VCPUS": "2",
+      "MINMEMORY": "1024"
+    },
+    "vistaeesp2": {
+      "MAXMEMORY": "4096",
+      "MAXSOCKETS": "2",
+      "MAX_VM_VCPUS": "2",
+      "MINMEMORY": "1024"
+    },
+    "vistaeesp2-x64": {
+      "MAXMEMORY": "131072",
+      "MAXSOCKETS": "2",
+      "MAX_VM_VCPUS": "2",
+      "MINMEMORY": "1024"
+    },
+    "w2k3ee": {
+      "MAXMEMORY": "65536",
+      "MAXSOCKETS": "8",
+      "MAX_VM_VCPUS": "8",
+      "MINMEMORY": "128"
+    },
+    "w2k3eer2": {
+      "MAXMEMORY": "65536",
+      "MAXSOCKETS": "8",
+      "MAX_VM_VCPUS": "8",
+      "MINMEMORY": "128"
+    },
+    "w2k3eesp1": {
+      "MAXMEMORY": "65536",
+      "MAXSOCKETS": "8",
+      "MAX_VM_VCPUS": "8",
+      "MINMEMORY": "128"
+    },
+    "w2k3eesp2": {
+      "MAXMEMORY": "65536",
+      "MAXSOCKETS": "8",
+      "MAX_VM_VCPUS": "8",
+      "MINMEMORY": "128"
+    },
+    "w2k3eesp2-rc": {
+      "MAXMEMORY": "65536",
+      "MAXSOCKETS": "8",
+      "MAX_VM_VCPUS": "8",
+      "MINMEMORY": "128"
+    },
+    "w2k3eesp2-x64": {
+      "MAXMEMORY": "1048576",
+      "MAXSOCKETS": "8",
+      "MAX_VM_VCPUS": "8",
+      "MINMEMORY": "128"
+    },
+    "w2k3eesp2pae": {
+      "MAXMEMORY": "65536",
+      "MAXSOCKETS": "4",
+      "MAX_VM_VCPUS": "4",
+      "MINMEMORY": "128"
+    },
+    "w2k3se": {
+      "MAXMEMORY": "4096",
+      "MAXSOCKETS": "4",
+      "MAX_VM_VCPUS": "4",
+      "MINMEMORY": "128"
+    },
+    "w2k3ser2": {
+      "MAXMEMORY": "4096",
+      "MAXSOCKETS": "4",
+      "MAX_VM_VCPUS": "4",
+      "MINMEMORY": "128"
+    },
+    "w2k3sesp1": {
+      "MAXMEMORY": "4096",
+      "MAXSOCKETS": "4",
+      "MAX_VM_VCPUS": "4",
+      "MINMEMORY": "128"
+    },
+    "w2k3sesp2": {
+      "MAXMEMORY": "4096",
+      "MAXSOCKETS": "4",
+      "MAX_VM_VCPUS": "4",
+      "MINMEMORY": "128"
+    },
+    "w2kassp4": {
+      "MAXCORES": "8",
+      "MAXMEMORY": "8192",
+      "MAX_VM_VCPUS": "8",
+      "MINMEMORY": "128"
+    },
+    "w2kprosp4": {
+      "MAXCORES": "2",
+      "MAXMEMORY": "4096",
+      "MAX_VM_VCPUS": "2",
+      "MINMEMORY": "128"
+    },
+    "win10-x64": {
+      "MAXMEMORY": "131072",
+      "MAXSOCKETS": "2",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "2048",
+      "MIN_ROOTDISK": "32768",
+      "MIN_ROOTDISK_MEMORY_DIFF": "20480"
+    },
+    "win10-x86": {
+      "MAXMEMORY": "131072",
+      "MAXSOCKETS": "2",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "1024",
+      "MIN_ROOTDISK": "32768",
+      "MIN_ROOTDISK_MEMORY_DIFF": "20480"
+    },
+    "win7-x64": {
+      "MAXMEMORY": "196608",
+      "MAXSOCKETS": "2",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "2048"
+    },
+    "win7-x86": {
+      "MAXMEMORY": "4096",
+      "MAXSOCKETS": "2",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "1024"
+    },
+    "win7sp1-x64": {
+      "MAXMEMORY": "196608",
+      "MAXSOCKETS": "2",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "2048"
+    },
+    "win7sp1-x86": {
+      "MAXMEMORY": "4096",
+      "MAXSOCKETS": "2",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "1024"
+    },
+    "win8-x64": {
+      "MAXMEMORY": "131072",
+      "MAXSOCKETS": "2",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "2048"
+    },
+    "win8-x86": {
+      "MAXMEMORY": "131072",
+      "MAXSOCKETS": "2",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "1024"
+    },
+    "win81-x64": {
+      "MAXMEMORY": "131072",
+      "MAXSOCKETS": "2",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "2048",
+      "MIN_ROOTDISK": "32768",
+      "MIN_ROOTDISK_MEMORY_DIFF": "20480"
+    },
+    "win81-x86": {
+      "MAXMEMORY": "131072",
+      "MAXSOCKETS": "2",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "1024",
+      "MIN_ROOTDISK": "32768",
+      "MIN_ROOTDISK_MEMORY_DIFF": "20480"
+    },
+    "winxpsp2": {
+      "MAXCORES": "4",
+      "MAXMEMORY": "4096",
+      "MAXSOCKETS": "2",
+      "MAX_VM_VCPUS": "4",
+      "MINMEMORY": "128"
+    },
+    "winxpsp3": {
+      "MAXCORES": "4",
+      "MAXMEMORY": "4096",
+      "MAXSOCKETS": "2",
+      "MAX_VM_VCPUS": "2",
+      "MINMEMORY": "128"
+    },
+    "ws08-x64": {
+      "MAXMEMORY": "1048576",
+      "MAXSOCKETS": "8",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "512"
+    },
+    "ws08-x86": {
+      "MAXMEMORY": "65536",
+      "MAXSOCKETS": "8",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "512"
+    },
+    "ws08dc-x64": {
+      "MAXMEMORY": "1048576",
+      "MAXSOCKETS": "64",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "512"
+    },
+    "ws08dc-x86": {
+      "MAXMEMORY": "65536",
+      "MAXSOCKETS": "64",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "512"
+    },
+    "ws08dcsp2-x64": {
+      "MAXMEMORY": "1048576",
+      "MAXSOCKETS": "64",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "512"
+    },
+    "ws08dcsp2-x86": {
+      "MAXMEMORY": "65536",
+      "MAXSOCKETS": "64",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "512"
+    },
+    "ws08r2-x64": {
+      "MAXMEMORY": "2097152",
+      "MAXSOCKETS": "8",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "512"
+    },
+    "ws08r2dcsp1-x64": {
+      "MAXMEMORY": "2097152",
+      "MAXSOCKETS": "64",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "512"
+    },
+    "ws08r2sp1-x64": {
+      "MAXMEMORY": "2097152",
+      "MAXSOCKETS": "8",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "512"
+    },
+    "ws08sp2-x64": {
+      "MAXMEMORY": "1048576",
+      "MAXSOCKETS": "8",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "512"
+    },
+    "ws08sp2-x86": {
+      "MAXMEMORY": "65536",
+      "MAXSOCKETS": "8",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "512"
+    },
+    "ws12-x64": {
+      "MAXMEMORY": "524288",
+      "MAXSOCKETS": "64",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "1024"
+    },
+    "ws12core-x64": {
+      "MAXMEMORY": "524288",
+      "MAXSOCKETS": "64",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "2048"
+    },
+    "ws12r2-x64": {
+      "MAXMEMORY": "524288",
+      "MAXSOCKETS": "64",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "1024",
+      "MIN_ROOTDISK": "32768",
+      "MIN_ROOTDISK_MEMORY_DIFF": "20480"
+    },
+    "ws12r2core-x64": {
+      "MAXMEMORY": "524288",
+      "MAXSOCKETS": "64",
+      "MAX_VM_VCPUS": "16",
+      "MINMEMORY": "2048"
+    }
+  }
+}

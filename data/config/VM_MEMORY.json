@@ -19,5 +19,10 @@
       "MAX_VM_MEMORY": "131072",
       "MAX_VM_MEMORY_LINUX32BIT": "65536",
     }
+    "Dundee": {
+      "MIN_VM_MEMORY": "128",
+      "MAX_VM_MEMORY": "131072",
+      "MAX_VM_MEMORY_LINUX32BIT": "65536",
+    }
   }
 }

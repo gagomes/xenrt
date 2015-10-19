@@ -15,7 +15,9 @@ class DotNetAgentAdapter(object):
         self.unlicensedEdition = xenrt.TEC().lookup("UNLICENSED_EDITION")
 
 
-    def applyLicense(self, hostOrPool, sku = xenrt.TEC().lookup("LICENSED_EDITION")):
+    def applyLicense(self, hostOrPool, sku = None):
+        if sku == None:
+            sku = xenrt.TEC().lookup("LICENSED_EDITION")
         if issubclass(type(hostOrPool),Pool):
             license = self.licenseFactory.licenseForPool(hostOrPool, sku)
         else:
@@ -90,12 +92,31 @@ class DotNetAgentAdapter(object):
         os = guest.getInstance().os
         os.winRegAdd("HKLM","SOFTWARE\\Citrix\\XenTools","BuildVersion","DWORD",0)
 
+class PingTriggerStrategy(object):
+    def execute(self):
+        pass
+
+class AgentTrigger(PingTriggerStrategy):
+    def __init__(self,agent):
+        self.__agent = agent
+
+    def execute():
+        self.__agent.restartAgent()
+
+class UnlicenseTrigger(PingTriggerStrategy):
+    def __init__(self, adapter, pool):
+        self.__adapter = adapter
+        self.__pool=pool
+
+    def execute():
+        self.__adapter.releaseLicense(self.__pool)
+
 class DotNetAgentTestCases(xenrt.TestCase):
 
-    def _pingServer(self,agent,server, shouldbe):
+    def _pingServer(self,trigger,server, shouldbe):
         startTime = datetime.datetime.now().time()
-        agent.restartAgent()
-        xenrt.sleep(30)
+        trigger.execute()
+        xenrt.sleep(60)
         pinged = server.isPinged(startTime)
         xenrt.TEC().logverbose("-----Server was pinged: %s-----"%str(pinged))
         if pinged and not shouldbe:
@@ -145,36 +166,39 @@ class PoolAutoUpdateToggle(DotNetAgentTestCases):
     def run(self, arglist):
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
         agent1 = DotNetAgent(self.win2)
+        trigger = AgentTrigger(self.agent)
+        trigger1 = AgentTrigger(agent1)
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.disable()
         autoupdate.setURL("http://%s:16000"% server.getIP())
-        self._pingServer(self.agent,server,False)
-        self._pingServer(agent1,server,False)
+        self._pingServer(trigger,server,False)
+        self._pingServer(trigger1,server,False)
         autoupdate.enable()
-        self._pingServer(self.agent,server,True)
-        self._pingServer(agent1,server,True)
-        self.adapter.releaseLicense(self.getDefaultPool())
-        xenrt.TEC().logverbose("-----is autoupdate licensed = %s-----"%autoupdate.isLicensed())
-        self._pingServer(self.agent,server,False)
-        self._pingServer(agent1,server,False)
+        self._pingServer(trigger,server,True)
+        self._pingServer(trigger1,server,True)
+        licTrigger = UnlicenseTrigger(self.getDefaultPool())
+        self._pingServer(licTrigger,server,False)
+        self._pingServer(trigger,server,False)
+        self._pingServer(trigger1,server,False)
 
 class VMAutoUpdateToggle(DotNetAgentTestCases):
 
     def run(self,arglist):
+        trigger = AgentTrigger(self.agent)
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.setUserVMUser()
         autoupdate.disable()
         autoupdate.setURL("http://%s:16000"% server.getIP())
-        self._pingServer(self.agent,server,False)
+        self._pingServer(trigger,server,False)
         autoupdate.enable()
-        self._pingServer(self.agent,server,True)
+        self._pingServer(trigger,server,True)
         self.adapter.releaseLicense(self.getDefaultPool())
         if autoupdate.isLicensed():
             raise xenrt.XRTFailure("autoupdate is licensed when it shouldn't be")
-        self._pingServer(self.agent,server,False)
+        self._pingServer(trigger,server,False)
 
 class VSSQuiescedSnapshot(DotNetAgentTestCases):
 
@@ -190,13 +214,14 @@ class VSSQuiescedSnapshot(DotNetAgentTestCases):
 class HTTPRedirect(DotNetAgentTestCases):
 
     def run(self, arglist):
+        trigger = AgentTrigger(self.agent)
         self.adapter.applyLicense(self.getDefaultPool())
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.enable()
         autoupdate.setURL("http://%s:15000"% server.getIP())
         server.addRedirect()
-        self._pingServer(self.agent,server,True)
+        self._pingServer(trigger,server,True)
 
 class AllHostsLicensed(DotNetAgentTestCases):
 
@@ -217,6 +242,7 @@ class AllHostsLicensed(DotNetAgentTestCases):
 class ToggleAUHierarchy(DotNetAgentTestCases):
 
     def run(self, arglist):
+        trigger = AgentTrigger(self.agent)
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
@@ -228,9 +254,9 @@ class ToggleAUHierarchy(DotNetAgentTestCases):
         autoupdate.setUserVMUser()
         if autoupdate.checkKeyPresent():
             raise xenrt.XRTFailure("DisableAutoUpdate reg key is present")
-        self._pingServer(self.agent,server,False)
+        self._pingServer(trigger,server,False)
         autoupdate.enable()
-        self._pingServer(self.agent,server, True)
+        self._pingServer(trigger,server, True)
         autoupdate.setUserPoolAdmin()
         if autoupdate.checkKeyPresent() and autoupdate.isActive():
             pass
@@ -241,11 +267,12 @@ class ToggleAUHierarchy(DotNetAgentTestCases):
             pass
         else:
             raise xenrt.XRTFailure("Xapi does not indicate that AutoUpdate is disabled")
-        self._pingServer(self.agent,server,True)
+        self._pingServer(trigger,server,True)
 
 class URLHierarchy(DotNetAgentTestCases):
 
     def run(self, arglist):
+        trigger = AgentTrigger(self.agent)
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         serverForPool = self.adapter.setUpServer(self.getGuest("server"),"16000")
@@ -257,8 +284,8 @@ class URLHierarchy(DotNetAgentTestCases):
         self.adapter.filesCleanup(self.win1)
         autoupdate.enable()
         autoupdate.setURL("http://%s:16000"% serverForPool.getIP())
-        self._pingServer(self.agent,serverForPool,True)
-        self._pingServer(self.agent,serverForVM,False)
+        self._pingServer(trigger,serverForPool,True)
+        self._pingServer(trigger,serverForVM,False)
         self.agent.restartAgent()
         xenrt.sleep(30)
         if autoupdate.checkDownloadedMSI() != None:
@@ -267,8 +294,8 @@ class URLHierarchy(DotNetAgentTestCases):
         autoupdate.setUserVMUser()
         autoupdate.enable()
         autoupdate.setURL("http://%s:16001"% serverForPool.getIP())
-        self._pingServer(self.agent,serverForPool,False)
-        self._pingServer(self.agent,serverForVM,True)
+        self._pingServer(trigger,serverForPool,False)
+        self._pingServer(trigger,serverForVM,True)
         self.agent.restartAgent()
         xenrt.sleep(30)
         if autoupdate.checkDownloadedMSI() != None:
@@ -276,8 +303,8 @@ class URLHierarchy(DotNetAgentTestCases):
         self.adapter.filesCleanup(self.win1)
         autoupdate.setUserPoolAdmin()
         autoupdate.defaultURL()
-        self._pingServer(self.agent,serverForPool,False)
-        self._pingServer(self.agent,serverForVM,True)
+        self._pingServer(trigger,serverForPool,False)
+        self._pingServer(trigger,serverForVM,True)
         self.agent.restartAgent()
         xenrt.sleep(30)
         if autoupdate.checkDownloadedMSI() != None:
@@ -373,3 +400,18 @@ class NonCryptoMSI(DotNetAgentTestCases):
             raise xenrt.XRTFailure("msi has not downloaded")
         if self.adapter.nonCryptoMSIInstalled(self.win1):
             raise xenrt.XRTFailure("Non cryprographically signed msi installed")
+
+class NoServerSurvive(DotNetAgentTestCases):
+
+    def run(self, arglist):
+        self.adapter.applyLicense(self.getDefaultPool())
+        autoupdate = self.agent.getLicensedFeature("AutoUpdate")
+        autoupdate.enable()
+        autoupdate.setURL("http://localhost:55555")
+        self.agent.restartAgent()
+        xenrt.sleep(60)
+        os = self.agent.os
+        try:
+            os.execCmd("net stop \"XenSvc\" ")
+        except:
+            raise xenrt.XRTFailure("Agent Stopped")

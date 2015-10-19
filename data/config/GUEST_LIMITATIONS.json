@@ -16,7 +16,7 @@
       "MAXMEMORY": "16384",
       "MINMEMORY": "256"
     },
-    "centos50": {
+    "centos5": {
       "MAXMEMORY": "16384",
       "MAXMEMORY64": "16384",
       "MINMEMORY": "512"

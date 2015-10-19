@@ -129,9 +129,11 @@ class ThinLVHDPerfBase(testcases.xenserver.tc.perf.libperf.PerfTestCase):
             self.host = self.pool.master
 
     def postRun(self, arglist=None):
-        if hasattr(self, "createdSRs"):
-            for sr in self.createdSRs:
-                sr.remove()
+        # Do not remove VMs after the test or otherwise we will not be able to collect the logs in it
+        if False: #TODO: perhaps, in the future, add option to remove the SRs
+            if hasattr(self, "createdSRs"):
+                for sr in self.createdSRs:
+                    sr.remove()
 
 
 class TCIOLatency(ThinLVHDPerfBase):
@@ -324,18 +326,20 @@ class TCIOLatency(ThinLVHDPerfBase):
             raise xenrt.XRTFailure("Failed to run %d / %d io latency tests." % (exceptions, len(results)))
 
     def postRun(self, arglist=None):
-        # Removing all cloned VMs after the test run.
-        errors = []
-        for clone in self.clones:
-            xenrt.TEC().progress("Uninstalling VM %s" % clone.getName())
-            try:
-                clone.uninstall()
-            except Exception, e:
-                errors.append(clone.getName() + ":" + str(e))
+        # Do not remove VMs after the test or otherwise we will not be able to collect the logs in it
+        if False: #TODO: perhaps, in the future, add option to remove the vms
+            # Removing all cloned VMs after the test run.
+            errors = []
+            for clone in self.clones:
+                xenrt.TEC().progress("Uninstalling VM %s" % clone.getName())
+                try:
+                    clone.uninstall()
+                except Exception, e:
+                    errors.append(clone.getName() + ":" + str(e))
 
-        if len(errors) > 1:
-            xenrt.TEC().logverbose("One or many guests failed to uninstall with error messages %s" % errors)
-            raise xenrt.XRTFailure("One or many guests failed to unisntall.")
+            if len(errors) > 1:
+                xenrt.TEC().logverbose("One or many guests failed to uninstall with error messages %s" % errors)
+                raise xenrt.XRTFailure("One or many guests failed to unisntall.")
 
         super(TCIOLatency, self).postRun(arglist)
 

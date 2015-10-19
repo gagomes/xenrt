@@ -201,11 +201,11 @@ class TCIOLatency(ThinLVHDPerfBase):
         xenrt.TEC().logverbose("fio cmd for guest = %s" % (cmd,))
         results = guest.execguest(cmd)
         xenrt.TEC().logverbose("fio results for guest = %s" % (results,))
-        guest.addExtraLogFile("%s_lat.1.log" % (self.logpath,) )
-        guest.addExtraLogFile("%s_slat.1.log" % (self.logpath,) )
-        guest.addExtraLogFile("%s_clat.1.log" % (self.logpath,) )
-        guest.addExtraLogFile("%s_iops.1.log" % (self.logpath,) )
-        guest.addExtraLogFile("%s_bw.1.log" % (self.logpath,) )
+        self.getLogsFrom(guest, ["%s_lat.1.log"  % (self.logpath,) ] )
+        self.getLogsFrom(guest, ["%s_slat.1.log" % (self.logpath,) ] )
+        self.getLogsFrom(guest, ["%s_clat.1.log" % (self.logpath,) ] )
+        self.getLogsFrom(guest, ["%s_iops.1.log" % (self.logpath,) ] )
+        self.getLogsFrom(guest, ["%s_bw.1.log"   % (self.logpath,) ] )
         return results
 
     def runDProfiler(self, guest):

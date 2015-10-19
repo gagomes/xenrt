@@ -154,7 +154,7 @@ class TCMachineCheck(xenrt.TestCase):
         if arglist:
             tests = map(lambda t: t.split("/", 1), arglist)
         else:
-            tests = [("Console", "Serial"), ("Power", "IPMI"), ("Power", "PDU"), ("Network", "Ports"), ("Network", "DHCP"), ("FC", "HBA")]
+            tests = [("Console", "Serial"), ("Power", "IPMI"), ("Power", "PDU"), ("Network", "DHCP"), ("Network", "Ports"), ("FC", "HBA")]
 
         for t in tests:
             self.runSubcase("test%s%s" % (t[0],t[1]), (), t[0], t[1])

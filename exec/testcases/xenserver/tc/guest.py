@@ -1913,7 +1913,7 @@ class VmRebootedOnce(xenrt.TestCase):
     def __disableSoftReboot(self, guest):
         #this Stops Soft Reboot - Only works on Debian 7 ... won't work on Debian 8 or later 
         guest.execguest("sed -i 's#.*ca:12345:ctrlaltdel:.*#ca:12345:ctrlaltdel:/bin/echo \"Oh no You Dont\"#' /etc/inittab")
-        xenrt.sleep(1)
+        xenrt.sleep(5)
     
     def run(self, arglist):
         for arg in arglist:

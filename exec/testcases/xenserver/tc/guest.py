@@ -1910,36 +1910,30 @@ class TCMemoryDumpBootDriverFlag(xenrt.TestCase):
 class VmRebootedOnce(xenrt.TestCase):
     """Test Case for SCTX-2017 - VM.clean_reboot is not canceled by VM.hard_reboot if VM is running on slave"""   
 
-    def __rebootGuest(self, host, guestName, option):
-        host.execdom0("xe vm-reboot name-label=%s force=%s >/dev/null 2>&1 </dev/null &" % (guestName, option))
-    
-    def __disableSoftReboot(self, guestName):
+    def __disableSoftReboot(self, guest):
         #this Stops Soft Reboot - Only works on Debian 7 ... won't work on Debian 8 or later 
-        guestName.execguest("sed -i 's#.*ca:12345:ctrlaltdel:.*#ca:12345:ctrlaltdel:/bin/echo \"Oh no You Dont\"#' /etc/inittab")
+        guest.execguest("sed -i 's#.*ca:12345:ctrlaltdel:.*#ca:12345:ctrlaltdel:/bin/echo \"Oh no You Dont\"#' /etc/inittab")
         xenrt.sleep(1)
-    
-    def __getDomID(self,guestName):
-        return guestName.getDomid()
     
     def run(self, arglist):
         for arg in arglist:
             host = self.getDefaultHost()
             vm = self.getGuest(arg)
-            log("Currently working on %s" %vm)
+            log("Currently working on %s" % vm)
             step("Disable Soft Reboot on VM")
             self.__disableSoftReboot(vm)
                         
             step("VM soft reboot")
-            rebootCountBefore = self.__getDomID(vm)
-            log("VM has been Rebooted %s times previously" %rebootCountBefore)
-            self.__rebootGuest(host,vm,False)
+            rebootCountBefore = vm.getDomid()
+            log("VM has been Rebooted %s times previously" % rebootCountBefore)
+            vm.rebootAsync(False)
             xenrt.sleep(5)
             
             step("VM hard reboot")
-            self.__rebootGuest(host,vm,True)
+            vm.rebootAsync(True)
             xenrt.sleep(20)
-            rebootCountAfter = self.__getDomID(vm)
-            log("After Last Reboot total VM reboot count is %s " %rebootCountAfter)
+            rebootCountAfter = vm.getDomid()
+            log("After Last Reboot total VM reboot count is %s " % rebootCountAfter)
             
             step("Check if VM has been rebooted once")
             if rebootCountAfter - 1 != rebootCountBefore:

@@ -2104,21 +2104,29 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["win10-x86"]["MAXMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["win10-x86"]["MAXSOCKETS"] = "2"
         self.config["GUEST_LIMITATIONS"]["win10-x86"]["MAX_VM_VCPUS"] = "16"
+        self.config["GUEST_LIMITATIONS"]["win10-x86"]["MIN_ROOTDISK"] = "32768" 
+        self.config["GUEST_LIMITATIONS"]["win10-x86"]["MIN_ROOTDISK_MEMORY_DIFF"] = "20480"
         self.config["GUEST_LIMITATIONS"]["win10-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["win10-x64"]["MINMEMORY"] = "2048"
         self.config["GUEST_LIMITATIONS"]["win10-x64"]["MAXMEMORY"] = "131072"
         self.config["GUEST_LIMITATIONS"]["win10-x64"]["MAXSOCKETS"] = "2"
         self.config["GUEST_LIMITATIONS"]["win10-x64"]["MAX_VM_VCPUS"] = "16"
+        self.config["GUEST_LIMITATIONS"]["win10-x64"]["MIN_ROOTDISK"] = "32768" 
+        self.config["GUEST_LIMITATIONS"]["win10-x64"]["MIN_ROOTDISK_MEMORY_DIFF"] = "20480"
         self.config["GUEST_LIMITATIONS"]["win81-x86"] = {}
         self.config["GUEST_LIMITATIONS"]["win81-x86"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["win81-x86"]["MAXMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["win81-x86"]["MAXSOCKETS"] = "2"
         self.config["GUEST_LIMITATIONS"]["win81-x86"]["MAX_VM_VCPUS"] = "16"
+        self.config["GUEST_LIMITATIONS"]["win81-x86"]["MIN_ROOTDISK"] = "32768" 
+        self.config["GUEST_LIMITATIONS"]["win81-x86"]["MIN_ROOTDISK_MEMORY_DIFF"] = "20480"
         self.config["GUEST_LIMITATIONS"]["win81-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["win81-x64"]["MINMEMORY"] = "2048"
         self.config["GUEST_LIMITATIONS"]["win81-x64"]["MAXMEMORY"] = "131072"
         self.config["GUEST_LIMITATIONS"]["win81-x64"]["MAXSOCKETS"] = "2"
         self.config["GUEST_LIMITATIONS"]["win81-x64"]["MAX_VM_VCPUS"] = "16"
+        self.config["GUEST_LIMITATIONS"]["win81-x64"]["MIN_ROOTDISK"] = "32768" 
+        self.config["GUEST_LIMITATIONS"]["win81-x64"]["MIN_ROOTDISK_MEMORY_DIFF"] = "20480"
         self.config["GUEST_LIMITATIONS"]["ws12-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["ws12-x64"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["ws12-x64"]["MAXMEMORY"] = "524288"
@@ -2135,6 +2143,8 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["ws12r2-x64"]["MAXMEMORY"] = "524288"
         self.config["GUEST_LIMITATIONS"]["ws12r2-x64"]["MAXSOCKETS"] = "64"
         self.config["GUEST_LIMITATIONS"]["ws12r2-x64"]["MAX_VM_VCPUS"] = "16"
+        self.config["GUEST_LIMITATIONS"]["ws12r2-x64"]["MIN_ROOTDISK"] = "32768" 
+        self.config["GUEST_LIMITATIONS"]["ws12r2-x64"]["MIN_ROOTDISK_MEMORY_DIFF"] = "20480"
         self.config["GUEST_LIMITATIONS"]["ws12r2core-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["ws12r2core-x64"]["MINMEMORY"] = "2048"
         self.config["GUEST_LIMITATIONS"]["ws12r2core-x64"]["STATICMINMEMORY"] = "1024"
@@ -3952,7 +3962,7 @@ class Config(object):
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1022"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1022/100367/hotfix-XS62ESP1022/XS62ESP1022.xsupdate"
         
         # Lola - kernel. Rolls up XS62ESP1005, XS62ESP1009
-        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1024"] = "/usr/groups/build/clearwater-sp1-lcm/101109/hotfix-XS62ESP1024/XS62ESP1024.xsupdate"
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1024"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1024/101109/hotfix-XS62ESP1024/XS62ESP1024.xsupdate"
         
         # Floppy- xen-device-model. Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013, XS62ESP1015, XS62ESP1016, XS62ESP1019, XS62ESP1021, XS62ESP1022
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1025"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1025/101557/hotfix-XS62ESP1025/XS62ESP1025.xsupdate"

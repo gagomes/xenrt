@@ -1948,6 +1948,7 @@ if setupsharedhost:
         host = xenrt.lib.xenserver.hostFactory(hosttype)(machine,productVersion=hosttype)
         host.install(installSRType="ext")
         host.license()
+        host.applyRequiredPatches()
         sho = xenrt.SharedHost(sharedhost)
 
         macs = [sh['MAC']]
@@ -2113,31 +2114,34 @@ if bootwinpe:
     
 
 if powercontrol:
-    # Setup logdir
-    if forcepdu:
-        powerctltype = "APCPDU"
+    if poweroperation != "off" and os.path.exists("%s/halted" % localxenrt.VARDIR):
+        print "Site is halted"
     else:
-        powerctltype = None
-    if not powerhost in xenrt.TEC().lookup("HOST_CONFIGS", {}).keys():
-        print "Loading %s from Racktables" % powerhost
-        xenrt.readMachineFromRackTables(powerhost)
-    machine = xenrt.PhysicalHost(powerhost, ipaddr="0.0.0.0", powerctltype=powerctltype)
-    h = xenrt.GenericHost(machine)
-    machine.powerctl.setVerbose()
-    machine.powerctl.setAntiSurge(False)
-    if poweroperation == "on":
-        machine.powerctl.on()
-    elif poweroperation == "off":
-        machine.powerctl.off()
-    elif poweroperation == "cycle":
-        if bootdev:
-            machine.powerctl.setBootDev(bootdev)
-            config.setVariable("IPMI_SET_PXE", "no")
-        machine.powerctl.cycle()
-    elif poweroperation == "nmi":
-        machine.powerctl.triggerNMI()
-    elif poweroperation == "status":
-        print "POWERSTATUS: %s" % str(machine.powerctl.status())
+        # Setup logdir
+        if forcepdu:
+            powerctltype = "APCPDU"
+        else:
+            powerctltype = None
+        if not powerhost in xenrt.TEC().lookup("HOST_CONFIGS", {}).keys():
+            print "Loading %s from Racktables" % powerhost
+            xenrt.readMachineFromRackTables(powerhost)
+        machine = xenrt.PhysicalHost(powerhost, ipaddr="0.0.0.0", powerctltype=powerctltype)
+        h = xenrt.GenericHost(machine)
+        machine.powerctl.setVerbose()
+        machine.powerctl.setAntiSurge(False)
+        if poweroperation == "on":
+            machine.powerctl.on()
+        elif poweroperation == "off":
+            machine.powerctl.off()
+        elif poweroperation == "cycle":
+            if bootdev:
+                machine.powerctl.setBootDev(bootdev)
+                config.setVariable("IPMI_SET_PXE", "no")
+            machine.powerctl.cycle()
+        elif poweroperation == "nmi":
+            machine.powerctl.triggerNMI()
+        elif poweroperation == "status":
+            print "POWERSTATUS: %s" % str(machine.powerctl.status())
 
 if mconfig:
     xenrt.tools.machineXML(mconfig)

@@ -397,12 +397,15 @@ class Guest(xenrt.GenericGuest):
                                      "(arch %s)" % (distro, arch))
 
         self.isoname = isoname
-        if self.memory and self.isoname and ([i for i in ["win81","ws12r2"] if i in self.isoname]):
-            if rootdisk == self.DEFAULT:
-                rootdisk = max(32768, 20480 + self.memory)
-            else:
-                rootdisk = max(32768, 20480 + self.memory, rootdisk)
-            xenrt.TEC().logverbose("Increasing root disk to %d" % rootdisk)
+        if self.isoname:
+            minRootDisk = xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.isoname, "MIN_ROOTDISK"], None)
+            minRootDiskDiff = xenrt.TEC().lookup(["GUEST_LIMITATIONS",self.isoname,"MIN_ROOTDISK_MEMORY_DIFF"], 0)
+            if self.memory and minRootDisk:
+                if rootdisk == self.DEFAULT:
+                    rootdisk = max(minRootDisk , minRootDiskDiff + self.memory)
+                else:
+                    rootdisk = max(minRootDisk , minRootDiskDiff + self.memory, rootdisk)
+                xenrt.TEC().logverbose("Increasing root disk to %d" % rootdisk)
 
         if distro:
             self.distro = distro
@@ -927,6 +930,7 @@ users:
         vifs = ((self.managenetwork or self.managebridge)
                 and self.getVIFs(network=self.managenetwork, bridge=self.managebridge).keys()
                 or map(lambda v: v[0], self.vifs))
+        xenrt.TEC().progress("Get all vifs %s" % vifs)
 
         # Look for an IP address on the first interface (if we have any)
         if len(vifs) > 0:
@@ -1024,19 +1028,20 @@ users:
                 boottime = 900
                 agentTime = 180
             if not self.windows:
-                try:
-                    self.waitForSSH(boottime, desc="Guest boot")
+                if self.hasSSH:
+                    try:
+                        self.waitForSSH(boottime, desc="Guest boot")
 
-                    # sometimes SSH can be a little temperamental immediately after boot
-                    # a small sleep should help this.
-                    xenrt.sleep(10)
+                        # sometimes SSH can be a little temperamental immediately after boot
+                        # a small sleep should help this.
+                        xenrt.sleep(10)
 
-                except Exception, e:
-                    # Check the VM is still running
-                    if self.getState() != "UP":
-                        self.checkHealth(noreachcheck=True)
-                        raise xenrt.XRTFailure("VM no longer running while waiting for boot")
-                    raise
+                    except Exception, e:
+                        # Check the VM is still running
+                        if self.getState() != "UP":
+                            self.checkHealth(noreachcheck=True)
+                            raise xenrt.XRTFailure("VM no longer running while waiting for boot")
+                        raise
             else:
                 autologonRetryCount = 5
                 for i in range(autologonRetryCount):
@@ -4630,7 +4635,10 @@ def createVMFromFile(host,
             guest.importVM(host, "%s/%s" % (d, os.path.basename(filename)), imageIsOnHost=True, sr=sr, vifs=vifs)
             host.execdom0("umount %s" % d)
         else:
-            guest.importVM(host, xenrt.TEC().getFile(filename), vifs=vifs, sr=sr)
+            vmfile = xenrt.TEC().getFile(filename)
+            if not vmfile:
+                raise xenrt.XRTError("Cannot find %s to import" % filename)
+            guest.importVM(host, vmfile, vifs=vifs, sr=sr)
     guest.paramSet("is-a-template", "false")
     guest.reparseVIFs()
     guest.vifs.sort()

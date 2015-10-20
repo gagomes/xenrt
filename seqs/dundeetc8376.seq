@@ -16,12 +16,13 @@
     <EXTRA_TIME>yes</EXTRA_TIME>
     <EXTRA_ARP_TIME>yes</EXTRA_ARP_TIME>
     <USE_MULTIPATH>yes</USE_MULTIPATH>
+    <THIN_ALLOCATION_QUANTUM>104857600</THIN_ALLOCATION_QUANTUM>
   </variables>
 
   <prepare>
     <pool>
       <allhosts />
-      <storage type="fc" name="fcsr" default="true" />
+      <storage type="fc" name="fcsr" default="true" options="thin" />
       <NETWORK>
         <PHYSICAL network="NPRI">
           <NIC />

@@ -808,7 +808,6 @@ class Host(xenrt.GenericHost):
             self.i_upgrade = upgrade
             self.i_async = async
             self.i_suppackcds = suppackcds
-            self.resetDisk()
 
         if upgrade:
             # Default to existing values if not specified
@@ -8495,7 +8494,7 @@ rm -f /etc/xensource/xhad.conf || true
         args.append("plugin=prepare_host_upgrade.py")
         args.append("fn=main")
         args.append("args:url=%s/xe-phase-1/" % (xenrt.TEC().lookup("FORCE_HTTP_FETCH") + xenrt.TEC().lookup("INPUTDIR")))
-        output = cli.execute("host-call-plugin", string.join(args), timeout=480).strip()
+        output = cli.execute("host-call-plugin", string.join(args), timeout=900).strip()
         if output != "true":
             raise xenrt.XRTFailure("Unexpected output: %s" % (output))
         xenrt.TEC().logverbose("Expected output: %s" % (output))

@@ -1173,7 +1173,8 @@ class _TCVDICreate(xenrt.TestCase):
                 if re.search(r"Not_implemented_in_backend", e.data) or \
                         re.search(r"snapshot or clone not permitted", e.data) or \
                         re.search(r"SR_REQUIRES_UPGRADE", e.data) or \
-                        re.search(r"The operation cannot be performed until the SR has been upgraded", e.data):
+                        re.search(r"The operation cannot be performed until the SR has been upgraded", e.data) or \
+                        re.search(r"function which is not implemented", e.data):
                     # This is good
                     xenrt.TEC().logverbose("Snapshot failed as expected")
                 else:
@@ -2187,7 +2188,7 @@ class _TCLVHDLeafCoalesce(xenrt.TestCase):
             utilisation = int(self.host.genParamGet("sr",
                                                     sr,
                                                     "physical-utilisation"))
-            reply[sr] = utilisation - size
+            reply[sr] = size - utilisation
         return reply
 
     def prepare(self, arglist):

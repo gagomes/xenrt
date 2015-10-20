@@ -13,6 +13,7 @@ class _WlbApplianceVM(xenrt.TestCase):
 
         self.distro = "wlbapp"
         self.wlbserver_name = self.WLBSERVER_NAME
+        self.vpx_os_version = xenrt.TEC().lookup("VPX_OS_VERSION", "CentOS5")
         self.host = self.getDefaultHost()
         for arg in arglist:
             l = string.split(arg, "=", 1)
@@ -29,21 +30,20 @@ class _WlbApplianceVM(xenrt.TestCase):
         xenrt.TEC().registry.guestPut(self.WLBSERVER_NAME, g)
         g.host = self.host
         g.addExtraLogFile("/var/log/wlb/LogFile.log")
-        self.wlbserver = xenrt.WlbApplianceServer(g)
+        self.wlbserver = xenrt.WlbApplianceFactory().create(g, self.vpx_os_version)
         g.importVM(self.host, xenrt.TEC().getFile("xe-phase-1/vpx-wlb.xva"))
         g.windows = False
-        g.lifecycleOperation("vm-start",specifyOn=True)
-        # Wait for the VM to come up.
-        xenrt.TEC().progress("Waiting for the VM to enter the UP state")
-        g.poll("UP", pollperiod=5)
-        # Wait VM to boot up
-        time.sleep(300)
+        g.hasSSH = False # here we should support both old (CentOS5) and new (CentOS7) WLB, disable sshcheck
+        g.tailored = True # We do not need tailor for WLB, and old (CentOS5) WLB does not have ssh.
+        g.start()
         self.getLogsFrom(g)
+
         #self.uninstallOnCleanup(g)
         self.wlbserver.doFirstbootUnattendedSetup()
         self.wlbserver.doLogin()
         self.wlbserver.doSanityChecks()
         self.wlbserver.installSSH()
+        g.hasSSH = True
         time.sleep(30)
         self.wlbserver.doVerboseLogs()
         # restart and see if the wlb services are still up

@@ -309,7 +309,7 @@ class Guest(xenrt.GenericGuest):
         if self.windows:
             raise xenrt.XRTError("Unimplemented")
         else:
-            if self.getHost().xenstoreExists("/local/domain/%s/memory/uncooperative" % guest.getDomid()):
+            if self.getHost().xenstoreExists("/local/domain/%s/memory/uncooperative" % self.getDomid()):
                 return True
         return False
 

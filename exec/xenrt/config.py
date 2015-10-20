@@ -2535,7 +2535,7 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["ubuntu1204"]["MAX_VM_VCPUS64"] = "64"
         self.config["GUEST_LIMITATIONS"]["ubuntu1404"] = {}
         self.config["GUEST_LIMITATIONS"]["ubuntu1404"]["MINMEMORY"] = "256"
-        self.config["GUEST_LIMITATIONS"]["ubuntu1404"]["STATICMINMEMORY"] = "512"
+        self.config["GUEST_LIMITATIONS"]["ubuntu1404"]["STATICMINMEMORY"] = "256"
         self.config["GUEST_LIMITATIONS"]["ubuntu1404"]["MAXMEMORY"] = "32768"
         self.config["GUEST_LIMITATIONS"]["ubuntu1404"]["MAXMEMORY64"] = "131072"
         self.config["GUEST_LIMITATIONS"]["ubuntu1404"]["MAX_VM_VCPUS"] = "8"

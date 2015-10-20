@@ -25,6 +25,7 @@
     <ENABLE_VM_CONSOLE_LOGS>no</ENABLE_VM_CONSOLE_LOGS>
     <POOL_STRESS_LOG_VHD>yes</POOL_STRESS_LOG_VHD>
     <QUICKLOGS>yes</QUICKLOGS>
+    <JOBPRIO>1</JOBPRIO>
   </variables>
 
   <prepare>
@@ -37,8 +38,8 @@
           <arch>x86-32</arch>
           <network device="0" />
           <disk device="0" size="5" />
-          <postinstall action="preCloneTailor"/>
-          <postinstall action="shutdown"/>
+          <postinstall action="preCloneTailor" />
+          <postinstall action="shutdown" />
         </vm>
       </host>
       <host id="1" />

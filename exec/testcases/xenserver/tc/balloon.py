@@ -433,6 +433,8 @@ class _BalloonSmoketest(_BalloonPerfBase):
                     except:
                         pass
                 raise
+            else:
+                raise
 
     def changeDynamicMemory(self, min, max):
         """Set guest's dynamic memory to given limits and check if target is met"""

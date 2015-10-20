@@ -1,0 +1,4 @@
+#Fake non-crypographically signed msi for citrix windows guest agent
+#Just adds registry entry
+bc6dee8f0c1abd45f05190b62fc83779  ./citrixguestagentx64.msi
+bc6dee8f0c1abd45f05190b62fc83779  ./citrixguestagentx86.msi

@@ -113,9 +113,7 @@ class MelioHelper(object):
         host.reboot()
         self.checkXapiResponsive(host)
         if self.getRpmToDom0(host, "FFS_RPM", "ffs_rpm", "/root/ffs.rpm"):
-            # RPM workaround for now
-            host.execdom0("rm -rf /usr/libexec/xapi-storage-script/datapath/raw+file*")
-            host.execdom0("rpm -U --replacepkgs /root/ffs.rpm")
+            host.execdom0("rpm -i /root/ffs.rpm")
             # Workaround CA-180826
             # host.execdom0("""sed -i 's#urlparse.urlparse(sr)#urlparse.urlparse(sr.replace("file:///dev", "file:///run/sr-mount/dev") if check else sr)#' /usr/libexec/xapi-storage-script/volume/org.xen.xapi.storage.melio/common.py""")
             host.execdom0("service xapi-storage-script restart")

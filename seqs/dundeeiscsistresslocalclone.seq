@@ -10,6 +10,7 @@
     <pool>VMX,SVM</pool>
     <param>MACHINES_REQUIRED=2</param>
     <resources>memory&gt;=16G/cores&gt;=16</resources>
+    <flags>sdb=ssdintel</flags>
     <!--<param>OPTION_NO_BUGTOOL=yes</param>-->
   </scheduler>
 

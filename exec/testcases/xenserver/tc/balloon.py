@@ -19,7 +19,7 @@ class _BalloonPerfBase(xenrt.TestCase):
     HAP = "NPT"
 
     def __init__(self, tcid="_BalloonPerfBase"):
-        super(_BalloonPerfBase, self).__init__(self, tcid=tcid)
+        super(_BalloonPerfBase, self).__init__(tcid=tcid)
         self.distro = "win7sp1-x86"
         self.arch = "x86-32"
 
@@ -160,8 +160,8 @@ class _BalloonSmoketest(_BalloonPerfBase):
     HAP = None
     EARLY_PV_LINUX = "rhel5\d*,rhel6\d*,centos5\d*,centos6\d*,sl5\d,sl6\d,debian60"
 
-    def __init__(self, tcid="_BalloonSmoketest"):
-        super(_BalloonSmoketest, self).__init__(self, tcid)
+    def __init__(self):
+        super(_BalloonSmoketest, self).__init__("_BalloonSmoketest")
         self.balloonUpInitialAlloc = True
         self.lowMemoryConstraint = False
         self.allowedTargetMismatch = 0

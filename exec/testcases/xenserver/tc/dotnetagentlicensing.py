@@ -130,8 +130,8 @@ class DotNetAgentTestCases(xenrt.TestCase):
             self.win2.revert(self.win2.asXapiObject().snapshot()[0].uuid)
         self.getGuest("server").revert(self.getGuest("server").asXapiObject().snapshot()[0].uuid)
         self.getGuest("server").start()
-        self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")).revert(self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")).asXapiObject().snapshot()[0].uuid)
-        self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")).start()
+        #self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")).revert(self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")).asXapiObject().snapshot()[0].uuid)
+        #self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")).start()
 
     def postRun(self):
         self.adapter.cleanupLicense(self.getDefaultPool())

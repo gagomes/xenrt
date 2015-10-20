@@ -12036,6 +12036,10 @@ class DundeeHost(CreedenceHost):
         if not sr:
             return command
 
+        # If NO_XENVMD is defined and set to 'yes' xenvm modification is not required.
+        if xenrt.TEC().lookup("NO_XENVMD", False, boolean=True):
+            return command
+
         # If given SR is not an SR instance consider it is a uuid and
         # get a Storage instance from uuid.
         if not isinstance(sr, xenrt.lib.xenserver.StorageRepository):

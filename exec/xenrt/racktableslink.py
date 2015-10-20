@@ -95,7 +95,7 @@ def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
 
     if not xenrt.GEC().config.lookupHost(machine, "BMC_ADDRESS", None):
         bmcaddr = None
-        for i in ("ilo", "idrac", "bmc"):
+        for i in ("bmc", "ilo", "idrac"):
             for j in ("MACHINE_DOMAIN", "INFRASTRUCTURE_DOMAIN"):
                 if not xenrt.GEC().config.lookup(j, None):
                     continue

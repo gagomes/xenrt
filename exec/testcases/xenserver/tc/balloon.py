@@ -18,8 +18,8 @@ class _BalloonPerfBase(xenrt.TestCase):
     LIMIT_TO_30GB = True
     HAP = "NPT"
 
-    def __init__(self):
-        xenrt.TestCase.__init__(self, "_BalloonPerfBase")
+    def __init__(self, tcid="_BalloonPerfBase"):
+        super(_BalloonPerfBase, self).__init__(self, tcid=tcid)
         self.distro = "win7sp1-x86"
         self.arch = "x86-32"
 
@@ -160,8 +160,8 @@ class _BalloonSmoketest(_BalloonPerfBase):
     HAP = None
     EARLY_PV_LINUX = "rhel5\d*,rhel6\d*,centos5\d*,centos6\d*,sl5\d,sl6\d,debian60"
 
-    def __init__(self):
-        _BalloonPerfBase.__init__(self, "_BalloonSmoketest")
+    def __init__(self, tcid="_BalloonSmoketest"):
+        super(_BalloonSmoketest, self).__init__(self, tcid)
         self.balloonUpInitialAlloc = True
         self.lowMemoryConstraint = False
         self.allowedTargetMismatch = 0
@@ -362,7 +362,8 @@ class _BalloonSmoketest(_BalloonPerfBase):
                 step("Set dynamic-min=dynamic-max=min, static-max=max")
                 self.guest.setMemoryProperties(None, minMem, minMem, maxMem)
             else:
-                #Guests cannot balloon up from inital memory allocation(early PV guests)
+                #Guests cannot balloon up beyond initial dynamic-min
+                #Assign dynamic-min = max memory so that we can balloon down to min and perform the test
                 step("Set dynamic-min=dynamic-max=static-max=max")
                 self.guest.setMemoryProperties(None, maxMem, maxMem, maxMem)
                 

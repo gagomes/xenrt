@@ -295,7 +295,7 @@ class Guest(xenrt.GenericGuest):
             distro=self.distro
         vms = self.getHost().lookup("NON_BALLOONABLE_PV_LINUX", None)
         if distro and vms:
-            for d in vms.split(","):
+            for d in vms:
                 if re.match(d, distro):
                     return True
         return False

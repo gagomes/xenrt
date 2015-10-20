@@ -68,9 +68,6 @@
     </prepare>
 
     <testsequence>
-        <testcase id="testcases.xenserver.tc.dotnetagentlicensing.TempTest">
-            <arg>win1=WS</arg>
-        </testcase>
         
         <testcase id="testcases.xenserver.tc.dotnetagentlicensing.VMAutoUpdateToggle">
             <arg>win1=WS</arg>

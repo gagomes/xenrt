@@ -100,7 +100,7 @@ class AgentTrigger(PingTriggerStrategy):
     def __init__(self,agent):
         self.__agent = agent
 
-    def execute():
+    def execute(self):
         self.__agent.restartAgent()
 
 class UnlicenseTrigger(PingTriggerStrategy):
@@ -153,13 +153,6 @@ class DotNetAgentTestCases(xenrt.TestCase):
             if arg.startswith('win2'):
                 self.win2 = self.getGuest(arg.split('=')[1])
                 self.win2.start()
-
-class TempTest(DotNetAgentTestCases):
-
-    def run(self,arglist):
-        #self.adapter.applyLicense(self.getDefaultPool())
-        autoupdate = self.agent.getLicensedFeature("AutoUpdate")
-        #autoupdate.compareMSIArch()
 
 class PoolAutoUpdateToggle(DotNetAgentTestCases):
 

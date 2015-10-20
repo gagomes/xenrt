@@ -23,7 +23,7 @@ class SimpleServer(object):
         return logTime > startTime
 
     def addRedirect(self):
-        self.guest.execguest("printf \"HTTP/1.1 301 Moved Permanently\\nLocation: http://%s:16000\\n\" | nc -l 15000 >/dev/null 2>&1&"%(self.getIP()), timeout=10)
+        self.guest.execguest("printf \"HTTP/1.1 301 Moved Permanently\\r\\nLocation: http://%s:16000\\r\\n\\r\\n\" | nc -l 15000 >/dev/null 2>&1&"%(self.getIP()), timeout=10)
 
     def getIP(self):
         return self.guest.getIP()

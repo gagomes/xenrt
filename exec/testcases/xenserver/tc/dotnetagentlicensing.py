@@ -17,7 +17,7 @@ class DotNetAgentAdapter(object):
 
     def applyLicense(self, hostOrPool, sku = None):
         if sku == None:
-            sku = xenrt.TEC().lookup("LICENSED_EDITION")
+            sku = self.licensedEdition
         if issubclass(type(hostOrPool),Pool):
             license = self.licenseFactory.licenseForPool(hostOrPool, sku)
         else:

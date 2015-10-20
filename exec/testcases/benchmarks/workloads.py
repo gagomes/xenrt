@@ -63,7 +63,7 @@ class Workload(object):
             data = "@echo off\n%s\n" % (string.replace(self.cmdline,
                                                      "%s",
                                                      self.workdir))
-            startupPath = self.guest.xmlrpcGetEnvVar("ALLUSERSPROFILE") + "\start menu\programs\startup"
+            startupPath = self.guest.xmlrpcGetEnvVar("ALLUSERSPROFILE") + "\\start menu\\programs\\startup"
             if not self.guest.xmlrpcFileExists(startupPath):
                 raise xenrt.XRTFailure("Start up path for guest is invalid: %s" % startupPath)
 

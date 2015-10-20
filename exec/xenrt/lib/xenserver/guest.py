@@ -285,6 +285,35 @@ class Guest(xenrt.GenericGuest):
                     return True
         return False
 
+    def nonBalloonablePVLinux(self, distro=None):
+        """Return True if pv-ops guest cannot balloon above initial dynamic-min.
+        Checks if distro exists in NON_BALLOONABLE_PV_LINUX list
+        @param distro: guest distro.
+        @return: boolean.
+        """
+        if not distro:
+            distro=self.distro
+        vms = self.getHost().lookup("NON_BALLOONABLE_PV_LINUX", None)
+        if distro and vms:
+            for d in vms.split(","):
+                if re.match(d, distro):
+                    return True
+        return False
+
+
+    def isUncooperative(self):
+        """Check if guest has been marked uncooperative.
+        Reads xenstore entry memory/uncooperative for the given domain
+        @return: boolean. True if uncooperative, else False
+        """
+        if self.windows:
+            raise xenrt.XRTError("Unimplemented")
+        else:
+            if self.getHost().xenstoreExists("/local/domain/%s/memory/uncooperative" % guest.getDomid()):
+                return True
+        return False
+
+
     def install(self,
                 host,
                 start=True,

@@ -14,11 +14,14 @@ from xenrt.lazylog import step, log
 class _BalloonPerfBase(xenrt.TestCase):
     """Base class for balloon driver performance tests"""
     FAIL_BELOW = 0.1 # GiB/Ghz/s
-    DISTRO = "win7sp1-x86"
-    ARCH = "x86-32"
     SET_PAE = True
     LIMIT_TO_30GB = True
     HAP = "NPT"
+
+    def __init__(self):
+        xenrt.TestCase.__init__(self, "_BalloonPerfBase")
+        self.distro = "win7sp1-x86"
+        self.arch = "x86-32"
 
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
@@ -33,7 +36,7 @@ class _BalloonPerfBase(xenrt.TestCase):
         
         self.guest.shutdown()
 
-        maxmem = int(self.host.lookup(["GUEST_LIMITATIONS", self.DISTRO, "MAXMEMORY"], self.host.lookup("MAX_VM_MEMORY", "32768")))
+        maxmem = int(self.host.lookup(["GUEST_LIMITATIONS", self.distro, "MAXMEMORY"], self.host.lookup("MAX_VM_MEMORY", "32768")))
         if not self.SET_PAE and maxmem > 4096:
             maxmem = 4096
         if self.LIMIT_TO_30GB and maxmem > 30720:
@@ -130,17 +133,17 @@ class _BalloonPerfBase(xenrt.TestCase):
     
     def parseArgs(self, arglist):
         args = self.parseArgsKeyValue(arglist)
-        (self.DISTRO, self.ARCH) = xenrt.getDistroAndArch(args.get("DISTRO", self.DISTRO))
+        (self.distro, self.arch) = xenrt.getDistroAndArch(args.get("DISTRO", self.distro))
         self.HAP = args.get("HAP", self.HAP)
         self.DO_LIFECYCLE_OPS = args.get("DO_LIFECYCLE_OPS", self.DO_LIFECYCLE_OPS)
         self.LIMIT_TO_30GB = args.get("LIMIT_TO_30GB", self.LIMIT_TO_30GB)
     
     def installGuest(self):
         # Set up the VM
-        guest = self.host.getGuest(self.DISTRO+self.ARCH)
+        guest = self.host.getGuest(self.distro+self.arch)
         if not guest:
-            guest = self.host.createBasicGuest(distro=self.DISTRO,
-                                               arch=self.ARCH)
+            guest = self.host.createBasicGuest(distro=self.distro,
+                                               arch=self.arch)
         if guest.windows and self.SET_PAE:
             guest.forceWindowsPAE()
 
@@ -148,7 +151,6 @@ class _BalloonPerfBase(xenrt.TestCase):
 
 class _BalloonSmoketest(_BalloonPerfBase):
     """Base class for balloon driver smoketests and max range tests"""
-    DISTRO = "win7sp1-x86"
     WORKLOADS = ["Prime95"]
     DO_LIFECYCLE_OPS = False
     LIMIT_TO_30GB = True
@@ -157,9 +159,12 @@ class _BalloonSmoketest(_BalloonPerfBase):
     HOST = "RESOURCE_HOST_0"
     HAP = None
     EARLY_PV_LINUX = "rhel5\d*,rhel6\d*,centos5\d*,centos6\d*,sl5\d,sl6\d,debian60"
-    balloonUpInitialAlloc = True
-    lowMemoryConstraint = False
-    allowedTargetMismatch = 0
+
+    def __init__(self):
+        _BalloonPerfBase.__init__(self, "_BalloonSmoketest")
+        self.balloonUpInitialAlloc = True
+        self.lowMemoryConstraint = False
+        self.allowedTargetMismatch = 0
 
     def prepare(self, arglist=None):
         # Get the host
@@ -194,8 +199,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
             lookup = "WIN"
         else:
             lookup = "LINUX"
-        self.dmcPercent = int(self.host.lookup("DMC_%s_PERCENT" % (lookup)))
-        self.dmcPercent = int(xenrt.TEC().lookup("DMC_%s_PERCENT" % (lookup), self.dmcPercent))
+        self.dmcPercent = int(self.host.lookup("DMC_%s_PERCENT" % (lookup),"25"))
         log("Dynamic Range Multiplies = %s" % (self.dmcPercent))
 
         self.guest.shutdown()
@@ -217,24 +221,24 @@ class _BalloonSmoketest(_BalloonPerfBase):
     def setLinuxContraints(self):
         # All Linux distros behave differently on memory balloon up.
         # Check the type and accordingly set the class variables
-        if [d for d in self.EARLY_PV_LINUX.split(",") if re.match(d,self.DISTRO)]:
+        if self.guest.nonBalloonablePVLinux():
             log("This is an early PV guest and it cannot balloon up beyond initial memory allocation")
             self.balloonUpInitialAlloc = False
         elif self.guest.isHVMLinux():
             log("This is HVM PV guest and we need to consider the constraint for 10 MB video memory")
             self.allowedTargetMismatch = 10
-        elif self.ARCH == "x86-32":
+        elif self.arch == "x86-32":
             log("This is a 32-bit PV guest and it cannot balloon up beyond 10 X Low memory")
             self.lowMemoryConstraint = True
 
     def findMinMaxMemory(self):
         step("Find the min and max supported memory for this distro")
         minmem = self.host.lookup("MIN_VM_MEMORY")
-        minmem = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.DISTRO, "MINMEMORY"], minmem))
-        self.minSupported = int(self.host.lookup(["VM_MIN_MEMORY_LIMITS", self.DISTRO], minmem))
-        self.minStaticSupported = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.DISTRO, "STATICMINMEMORY"], self.minSupported))
+        minmem = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro, "MINMEMORY"], minmem))
+        self.minSupported = int(self.host.lookup(["VM_MIN_MEMORY_LIMITS", self.distro], minmem))
+        self.minStaticSupported = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro, "STATICMINMEMORY"], self.minSupported))
         max = self.host.lookup("MAX_VM_MEMORY")
-        self.maxSupported = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.DISTRO, "MAXMEMORY"], max))
+        self.maxSupported = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro, "MAXMEMORY"], max))
 
         if not self.SET_PAE and self.maxSupported > 4096:
             self.maxSupported = 4096
@@ -320,8 +324,8 @@ class _BalloonSmoketest(_BalloonPerfBase):
         try:
             for i in range(self.ITERATIONS):
                 step("Starting iteration %u/%u..." % (i+1, self.ITERATIONS))
-                self.status = "fail"
-                self.runCaseInner(min, max, ((i+1) == self.ITERATIONS))
+                testStatus = "fail"
+                self.runCaseInner(min, max, (i+1))
                 xenrt.TEC().logverbose("...done")
                 success += 1
                 if xenrt.GEC().abort:
@@ -335,10 +339,10 @@ class _BalloonSmoketest(_BalloonPerfBase):
                 else:
                     arch = ""
             else:
-                arch = self.ARCH
-            logString = "DMCEnvelope,%s,%s,1,%s,%s," % (self.DISTRO, arch, max, self.dmcPercent)
+                arch = self.arch
+            logString = "DMCEnvelope,%s,%s,1,%s,%s," % (self.distro, arch, max, self.dmcPercent)
             if success == self.ITERATIONS:
-                self.status = "pass"
+                testStatus = "pass"
             else:
                 step("Trigger a debug dump from the VM and give it some time to dump")
                 if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
@@ -346,30 +350,41 @@ class _BalloonSmoketest(_BalloonPerfBase):
                 else:
                     self.host.execdom0("/opt/xensource/debug/xenops debugkeys q")
                 time.sleep(30)
-            logString += self.status
+            logString += testStatus
             logString += ",%s" % (type)
             xenrt.TEC().appresult(logString)
             
 
-    def runCaseInner(self, minMem, maxMem, doLifecycleOps):
+    def runCaseInner(self, minMem, maxMem, iteration):
         try:
             if self.balloonUpInitialAlloc:
                 #Guests can balloon up from inital memory allocation
-                self.testMaxRange(minMem, maxMem)
+                step("Set dynamic-min=dynamic-max=min, static-max=max")
+                self.guest.setMemoryProperties(None, minMem, minMem, maxMem)
             else:
                 #Guests cannot balloon up from inital memory allocation(early PV guests)
-                step("Set dynamic-min=min, dynamic-max=static-max=max")
-                self.guest.setMemoryProperties(None, minMem, maxMem, maxMem)
+                step("Set dynamic-min=dynamic-max=static-max=max")
+                self.guest.setMemoryProperties(None, maxMem, maxMem, maxMem)
                 
-                self.guest.start()
-                self.guest.checkMemory(inGuest=True)
-                self.status = "booted"
+            self.guest.start()
+            step("Check the target has been met correctly")
+            self.waitForTarget(120)
+            log("Wait for few seconds for RRDs to settle")
+            xenrt.sleep(30)
+            self.guest.checkMemory(inGuest=True)
+                
+            step("Verify it can balloon down to min")
+            self.changeDynamicMemory(minMem, minMem)
 
-                step("Check the target has been met correctly")
-                self.waitForTarget(120)
+            step("Verify VM can balloon up to max memory")
+            self.changeDynamicMemory(maxMem, maxMem)
 
-            # Are we meant to do lifecycle ops
-            if self.DO_LIFECYCLE_OPS and doLifecycleOps:
+            step("Verify it can balloon down to min")
+            self.changeDynamicMemory(minMem, minMem)
+                
+
+            # Perform lifecycle operations if it is the last iteration
+            if self.DO_LIFECYCLE_OPS and (iteration == self.ITERATIONS):
                 self.guest.setDynamicMemRange(minMem, maxMem)
                 self.lifecycleOps(minMem)
 
@@ -383,7 +398,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
             #...Windows is behaving perfectly reasonably and ballooning driver cannot...
             #...handle this situation. So modying testcase to handle this failure if it happens.
             #Change Dynamic Min to 512 and re-run the subcase.
-            if self.DISTRO in ["winxpsp3", "w2k3eesp2"] and minMem == 256 and "Domain running but not reachable" in str(e):
+            if self.distro in ["winxpsp3", "w2k3eesp2"] and minMem == 256 and "Domain running but not reachable" in str(e):
                 self.minSupported = 512
                 xenrt.TEC().warning("unable to balloon so low... changing min to 512MiB")
                 # Windows VMs have a limitation on the range they can balloon over
@@ -408,8 +423,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
             #then the product marks the guest as uncooperative
             #Check for uncooperative tag, if found shut down the VM and raise a failure
             elif "Memory target not met" in str(e):
-                res = self.host.execdom0("xenstore-ls -pf | grep memory | grep -E 'uncoop'", level=xenrt.RC_OK)
-                if res and "uncooperative" in res:
+                if self.guest.isUncooperative():
                     log("Caught failure: %s" % str(e))
                     log("Guest marked uncooperative")
                     log("Shut down the guest")
@@ -419,31 +433,13 @@ class _BalloonSmoketest(_BalloonPerfBase):
                         pass
                 raise
 
-    def testMaxRange(self, minMem, maxMem):
-        step("Set dynamic-min=dynamic-max=min, static-max=max")
-        self.guest.setMemoryProperties(None, minMem, minMem, maxMem)
+    def changeDynamicMemory(self, min, max):
+        """Set guest's dynamic memory to given limits and check if target is met"""
 
-        self.guest.start()
-        log("Wait for few seconds for RRDs to settle")
-        xenrt.sleep(30)
-        self.guest.checkMemory(inGuest=True)
-        self.status = "booted"
-
-        step("Check the target has been met correctly")
-        self.waitForTarget(120)
-
-        step("Verify VM can balloon up to max memory")
-        self.guest.setDynamicMemRange(maxMem, maxMem)
+        self.guest.setDynamicMemRange(min, max)
 
         self.waitForTarget(300)
         log("Wait for few seconds for RRDs to settle")
-        xenrt.sleep(30)
-        self.guest.checkMemory(inGuest=True)
-
-        step("Verify it can balloon down to min")
-        self.guest.setDynamicMemRange(minMem, minMem)
-
-        self.waitForTarget(300)
         xenrt.sleep(30)
         self.guest.checkMemory(inGuest=True)
 
@@ -503,16 +499,14 @@ class _P2VBalloonSmoketest(_BalloonSmoketest):
         m = xenrt.PhysicalHost(mname)
         xenrt.GEC().startLogger(m)
         self.p2vhost = xenrt.lib.native.NativeLinuxHost(m)
-        self.p2vhost.installLinuxVendor(self.DISTRO)
+        self.p2vhost.installLinuxVendor(self.distro)
 
         guest = self.host.p2v(xenrt.randomGuestName(),
-                              self.DISTRO,
+                              self.distro,
                               self.p2vhost)
 
         return guest
 
-    """Windows 2008 R2 SP1 x64 balloon driver performance test"""
-    DISTRO = "ws08r2sp1-x64"
 
 #
 # Linux VM Balloon Driver Performance Tests (primary OS's)

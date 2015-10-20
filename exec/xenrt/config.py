@@ -679,6 +679,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Boston"]["LATEST_rhel4"] = "rhel48"
         self.config["VERSION_CONFIG"]["Boston"]["LATEST_rhel5"] = "rhel56"
         self.config["VERSION_CONFIG"]["Boston"]["LATEST_rhel6"] = "rhel6"
+        self.config["VERSION_CONFIG"]["Boston"]["NON_BALLOONABLE_PV_LINUX"] = "rhel5,rhel6,centos5,centos6,sl5,sl6,oel5,oel6,debian60"
         self.config["VERSION_CONFIG"]["Boston"]["DOM0_PARTITIONS"] = {1:4*xenrt.GIGA, 2:4*xenrt.GIGA, 3:"*"}
         self.config["VERSION_CONFIG"]["Boston"]["INTERNAL_RPU_HOTFIX"] = "XS62E006.xsupdate"
 
@@ -862,6 +863,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Tampa"]["GENERIC_LINUX_OS_64"] = "centos57"
         self.config["VERSION_CONFIG"]["Tampa"]["TILE_WIN_DISTRO"] = "ws08sp2-x86"
         self.config["VERSION_CONFIG"]["Tampa"]["TILE_LINUX_DISTRO"] = "centos57"
+        self.config["VERSION_CONFIG"]["Tampa"]["NON_BALLOONABLE_PV_LINUX"] = "rhel5,rhel6,centos5,centos6,sl5,sl6,oel5,oel6,debian60"
         self.config["VERSION_CONFIG"]["Tampa"]["EXPECTED_CRASHDUMP_FILES"] = "xen-crashdump-analyser.log,xen.log,dom0.log"
         self.config["VERSION_CONFIG"]["Tampa"]["V6_DBV"] = "2010.0521"
         self.config["VERSION_CONFIG"]["Tampa"]["IDLE_VMs_DOM0_CPU_Utilize"] = "260"
@@ -1115,6 +1117,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CPS_2008R2_64"] = "Citrix XenApp on Windows Server 2008 R2 (64-bit),Citrix XenApp x64 on Windows Server 2008 R2 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_SDK"] = "Xen API SDK"
         self.config["VERSION_CONFIG"]["Creedence"]["HVM_LINUX"] = "rhel7\d*,centos7\d*,oel7\d*,ubuntu1404,debian80,debiantesting,ubuntudevel,sl7\d*,fedora.*"
+        self.config["VERSION_CONFIG"]["Creedence"]["NON_BALLOONABLE_PV_LINUX"] = "rhel5,rhel6,centos5,centos6,sl5,sl6,oel5,oel6,debian60"
         self.config["VERSION_CONFIG"]["Creedence"]["NMAP_ALLOWED_PORTS"] = "tcp/22 tcp/443 tcp/80 (tcp/1311)"
         self.config["VERSION_CONFIG"]["Creedence"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["Creedence"]["DOM0_DISTRO"] = "centos51"

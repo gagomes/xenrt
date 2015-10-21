@@ -72,7 +72,7 @@ class _ThinLVHDBase(xenrt.TestCase):
                 smconf[key.strip()] = val.strip()
         else:
             smconf = obj.smconf
-            
+
         return smconf
 
     def getInitialAllocation(self, obj=None):

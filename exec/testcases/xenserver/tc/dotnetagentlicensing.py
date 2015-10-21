@@ -397,7 +397,7 @@ class NonCryptoMSI(DotNetAgentTestCases):
 class NoServerSurvive(DotNetAgentTestCases):
 
     def run(self, arglist):
-        self.adapter.applyLicense(self.getDefaultPool())
+        self.adapter.applyLicense(self.adapter, self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.enable()
         autoupdate.setURL("http://localhost:55555")

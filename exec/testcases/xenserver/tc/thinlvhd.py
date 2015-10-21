@@ -1317,7 +1317,8 @@ class TCSRUpgrade(_ThinLVHDBase):
         expected = initial + quantum * 10
         self.fillDisk(self.master, targetDir="/dev/" + device, size=expected)
         allocated = self.getPhysicalVDISize(vdi)
-        if allocated < expected or allocated > expected * 1.05:
+        # maximum usage can be additional quantum size + VHD header size (8 MiB)
+        if allocated < expected or allocated > expected + quantum + 8 * xenrt.MEGA:
             raise xenrt.XRTFailure("Size of VDI is not increased as expected. Expected: %d, Allocated: %d" %
                     (expected, allocated))
 

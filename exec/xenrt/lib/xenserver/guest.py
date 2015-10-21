@@ -4502,6 +4502,9 @@ exit /B 1
         self.start()
 
     def getLowMemory(self):
+        """Returns low memory of the linux guest
+        @return: low memory in MiBs
+        """
         if self.windows:
             raise xenrt.XRTError("Unimplemented")
         else:

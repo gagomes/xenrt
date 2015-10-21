@@ -170,7 +170,7 @@ class PoolAutoUpdateToggle(DotNetAgentTestCases):
         autoupdate.enable()
         self._pingServer(trigger,server,True)
         self._pingServer(trigger1,server,True)
-        licTrigger = UnlicenseTrigger(self.getDefaultPool())
+        licTrigger = UnlicenseTrigger(self.adapter, self.getDefaultPool())
         self._pingServer(licTrigger,server,False)
         self._pingServer(trigger,server,False)
         self._pingServer(trigger1,server,False)
@@ -397,7 +397,7 @@ class NonCryptoMSI(DotNetAgentTestCases):
 class NoServerSurvive(DotNetAgentTestCases):
 
     def run(self, arglist):
-        self.adapter.applyLicense(self.adapter, self.getDefaultPool())
+        self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.enable()
         autoupdate.setURL("http://localhost:55555")

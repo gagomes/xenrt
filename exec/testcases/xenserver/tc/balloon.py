@@ -21,7 +21,7 @@ class _BalloonPerfBase(xenrt.TestCase):
         self.distro = "win7sp1-x86"
         self.arch = "x86-32"
         self.limitTo30Gb = True
-        self.hap = "NPT"
+        self.hap = None
         self.doLifecycleOps = True
 
     def prepare(self, arglist=None):

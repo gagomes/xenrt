@@ -285,19 +285,15 @@ class Guest(xenrt.GenericGuest):
                     return True
         return False
 
-    def nonBalloonablePVLinux(self, distro=None):
+    def isNonBalloonablePVLinux(self):
         """Return True if pv-ops guest cannot balloon above initial dynamic-min.
-        Checks if distro exists in NON_BALLOONABLE_PV_LINUX list
-        @param distro: guest distro.
+        Checks if distro exists in nonBalloonablePvLinux list
         @return: boolean.
         """
-        if not distro:
-            distro=self.distro
-        vms = self.getHost().lookup("NON_BALLOONABLE_PV_LINUX", None)
-        if distro and vms:
-            for d in vms:
-                if re.match(d, distro):
-                    return True
+        nonBalloonablePvLinux = ["rhel5","rhel6","centos5","centos6","sl5","sl6","oel5","oel6","debian60"]
+        for d in nonBalloonablePvLinux:
+            if re.match(d, self.distro):
+                return True
         return False
 
 
@@ -4506,7 +4502,9 @@ exit /B 1
         self.start()
 
     def getLowMemory(self):
-        if not self.windows:
+        if self.windows:
+            raise xenrt.XRTError("Unimplemented")
+        else:
             return int(self.execguest("free -l | grep Low | awk '{print $2}'").strip()) / xenrt.KILO
 
 
@@ -5247,19 +5245,27 @@ class MNRGuest(Guest):
         else:
             return int(self.paramGet("memory-actual"))
 
-    def waitForTarget(self, timeout, desc="Target not reached within timeout"):
+    def waitForTarget(self, timeout, allowedTargetMismatch=0, desc="Target not reached within timeout"):
+        """Waits for memory actual to reach memory target
+        Raise failure if memory actual fails to reach memory target
+        @param timeout: Maximum time for which function should wait for memory actual to reach target
+        @param allowedTargetMismatch: Allowed difference in memory actual and target(beyond 1 percent) in MiBs
+        @param desc: Message to be dislayed in case of failure.
+        @return: None
+        """
+
         startTime = xenrt.util.timenow()
-        cli = self.getCLIInstance()
-        while True:
-            try:
-                cli.execute("vm-memory-target-wait", "uuid=%s" % (self.getUUID()))
-                break
-            except:
-                pass
-            if (xenrt.util.timenow() - startTime) > timeout:
-                data = ("Target %d, actual %d" % (self.getMemoryTarget(),
-                                                  self.getMemoryActual()))
-                raise xenrt.XRTFailure(desc, data=data)
+        while (xenrt.util.timenow() - startTime) < timeout:
+            target = self.getMemoryTarget()
+            actual = self.getMemoryActual()
+            if target != 0:
+                difference = abs(target - actual)
+                difference = min(abs(difference - allowedTargetMismatch ), difference)
+                percentage = float(difference) / float(target)
+                if percentage <= 1:
+                    return
+            xenrt.sleep(30)
+        raise xenrt.XRTFailure("%s. Target=%u. Actual=%u." % (desc, target, actual))
 
     def makeCooperative(self, cooperative, xapiOnly=False):
         """Make a guest (un)cooperative to balloon requests"""

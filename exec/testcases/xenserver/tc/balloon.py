@@ -15,13 +15,14 @@ class _BalloonPerfBase(xenrt.TestCase):
     """Base class for balloon driver performance tests"""
     FAIL_BELOW = 0.1 # GiB/Ghz/s
     SET_PAE = True
-    LIMIT_TO_30GB = True
-    HAP = "NPT"
 
     def __init__(self, tcid="_BalloonPerfBase"):
         super(_BalloonPerfBase, self).__init__(tcid=tcid)
         self.distro = "win7sp1-x86"
         self.arch = "x86-32"
+        self.limitTo30Gb = True
+        self.hap = "NPT"
+        self.doLifecycleOps = True
 
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
@@ -39,7 +40,7 @@ class _BalloonPerfBase(xenrt.TestCase):
         maxmem = int(self.host.lookup(["GUEST_LIMITATIONS", self.distro, "MAXMEMORY"], self.host.lookup("MAX_VM_MEMORY", "32768")))
         if not self.SET_PAE and maxmem > 4096:
             maxmem = 4096
-        if self.LIMIT_TO_30GB and maxmem > 30720:
+        if self.limitTo30Gb and maxmem > 30720:
             maxmem = 30720
         self.maxMiB = maxmem
         xenrt.TEC().comment("max = %d GiB" % (self.maxMiB / xenrt.KILO))
@@ -134,9 +135,9 @@ class _BalloonPerfBase(xenrt.TestCase):
     def parseArgs(self, arglist):
         args = self.parseArgsKeyValue(arglist)
         (self.distro, self.arch) = xenrt.getDistroAndArch(args.get("DISTRO", self.distro))
-        self.HAP = args.get("HAP", self.HAP)
-        self.DO_LIFECYCLE_OPS = args.get("DO_LIFECYCLE_OPS", self.DO_LIFECYCLE_OPS)
-        self.LIMIT_TO_30GB = args.get("LIMIT_TO_30GB", self.LIMIT_TO_30GB)
+        self.hap = args.get("HAP", self.hap)
+        self.doLifecycleOps = args.get("DO_LIFECYCLE_OPS", self.doLifecycleOps)
+        self.limitTo30Gb = args.get("LIMIT_TO_30GB", self.limitTo30Gb)
     
     def installGuest(self):
         # Set up the VM
@@ -152,13 +153,9 @@ class _BalloonPerfBase(xenrt.TestCase):
 class _BalloonSmoketest(_BalloonPerfBase):
     """Base class for balloon driver smoketests and max range tests"""
     WORKLOADS = ["Prime95"]
-    DO_LIFECYCLE_OPS = False
-    LIMIT_TO_30GB = True
     ITERATIONS = 1
     SET_PAE = True
     HOST = "RESOURCE_HOST_0"
-    HAP = None
-    EARLY_PV_LINUX = "rhel5\d*,rhel6\d*,centos5\d*,centos6\d*,sl5\d,sl6\d,debian60"
 
     def __init__(self):
         super(_BalloonSmoketest, self).__init__("_BalloonSmoketest")
@@ -171,7 +168,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
         self.host = self.getHost(self.HOST)
         self.parseArgs(arglist)
         
-        if self.HAP:
+        if self.hap:
             self.checkHAP()
 
         step("Sleeping to let host memory free settle...")
@@ -208,20 +205,20 @@ class _BalloonSmoketest(_BalloonPerfBase):
         # Check this is the right sort of host
         # XXX: At the moment we can only check if it's Intel or AMD - we
         # need a way to check if its EPT or NPT!
-        if not self.HAP in ["NPT", "EPT"]:
-            raise xenrt.XRTError("Unknown HAP type %s" % (self.HAP))
+        if not self.hap in ["NPT", "EPT"]:
+            raise xenrt.XRTError("Unknown HAP type %s" % (self.hap))
 
-        if self.HAP == "NPT" and not self.host.isSvmHardware():
+        if self.hap == "NPT" and not self.host.isSvmHardware():
             raise xenrt.XRTError("Attempting to test NPT but not running on"
                                      " AMD hardware")
-        elif self.HAP == "EPT" and not self.host.isVmxHardware():
+        elif self.hap == "EPT" and not self.host.isVmxHardware():
             raise xenrt.XRTError("Attempting to test EPT but not running on"
                                      " Intel hardware")
 
     def setLinuxContraints(self):
         # All Linux distros behave differently on memory balloon up.
         # Check the type and accordingly set the class variables
-        if self.guest.nonBalloonablePVLinux():
+        if self.guest.isNonBalloonablePVLinux():
             log("This is an early PV guest and it cannot balloon up beyond initial memory allocation")
             self.balloonUpInitialAlloc = False
         elif self.guest.isHVMLinux():
@@ -244,7 +241,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
             self.maxSupported = 4096
 
         # If the max is 32GB, then drop it to 30GB/(max available memory) so we can fit on a 32GB host
-        if self.LIMIT_TO_30GB and self.maxSupported > 30720:
+        if self.limitTo30Gb and self.maxSupported > 30720:
             xenrt.TEC().comment("Limiting test to 30GB...")
             freemem = self.host.getFreeMemory()
             availablemem = freemem - self.host.predictVMMemoryOverhead(freemem, False)
@@ -369,23 +366,23 @@ class _BalloonSmoketest(_BalloonPerfBase):
                 
             self.guest.start()
             step("Check the target has been met correctly")
-            self.waitForTarget(120)
+            self.guest.waitForTarget(120, allowedTargetMismatch=self.allowedTargetMismatch)
             log("Wait for few seconds for RRDs to settle")
             xenrt.sleep(30)
             self.guest.checkMemory(inGuest=True)
                 
             step("Verify it can balloon down to min")
-            self.changeDynamicMemory(minMem, minMem)
+            self.setDynamicMemRange(minMem, minMem)
 
             step("Verify VM can balloon up to max memory")
-            self.changeDynamicMemory(maxMem, maxMem)
+            self.setDynamicMemRange(maxMem, maxMem)
 
             step("Verify it can balloon down to min")
-            self.changeDynamicMemory(minMem, minMem)
+            self.setDynamicMemRange(minMem, minMem)
                 
 
             # Perform lifecycle operations if it is the last iteration
-            if self.DO_LIFECYCLE_OPS and (iteration == self.ITERATIONS):
+            if self.doLifecycleOps and (iteration == self.ITERATIONS):
                 self.guest.setDynamicMemRange(minMem, maxMem)
                 self.lifecycleOps(minMem)
 
@@ -423,7 +420,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
             #(ranging from too busy, crashed guest, malicious guest, buggy balloon driver)
             #then the product marks the guest as uncooperative
             #Check for uncooperative tag, if found shut down the VM and raise a failure
-            elif "Memory target not met" in str(e):
+            elif "Target not reached" in str(e):
                 if self.guest.isUncooperative():
                     log("Caught failure: %s" % str(e))
                     log("Guest marked uncooperative")
@@ -436,29 +433,16 @@ class _BalloonSmoketest(_BalloonPerfBase):
             else:
                 raise
 
-    def changeDynamicMemory(self, min, max):
+    def setDynamicMemRange(self, min, max):
         """Set guest's dynamic memory to given limits and check if target is met"""
 
         self.guest.setDynamicMemRange(min, max)
 
-        self.waitForTarget(300)
+        self.guest.waitForTarget(300, allowedTargetMismatch=self.allowedTargetMismatch)
         log("Wait for few seconds for RRDs to settle")
         xenrt.sleep(30)
         self.guest.checkMemory(inGuest=True)
 
-    def waitForTarget(self, timeout):
-        startTime = xenrt.util.timenow()
-        while (xenrt.util.timenow() - startTime) < timeout:
-            target = self.guest.getMemoryTarget()
-            actual = self.guest.getMemoryActual()
-            if target != 0:
-                difference = abs(target - actual)
-                difference = min(abs(difference - self.allowedTargetMismatch ), difference)
-                percentage = float(difference) / float(target)
-                if percentage <= 1:
-                    return
-            xenrt.sleep(30)
-        raise xenrt.XRTFailure("Memory target not met. Target=%u. Actual=%u." % (target, actual))
 
     def lifecycleOps(self, min):
         step("Perform Lifecycle operations on the VM")
@@ -534,7 +518,6 @@ class TCWindowsBalloonPerf(_BalloonPerfBase):
 #
 class _MaxRangeBase(_BalloonSmoketest):
     """Base class for max range testcases"""
-    DO_LIFECYCLE_OPS = True
     ITERATIONS = 3
 
 class _LinuxMaxRangeBase(_MaxRangeBase):

@@ -93,7 +93,6 @@ class StorageRepository(object):
         self.srtype = None
         self.dconf = None
         self.content_type = ""
-        self.smconf = {}
 
     @classmethod
     def fromExistingSR(cls, host, sruuid):
@@ -119,9 +118,27 @@ class StorageRepository(object):
 
         xpbd = next((p for p in xsr.PBD() if p.host() == host.asXapiObject()), None)
         instance.dconf = xpbd.deviceConfig()
-        instance.smconf = xsr.smConfig()
         instance.content_type = xsr.contentType()
         return instance
+
+    @property
+    def smconf(self):
+        """
+        Query current sm-config object and return as Dict form
+
+        @return: Dict of sm-config of SR.
+        """
+        confstr = self.host.genParamGet("sr", self.uuid, "sm-config")
+        conf = {}
+        for item in confstr.split(";"):
+            key, val = item.split(":", 1)
+            conf[key.strip()] = val.strip()
+
+        return conf
+    
+    @property
+    def smconfig(self):
+        return self.smconf
 
     @property
     def thinProvisioning(self):
@@ -264,7 +281,6 @@ class StorageRepository(object):
         self.srtype = srtype
         self.dconf = actualDeviceConfiguration
         self.content_type = content_type
-        self.smconf = smconf
 
     def check(self):
         self.checkCommon(self.srtype)

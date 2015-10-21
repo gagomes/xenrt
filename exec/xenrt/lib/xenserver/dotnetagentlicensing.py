@@ -215,7 +215,12 @@ class VSS(LicensedFeature):
         self.os = os
 
     def isSnapshotPossible(self):
-        self.guest.enableVSS()
+        try:
+            self.guest.enableVSS()
+        except:
+            xenrt.TEC().logverbose("-----VSS failed to enable-----")
+            return False
+
         try:
             snapuuid = self.guest.snapshot(quiesced=True)
             xenrt.TEC().logverbose("-----VSS Snapshot succeeded-----")

@@ -213,6 +213,7 @@ class HTTPRedirect(DotNetAgentTestCases):
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.enable()
         autoupdate.setURL("http://%s:15000"% server.getIP())
+        xenrt.sleep(60)
         server.addRedirect()
         self._pingServer(trigger,server,True)
 
@@ -361,9 +362,12 @@ class AUByDefault(DotNetAgentTestCases):
     def run(self, arglist):
         self.adapter.applyLicense(self.getDefaultPool())
         self.adapter.lowerDotNetAgentVersion(self.win1)
+        autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         version = self.agent.agentVersion()
         self.agent.restartAgent()
         xenrt.sleep(200)
+        if autoupdate.checkDownloadedMSI() == None:
+            xenrt.XRTFailure("Agent did not download MSI")
         if version == self.agent.agentVersion():
             xenrt.XRTFailure("Agent Did not install latest version")
 

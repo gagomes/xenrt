@@ -23,6 +23,7 @@ class _BalloonPerfBase(xenrt.TestCase):
         self.limitTo30Gb = True
         self.hap = None
         self.doLifecycleOps = True
+        self.guestName = self.distro
 
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
@@ -134,16 +135,17 @@ class _BalloonPerfBase(xenrt.TestCase):
     
     def parseArgs(self, arglist):
         args = self.parseArgsKeyValue(arglist)
-        (self.distro, self.arch) = xenrt.getDistroAndArch(args.get("DISTRO", self.distro))
+        self.guestName = args.get("DISTRO", self.distro)
+        (self.distro, self.arch) = xenrt.getDistroAndArch(self.guestName)
         self.hap = args.get("HAP", self.hap)
         self.doLifecycleOps = args.get("DO_LIFECYCLE_OPS", self.doLifecycleOps)
         self.limitTo30Gb = args.get("LIMIT_TO_30GB", self.limitTo30Gb)
     
     def getGuest(self):
         # Set up the VM
-        guest = self.host.getGuest(self.distro+self.arch)
+        guest = self.host.getGuest(self.guestName)
         if not guest:
-            raise xenrt.XRTFailure("Guest %s not found on the host" % (self.distro+self.arch))
+            raise xenrt.XRTFailure("Guest %s not found on the host" % (self.guestName))
 
         if guest.windows and self.SET_PAE:
             guest.forceWindowsPAE()

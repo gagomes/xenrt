@@ -13,14 +13,16 @@
   <testsequence>
     <parallel group="WindowsVMInstallation" workers="8">
       <for iter="D" values="%DISTROS%"> 
-        <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" sku="${D}.dmc" tc="TC-14987">
-          <arg>RESOURCE_HOST_0</arg>
-          <arg>guest=${D}</arg>
-          <arg>distro=${D}</arg>
-        </testcase>
-        <testcase id="guestops.drivers.TCDriverInstall" sku="${D}.dmc" tc="TC-14988">
-          <arg>guest=${D}</arg>
-        </testcase>
+        <serial group="${D}">
+          <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" sku="${D}.dmc" tc="TC-14987">
+            <arg>RESOURCE_HOST_0</arg>
+            <arg>guest=${D}</arg>
+            <arg>distro=${D}</arg>
+          </testcase>
+          <testcase id="guestops.drivers.TCDriverInstall" sku="${D}.dmc" tc="TC-14988">
+            <arg>guest=${D}</arg>
+          </testcase>
+        </serial>
       </for>
     </parallel>
     <serial group="WindowsBalloonMaxRange">

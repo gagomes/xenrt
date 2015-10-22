@@ -3,7 +3,11 @@
   <!-- Long Haul test sequence -->
   <default name="ISCSIOPTIONS" value="ietvm" />
   <default name="LONGHAUL_SKU" value="ID" />
-  
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
   <prepare>
     <host id="0">
       <vm name="VM">

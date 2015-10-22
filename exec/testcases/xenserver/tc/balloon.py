@@ -30,7 +30,7 @@ class _BalloonPerfBase(xenrt.TestCase):
         self.parseArgs(arglist)
         
         step("Install Guest")
-        self.guest = self.installGuest()
+        self.guest = self.getGuest()
         self.uninstallOnCleanup(self.guest)
         self.getLogsFrom(self.guest)
         log("Guest Installation complete")
@@ -139,12 +139,12 @@ class _BalloonPerfBase(xenrt.TestCase):
         self.doLifecycleOps = args.get("DO_LIFECYCLE_OPS", self.doLifecycleOps)
         self.limitTo30Gb = args.get("LIMIT_TO_30GB", self.limitTo30Gb)
     
-    def installGuest(self):
+    def getGuest(self):
         # Set up the VM
         guest = self.host.getGuest(self.distro+self.arch)
         if not guest:
-            guest = self.host.createBasicGuest(distro=self.distro,
-                                               arch=self.arch)
+            raise xenrt.XRTFailure("Guest %s not found on the host" % (self.distro+self.arch))
+
         if guest.windows and self.SET_PAE:
             guest.forceWindowsPAE()
 
@@ -177,7 +177,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
         xenrt.TEC().logverbose("...done")
         
         step("Install Guest")
-        self.guest = self.installGuest()
+        self.guest = self.getGuest()
         self.uninstallOnCleanup(self.guest)
         self.getLogsFrom(self.guest)
         log("Guest Installation complete")
@@ -479,7 +479,7 @@ class _P2VBalloonSmoketest(_BalloonSmoketest):
     WORKLOADS = ["LinuxSysbench"]
     HOST = "RESOURCE_HOST_1"
 
-    def installGuest(self):
+    def getGuest(self):
         # We assume that the default host is the target host, and that
         # RESOURCE_HOST_0 is the native host
         mname = xenrt.TEC().lookup("RESOURCE_HOST_0")
@@ -533,26 +533,6 @@ class TCLinuxMaxRange(_LinuxMaxRangeBase):
 class TCWindowsMaxRange(_MaxRangeBase):
     """Windows max range test"""
     ITERATIONS = 1
-
-#
-# VM Insatalltion test
-#
-class TCVmInstallation(xenrt.TestCase):
-    """Install VMs passed as distros"""
-    def run(self, arglist=[]):
-        step("Installing Guests in parallel")
-        distros = xenrt.TEC().lookup("DISTROS").split(",")
-        self.host = self.getDefaultHost()
-        pTasks = [xenrt.PTask(self.installGuest,distroName=d) for d in distros]
-        xenrt.TEC().logverbose("Guest installation pTasks are %s" % pTasks)
-        xenrt.pfarm(pTasks)
-        
-
-    def installGuest(self, distroName):
-        # Set up the VM
-        (distro, arch) = xenrt.getDistroAndArch(distroName)
-        guest = self.host.createBasicGuest(distro=distro,
-                                    arch=arch, name=distro+arch)
 
 
 class TC9284(xenrt.TestCase):

@@ -174,9 +174,10 @@ class PoolAdmin(ActorImp):
 
     def checkKeyPresent(self):
         host = self.guest.host
-        xenrt.TEC().logverbose("----xenstore-exists: %s"%host.xenstoreExists("/guest_agent_features/Guest_agent_auto_update/parameters/enabled"))
+        dontakethepiss = host.xenstoreExists("/guest_agent_features/Guest_agent_auto_update/parameters/enabled")
+        xenrt.TEC().logverbose("----xenstore-exists: %s"%dontakethepiss)
         xenrt.TEC().logverbose("%s" % host.execdom0("xenstore-ls -f"))
-        return host.xenstoreExists("/guest_agent_features/Guest_agent_auto_update/parameters/enabled")
+        return dontakethepiss
 
 class VMUser(ActorImp):
 

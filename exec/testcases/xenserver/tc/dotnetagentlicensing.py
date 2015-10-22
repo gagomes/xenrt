@@ -241,7 +241,13 @@ class ToggleAUHierarchy(DotNetAgentTestCases):
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.disable()
-        xenrt.TEC().logverbose("*****%s : %s*****"%(autoupdate.checkKeyPresent(),autoupdate.isActive()))
+
+        keyPresent = autoupdate.checkKeyPresent()
+        updateIsActive = autoupdate.isActive()
+
+        xenrt.TEC().logverbose(dir(keyPresent))
+        xenrt.TEC().logverbose(type(keyPresent))
+        xenrt.TEC().logverbose("*****%s : %s*****"%(keyPresent, True ))
         if autoupdate.checkKeyPresent() and not autoupdate.isActive():
             pass
         else:

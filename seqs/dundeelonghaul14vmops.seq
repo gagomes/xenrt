@@ -25,7 +25,7 @@
   </prepare>
 
   <testsequence>
-    <serial group="{LONGHAUL_SKU}">
+    <serial group="${LONGHAUL_SKU}">
       <testcase id="xenserver.tc.longhaul.LongHaulTestVmOperations" tc="TC-20906" sku="{LONGHAUL_SKU}">
         <arg>duration=1209600</arg>
       </testcase>

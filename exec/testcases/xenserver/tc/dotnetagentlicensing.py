@@ -241,7 +241,7 @@ class ToggleAUHierarchy(DotNetAgentTestCases):
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.disable()
-        if autoupdate.checkKeyPresent() and autoupdate.isActive():
+        if autoupdate.checkKeyPresent() and not autoupdate.isActive():
             pass
         else:
             raise xenrt.XRTFailure("Xapi does not indicate that AutoUpdate is disabled")
@@ -252,7 +252,8 @@ class ToggleAUHierarchy(DotNetAgentTestCases):
         autoupdate.enable()
         self._pingServer(trigger,server, True)
         autoupdate.setUserPoolAdmin()
-        if autoupdate.checkKeyPresent() and autoupdate.isActive():
+        autoupdate.disable()
+        if autoupdate.checkKeyPresent() and not autoupdate.isActive():
             pass
         else:
             raise xenrt.XRTFailure("Xapi does not indicate that AutoUpdate is disabled")
@@ -260,7 +261,7 @@ class ToggleAUHierarchy(DotNetAgentTestCases):
         if autoupdate.checkKeyPresent() and autoupdate.isActive():
             pass
         else:
-            raise xenrt.XRTFailure("Xapi does not indicate that AutoUpdate is disabled")
+            raise xenrt.XRTFailure("registry does not indicate that AutoUpdate is disabled")
         self._pingServer(trigger,server,True)
 
 class URLHierarchy(DotNetAgentTestCases):

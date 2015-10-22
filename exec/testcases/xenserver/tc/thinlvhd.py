@@ -192,6 +192,28 @@ class _ThinLVHDBase(xenrt.TestCase):
 
         return int(self.__getSRObj(sr, scan).paramGet("physical-size"))
 
+    def getExactPhysicalUtilisation(self, sr, scan=True):
+        """Return exact physical utilisation of SR.
+        physical-utilisation is actual free space available in SR.
+        This does not include host free pool size, this can cause wrong calculation.
+        This is being fixed. Once it is done, this won't be needed."""
+
+        # TODO: Delete this function once CP-14242 is resolved.
+
+        if hasattr(self, "host"):
+            host = self.host
+        else:
+            host = self.getDefaultHost()
+
+        stat = self.getPhysicalUtilisation(sr, scan)
+        if host.pool:
+            for h in host.pool.getHosts():
+                stat += self.getHostFreeSpace(h, sr)
+        else:
+            stat += self.getHostFreeSpace(host, sr)
+
+        return stat
+
     def fillDisk(self, guest, targetDir=None, size=512*xenrt.MEGA, source="/dev/zero"):
         """Fill target disk by creating an empty file with
         given size on the given directory.
@@ -255,6 +277,7 @@ class _ThinLVHDBase(xenrt.TestCase):
 
     def getHostFreeSpace(self, host, sr=None):
         """Return host free space that can allocate.
+        HostFreeSpace is only available on xenvmd thinLVHD.
 
         @param sruuid: VDI uuid string
         @param host: host to query.
@@ -262,12 +285,18 @@ class _ThinLVHDBase(xenrt.TestCase):
         @return: allocation free space on given host in bytes.
         """
 
+        # Other than xenvmd environment there isn't such host free space.
+        if xenrt.TEC().lookup("NO_XENVMD", False, boolean=True):
+            return 0
+
         if not sr:
             host.lookupDefaultSR()
         if isinstance(sr, xenrt.lib.xenserver.StorageRepository):
-            sr = sr.uuid
+            sruuid = sr.uuid
+        else:
+            sruuid = sr
 
-        output = host.execdom0("xenvm lvs /dev/VG_XenStorage-%s --nosuffix | grep %s-free" % (sr, host.uuid))
+        output = host.execRawStorageCommand(sr, "lvs /dev/VG_XenStorage-%s --nosuffix | grep %s-free" % (sruuid, host.uuid))
 
         return int(output.split()[-1])
 
@@ -325,10 +354,9 @@ class _ThinLVHDBase(xenrt.TestCase):
         srs = self.getThinProvisioningSRs()
         for sr in srs:
             sr.scan()
-            host = sr.host
             try:
-                host.execdom0("xenvm vgs /dev/VG_XenStorage-%s" % sr.uuid)
-                host.execdom0("xenvm lvs /dev/VG_XenStorage-%s" % sr.uuid)
+                sr.host.execRawStorageCommand(sr, "vgs /dev/VG_XenStorage-%s" % sr.uuid)
+                sr.host.execRawStorageCommand(sr, "lvs /dev/VG_XenStorage-%s" % sr.uuid)
             except:
                 pass
 
@@ -459,7 +487,7 @@ class ResetOnBootThinSRSpace(_ThinLVHDBase):
 
         self.guest.setState("UP")
         xenrt.sleep(60)
-        srSizeBeforeWrite = self.getPhysicalUtilisation(self.srs[0])
+        srSizeBeforeWrite = self.getExactPhysicalUtilisation(self.srs[0])
         log("Physical SR space allocated for the VDIs before writing: %d" % (srSizeBeforeWrite))
         digestBeforeWrite = self.getDigest("/dev/%s" % device)
         log("MD5 digest before writing into VDI: %s" % (digestBeforeWrite))
@@ -469,7 +497,7 @@ class ResetOnBootThinSRSpace(_ThinLVHDBase):
 
         step("Test trying to check SR physical space allocated for the VDI(s)")
         xenrt.sleep(60)
-        srSizeAfterWrite = self.getPhysicalUtilisation(self.srs[0])
+        srSizeAfterWrite = self.getExactPhysicalUtilisation(self.srs[0])
         log("Physical SR space allocated for the VDIs after writing: %d" % (srSizeAfterWrite))
 
         # Now shutdown the guest
@@ -478,7 +506,7 @@ class ResetOnBootThinSRSpace(_ThinLVHDBase):
 
         step("Test trying to check the SR physical space allocated for the VDI after reset-on-boot VM shutdown")
         xenrt.sleep(60)
-        srSizeAfterReboot = self.getPhysicalUtilisation(self.srs[0])
+        srSizeAfterReboot = self.getExactPhysicalUtilisation(self.srs[0])
         digestAfterReboot = self.getDigest("/dev/%s" % device)
         log("Physical SR space allocated for the VDI after the VM rebooted: %d" % (srSizeAfterReboot))
         log("MD5 digest after rebooting VM: %s" % (digestAfterReboot))

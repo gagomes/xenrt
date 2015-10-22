@@ -241,6 +241,7 @@ class ToggleAUHierarchy(DotNetAgentTestCases):
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.disable()
+        xenrt.TEC().logverbose("*****%s : %s*****"%(autoupdate.checkKeyPresent(),autoupdate.isActive()))
         if autoupdate.checkKeyPresent() and not autoupdate.isActive():
             pass
         else:
@@ -261,7 +262,7 @@ class ToggleAUHierarchy(DotNetAgentTestCases):
         if autoupdate.checkKeyPresent() and autoupdate.isActive():
             pass
         else:
-            raise xenrt.XRTFailure("registry does not indicate that AutoUpdate is disabled")
+            raise xenrt.XRTFailure("registry does not indicate that AutoUpdate is enabled")
         self._pingServer(trigger,server,True)
 
 class URLHierarchy(DotNetAgentTestCases):

@@ -390,7 +390,7 @@ class NonCryptoMSI(DotNetAgentTestCases):
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.enable()
-        autoupdate.setURL("http://%s:16000/"%server.getIP())
+        autoupdate.setURL("http://%s:16000"%server.getIP())
         self.agent.restartAgent()
         xenrt.sleep(200)
         if autoupdate.checkDownloadedMSI() == None:

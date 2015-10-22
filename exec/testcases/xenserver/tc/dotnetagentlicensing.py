@@ -407,8 +407,5 @@ class NoServerSurvive(DotNetAgentTestCases):
         autoupdate.setURL("http://localhost:55555")
         self.agent.restartAgent()
         xenrt.sleep(60)
-        os = self.agent.os
-        try:
-            os.execCmd("net stop \"XenSvc\" ")
-        except:
+        if self.agent.isAgentAlive() == False:
             raise xenrt.XRTFailure("Agent Stopped")

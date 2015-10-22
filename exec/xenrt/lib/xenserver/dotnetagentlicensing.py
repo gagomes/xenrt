@@ -62,6 +62,12 @@ class DotNetAgent(object):
             assert isinstance(x, AutoUpdate)
         return x
 
+    def isAgentAlive(self):
+        info = self.os.execCmd("sc query \"XenSvc\" | find \"RUNNING\"")
+        if "RUNNING" in info:
+            return True
+        else:
+            return False
 
 class LicensedFeature(object):
     __metaclass__ = ABCMeta
@@ -168,6 +174,8 @@ class PoolAdmin(ActorImp):
 
     def checkKeyPresent(self):
         host = self.guest.host
+        xenrt.TEC().logverbose("----xenstore-exists: %s"%host.xenstoreExists("/guest_agent_features/Guest_agent_auto_update/parameters/enabled"))
+        xenrt.TEC().logverbose("%s" % host.execdom0("xenstore-ls -f"))
         return host.xenstoreExists("/guest_agent_features/Guest_agent_auto_update/parameters/enabled")
 
 class VMUser(ActorImp):

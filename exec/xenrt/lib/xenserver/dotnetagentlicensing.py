@@ -63,7 +63,7 @@ class DotNetAgent(object):
         return x
 
     def isAgentAlive(self):
-        info = self.os.execCmd("sc query \"XenSvc\" | find \"RUNNING\"")
+        info = self.os.execCmd("sc query \"XenSvc\" | find \"RUNNING\"", returndata = True)
         if "RUNNING" in info:
             return True
         else:

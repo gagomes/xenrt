@@ -1,9 +1,5 @@
 <xenrt>
 
-  <variables>
-    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
-  </variables>
-
   <prepare>
     <host id="0">
       <storage type="nfs" name="nfssr" default="true" />
@@ -34,12 +30,12 @@
       <testcase tc="TC-20782" id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM" sku="IntelvGPUStressx64">
         <arg>guest=win7x64</arg>
         <arg>vgpuconfig=Intel GVT-g</arg>
-        <arg>clones=3</arg>
+        <arg>clones=7</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
       </testcase>
       <testcase tc="TC-20783" id="testcases.xenserver.tc.vgpu.TCGPUWorkload" sku="IntelvGPUStressx64">
         <arg>guest=win7x64</arg>
-        <arg>clones=3</arg>
+        <arg>clones=7</arg>
         <arg>vgpuconfig=Intel GVT-g</arg>
         <arg>benchmark=UnigineTropics</arg>
         <arg>time=172800</arg>

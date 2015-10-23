@@ -245,6 +245,7 @@ class ToggleAUHierarchy(DotNetAgentTestCases):
         keyPresent = autoupdate.checkKeyPresent()
         updateIsActive = autoupdate.isActive()
 
+        xenrt.TEC().logverbose(type(autoupdate.actor))
         xenrt.TEC().logverbose(dir(keyPresent))
         xenrt.TEC().logverbose(type(keyPresent))
         xenrt.TEC().logverbose(type(True))

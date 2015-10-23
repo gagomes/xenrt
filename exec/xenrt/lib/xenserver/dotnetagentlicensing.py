@@ -216,7 +216,8 @@ class VMUser(ActorImp):
             if key:
                 return True
         except:
-            return False
+            pass
+        return False
 
 class VSS(LicensedFeature):
 

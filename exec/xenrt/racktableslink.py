@@ -49,6 +49,9 @@ def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
         else:
             availablePorts = sorted([p for p in ports if (p[2] or ignoreMissingMACs) and p[4] and p[0].startswith("e")], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0]))
             xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "FORCE_NIC_ORDER"], "yes")
+        # If there aren't any connected ports, use the first one anyway
+        if len(availablePorts) == 0:
+            availablePorts = sorted([p for p in ports if (p[2] or ignoreMissingMACs) and p[0].startswith("e")], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0]))
         if len(availablePorts) > 0:
             mac = availablePorts[0][2]
             if availablePorts[0][1].startswith("10G"):

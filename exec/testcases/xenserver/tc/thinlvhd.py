@@ -1316,14 +1316,12 @@ class TCSRUpgrade(_ThinLVHDBase):
         device = self.master.createDisk(vdiuuid=vdi, returnDevice=True)
         expected = initial + quantum * 10
         self.fillDisk(self.master, targetDir="/dev/" + device, size=expected)
-        allocated = self.getPhysicalVDISize(vdi)
+        increased = self.getPhysicalVDISize(vdi)
         # maximum usage can be additional quantum size + VHD header size (8 MiB)
-        if allocated < expected or allocated > expected + quantum + 8 * xenrt.MEGA:
-            raise xenrt.XRTFailure("Size of VDI is not increased as expected. Expected: %d, Allocated: %d" %
-                    (expected, allocated))
-
-        step("Destroying upgraded SR.")
-        self.sr.destroy()
+        margin = quantum + 8 * xenrt.MEGA
+        if increased > expected + margin or increased < expected:
+            raise xenrt.XRTFailure("Size of VDI is not increased as expected. Expected: %d, Allocated: %d, Margin: %d" %
+                    (expected, increased, margin))
 
     def run(self, arglist=[]):
 

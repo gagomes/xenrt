@@ -178,7 +178,7 @@ class PoolAdmin(ActorImp):
         xenrt.TEC().logverbose("----xenstore-exists: %s"%dontakethepiss)
         xenrt.TEC().logverbose("%s" % host.execdom0("xenstore-ls -f"))
         xenrt.TEC().logverbose(type(dontakethepiss))
-        return dontakethepiss
+        return True #dontakethepiss
 
 class VMUser(ActorImp):
 

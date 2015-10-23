@@ -374,6 +374,8 @@ def setDiskConfig(diskstring, path):
 
 def getNetPortNameForPort(port):
     netport = None
+    if not port[5]:
+        return None
     portNums = re.findall(r'\d+', port[5])
     if len(portNums) == 1:
         portNum = portNums[0]

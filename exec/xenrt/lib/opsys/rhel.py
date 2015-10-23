@@ -15,8 +15,8 @@ class RHELBasedLinux(LinuxOS):
     implements(xenrt.interfaces.InstallMethodPV,
                xenrt.interfaces.InstallMethodIsoWithAnswerFile)
 
-    def __init__(self, distro, parent):
-        super(RHELBasedLinux, self).__init__(distro, parent)
+    def __init__(self, distro, parent, password=None):
+        super(RHELBasedLinux, self).__init__(distro, parent, password)
 
         if distro.endswith("x86-32") or distro.endswith("x86-64"):
             self.distro = distro[:-7]
@@ -153,11 +153,12 @@ class RHELBasedLinux(LinuxOS):
             # This is likely to be a force stop, so we'll sleep to allow the disk to sync
             xenrt.sleep(60)
         self.parent.stop()
-        self.parent.poll(xenrt.PowerState.down, timeout=1800)
+        self.parent.pollOSPowerState(xenrt.PowerState.down, timeout=1800)
         if self.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
             self.cleanupIsoAnswerfile()
             self.parent.ejectIso()
-        self.parent.start()
+        self.parent.startOS()
+        self.waitForBoot(600)
 
     def waitForBoot(self, timeout):
         # We consider boot of a RHEL guest complete once it responds to SSH

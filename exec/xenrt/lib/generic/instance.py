@@ -53,7 +53,7 @@ class Instance(object):
         self.toolstack.discoverInstanceAdvancedNetworking(self)
         self.os.populateFromExisting()
 
-    def poll(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
+    def pollOSPowerState(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
         """Poll for reaching the specified state"""
         deadline = xenrt.timenow() + timeout
         while 1:
@@ -104,11 +104,14 @@ class Instance(object):
     def setIP(self, ip):
         raise xenrt.XRTError("Not implemented")
 
-    def start(self, on=None, timeout=600):
+    def startOS(self, on=None):
         xenrt.xrtAssert(self.getPowerState() == xenrt.PowerState.down, "Power state before starting must be down")
         self.toolstack.startInstance(self, on)
-        self.os.waitForBoot(timeout)
         xenrt.xrtCheck(self.getPowerState() == xenrt.PowerState.up, "Power state after start should be up")
+
+    def start(self, on=None, timeout=600):
+        self.startOS(on)
+        self.os.waitForBoot(timeout)
 
     def reboot(self, force=False, timeout=600, osInitiated=False):
         xenrt.xrtAssert(self.getPowerState() == xenrt.PowerState.up, "Power state before rebooting must be up")
@@ -124,7 +127,7 @@ class Instance(object):
         xenrt.xrtAssert(self.getPowerState() == xenrt.PowerState.up, "Power state before shutting down must be up")
         if osInitiated:
             self.os.shutdown()
-            self.poll(xenrt.PowerState.down)
+            self.pollOSPowerState(xenrt.PowerState.down)
         else:
             self.toolstack.stopInstance(self, force)
         xenrt.xrtCheck(self.getPowerState() == xenrt.PowerState.down, "Power state after shutdown should be down")

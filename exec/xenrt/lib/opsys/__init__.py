@@ -12,10 +12,10 @@ class OS(object):
                           xenrt.interfaces.InstallMethodIso: xenrt.InstallMethod.Iso,
                           xenrt.interfaces.InstallMethodIsoWithAnswerFile: xenrt.InstallMethod.IsoWithAnswerFile}
 
-    def __init__(self, distro, parent):
+    def __init__(self, distro, parent, password=None):
         self.parent = xenrt.interfaces.OSParent(parent)
         self.distro = distro
-        self.password = None
+        self.password = password
         self.viridian = False
         self.__installMethod = None
 
@@ -65,10 +65,10 @@ def registerOS(os):
     oslist.append(os)
 
 
-def osFactory(distro, parent):
+def osFactory(distro, parent, password=None):
     for o in oslist:
         if o.knownDistro(distro):
-            return o(distro, parent)
+            return o(distro, parent, password)
     raise xenrt.XRTError("No class found for distro %s" % distro)
 
 __all__ = ["OS", "registerOS"]

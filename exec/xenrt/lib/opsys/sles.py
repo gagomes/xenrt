@@ -12,8 +12,8 @@ class SLESBasedLinux(LinuxOS):
     
     __metaclass__ = ABCMeta
 
-    def __init__(self, distro, parent):
-        super(SLESBasedLinux, self).__init__(distro, parent)
+    def __init__(self, distro, parent, password=None):
+        super(SLESBasedLinux, self).__init__(distro, parent, password)
 
         if distro.endswith("x86-32") or distro.endswith("x86-64"):
             self.distro = distro[:-7]
@@ -144,12 +144,13 @@ class SLESBasedLinux(LinuxOS):
             xenrt.sleep(240)
         else:
             self.parent.stop()
-            self.parent.poll(xenrt.PowerState.down, timeout=1800)
+            self.parent.pollOSPowerState(xenrt.PowerState.down, timeout=1800)
         if self.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
             self.cleanupIsoAnswerfile()
             self.parent.ejectIso()
         if not 'sles10' in self.distro:
-            self.parent.start()
+            self.parent.startOS()
+            self.waitForBoot(600)
 
     def waitForBoot(self, timeout):
         # We consider boot of a RHEL guest complete once it responds to SSH

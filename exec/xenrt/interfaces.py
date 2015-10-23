@@ -99,7 +99,7 @@ class OSParent(Interface):
     def setIP(ip):
         """Set the IP for the OS"""
 
-    def start():
+    def startOS():
         """Start the OS container (VM/host)"""
 
     def ejectIso():
@@ -108,7 +108,7 @@ class OSParent(Interface):
     def setIso(isoName, isoRepo):
         """Set the ISO to the specified iso"""
 
-    def poll(state, timeout, level, pollperiod):
+    def pollOSPowerState(state, timeout, level, pollperiod):
         """Poll for a change in power state"""
 
 class OS(Interface):

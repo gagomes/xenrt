@@ -36,7 +36,7 @@ class LinuxOS(OS):
             username = "root"
         if not password:
             if not self.password:
-                self.password = self.findPassword()
+                self.findPassword()
             password = self.password
 
         return xenrt.ssh.SSH(self.parent.getIP(trafficType="SSH"),

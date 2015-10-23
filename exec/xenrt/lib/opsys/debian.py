@@ -20,8 +20,8 @@ class DebianBasedLinux(LinuxOS):
     @staticmethod
     def testInit(parent): raise NotImplementedError()
 
-    def __init__(self, distro, parent):
-        super(DebianBasedLinux, self).__init__(distro, parent)
+    def __init__(self, distro, parent, password=None):
+        super(DebianBasedLinux, self).__init__(distro, parent, password)
 
         if distro.endswith("x86-32") or distro.endswith("x86-64"):
             self.distro = distro[:-7]
@@ -139,11 +139,12 @@ class DebianBasedLinux(LinuxOS):
     def waitForInstallCompleteAndFirstBoot(self):
         # Install is complete when the guest shuts down
         # TODO: Use the signalling mechanism instead
-        self.parent.poll(xenrt.PowerState.down, timeout=1800)
+        self.parent.pollOSPowerState(xenrt.PowerState.down, timeout=1800)
         if self.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
             self.cleanupIsoAnswerfile()
             self.parent.ejectIso()
-        self.parent.start()
+        self.parent.startOS()
+        self.waitForBoot(600)
 
     def waitForBoot(self, timeout):
         # We consider boot of a Debian guest complete once it responds to SSH

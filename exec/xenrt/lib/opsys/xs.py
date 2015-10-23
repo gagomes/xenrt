@@ -3,8 +3,8 @@ from xenrt.lib.opsys import LinuxOS, registerOS
 __all__=["XSDom0"]
 
 class XSDom0(LinuxOS):
-    def __init__(self, distro, parent):
-        super(XSDom0, self).__init__(distro, parent)
+    def __init__(self, distro, parent, password=None):
+        super(XSDom0, self).__init__(distro, parent, password)
     
     @staticmethod
     def knownDistro(distro):

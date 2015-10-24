@@ -235,7 +235,6 @@ class _BalloonSmoketest(_BalloonPerfBase):
         minmem = self.host.lookup("MIN_VM_MEMORY")
         minmem = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro, "MINMEMORY"], minmem))
         self.minSupported = int(self.host.lookup(["VM_MIN_MEMORY_LIMITS", self.distro], minmem))
-        self.minStaticSupported = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro, "STATICMINMEMORY"], self.minSupported))
         max = self.host.lookup("MAX_VM_MEMORY")
         self.maxSupported = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro, "MAXMEMORY"], max))
 
@@ -274,14 +273,6 @@ class _BalloonSmoketest(_BalloonPerfBase):
             self.guest.setMemoryProperties(None, val, val, val)
             self.guest.start()
 
-    def checkStaticMin(self):
-        smin = int(self.guest.paramGet("memory-static-min")) / xenrt.MEGA
-        if smin != self.minStaticSupported:
-            raise xenrt.XRTFailure("memory-static-min does not equal minimum supported RAM",
-                                   data="Expecting %dMiB, found %dMiB" % (self.minStaticSupported, smin))
-        else:
-            log("memory-static-min is equal to minimum supported RAM = %d" % (smin))
-
     def run(self, arglist=None):
         # VMs have a limitation on the range they can balloon over
         # specified by the dmc multiplier
@@ -312,11 +303,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
         if self.runSubcase("runCase", (self.maxSupported * self.dmcPercent / 100,
                                        self.maxSupported, "max"), "MaxRange",
                            "Max") != xenrt.RESULT_PASS:
-            xenrt.TEC().logverbose("Not checking static-min due to Max failure")
             return
-
-        step("Verify that static-min is equal to the min supported RAM")
-        self.runSubcase("checkStaticMin", (), "Verify", "StaticMin")
 
     def runCase(self, min, max, type):
         success = 0

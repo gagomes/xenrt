@@ -157,47 +157,21 @@ def chooseSRUuid(site, local_sr, sr_uuid, size):
     return createSR(site, size)
 
 def installGuest(site, stationary_vm=False, sr_uuid=None, vm_type = 'linux'):
-    host = site['pool_master']
-    if vm_type == 'linux':
-        sr_size = '10GiB'
-        if 'templateLinVM' not in site:
-            installLinuxVMTemplate(site)
-        templateVM = site['templateLinVM']
-    else:
-        sr_size = '30GiB'
-        if 'templateWinVM' not in site:
-            installWindowsVMTemplate(site)
-        templateVM = site['templateWinVM']
-    
-    sr_uuid = chooseSRUuid(site, stationary_vm, sr_uuid, sr_size)
-    guest = templateVM.copyVM(name=randomGuestName(), sruuid=sr_uuid)
+    distro = vm_type == "linux" and "rhel5x" or "ws08sp2-x86"
+    masterVM = "master%sVM" % vm_type
+    sr_uuid = chooseSRUuid(site, stationary_vm, sr_uuid, '30GiB')
+    if masterVM not in site:
+        if masterVM in host.listGuests():
+            site[masterVM] = host.getGuest(masterVM)
+        else:
+            site[masterVM] = site['pool_master'].createBasicGuest(name=templateName, sr=sr_uuid, distro=distro, memory=1024)
+            site[masterVM].shutdown()
+            site[masterVM].distro = distro
+            sr_uuid=chooseSRUuid(site, stationary_vm, sr_uuid, '30GiB')
+
+    guest = site[masterVM].copyVM(name=randomGuestName(), sruuid=sr_uuid)
     guest.start()
-    return (guest, sr_uuid, templateVM.distro)
-
-def installLinuxVMTemplate(site):
-    host = site['pool_master']
-    distro = "rhel5x"
-    if 'templateLinVM' in host.listGuests():
-        site['templateLinVM'] = host.getGuest("templateLinVM")
-    else:
-        #install a new VM
-        sr_uuid = chooseSRUuid(site, True, None, None)
-        site['templateLinVM'] = host.createBasicGuest(distro, name="templateLinVM", sr=sr_uuid)
-        site['templateLinVM'].shutdown()
-    site['templateLinVM'].distro = distro
-
-def installWindowsVMTemplate(site):
-    host = site['pool_master']
-    distro="ws08sp2-x86"
-    if 'templateWinVM' in host.listGuests():
-        site['templateWinVM'] = host.getGuest("templateWinVM")
-    else:
-        #install a new VM
-        sr_uuid = chooseSRUuid(site, True, None, None)
-        site['templateWinVM'] = host.createGenericWindowsGuest(name="templateWinVM", sr=sr_uuid, distro=distro, memory=1024)
-        site['templateWinVM'].unenlightenedShutdown()
-        site['templateWinVM'].poll('DOWN')
-    site['templateWinVM'].distro = distro
+    return (guest, sr_uuid, distro)
 
 def upgradePool(pool):
     pool_upgrade = xenrt.lib.xenserver.host.RollingPoolUpdate(pool)

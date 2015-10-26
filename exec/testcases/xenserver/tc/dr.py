@@ -161,8 +161,8 @@ def installGuest(site, stationary_vm=False, sr_uuid=None, vm_type = 'linux'):
     masterVM = "master%sVM" % vm_type
     sr_uuid = chooseSRUuid(site, stationary_vm, sr_uuid, '30GiB')
     if masterVM not in site:
-        if masterVM in host.listGuests():
-            site[masterVM] = host.getGuest(masterVM)
+        if masterVM in site['pool_master'].listGuests():
+            site[masterVM] = site['pool_master'].getGuest(masterVM)
         else:
             site[masterVM] = site['pool_master'].createBasicGuest(name=templateName, sr=sr_uuid, distro=distro, memory=1024)
             site[masterVM].shutdown()

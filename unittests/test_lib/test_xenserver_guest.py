@@ -45,6 +45,7 @@ class TestMaxSupportedVCPU(XenRTUnitTestCase):
 
     def setUp(self):
         self.conf = xenrt.Config().config
+        self.conf["GUEST_LIMITATIONS"] = {}
 
     def __lookup(self, kw, *args):
         if type(kw) == type(""):

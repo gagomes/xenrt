@@ -295,9 +295,9 @@ class GenericPlace(object):
             'execguest': 'execSSH'
         }
 
-        if attr in xmlrpcMapping.keys():
+        if attr in osMapping.keys():
             def wrapper(*args, **kwargs):
-                return getattr(self.os, xmlrpcMapping[attr])(*args, **kwargs)
+                return getattr(self.os, osMapping[attr])(*args, **kwargs)
             return wrapper
 
         raise AttributeError(attr)

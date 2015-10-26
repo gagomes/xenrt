@@ -206,7 +206,7 @@ class GenericPlace(object):
         return self._os
 
     def __getattr__(self, attr):
-        xmlrpcMapping = {
+        osMapping = {
             'xmlrpcIsAlive': 'isDaemonAlive',
             'waitForDaemon': 'waitForDaemon',
             'waitforxmlrpc': 'waitForDaemon',
@@ -289,7 +289,10 @@ class GenericPlace(object):
             'disableReceiverMaxProto': 'disableReceiverMaxProto',
             'getReceiverMaxProtocol': 'getReceiverMaxProtocol',
             'configureAutoLogon': 'configureAutoLogon',
-            'getPowershellVersion': 'getPowershellVersion'
+            'getPowershellVersion': 'getPowershellVersion',
+            'execdom0': 'execSSH',
+            'execcmd': 'execSSH',
+            'execguest': 'execSSH'
         }
 
         if attr in xmlrpcMapping.keys():
@@ -316,34 +319,6 @@ class GenericPlace(object):
         raise xenrt.XRTError("Unimplemented")
 
     def createScaleXtremeEnvironment(self):
-        raise xenrt.XRTError("Unimplemented")
-
-    def execdom0(self,
-                 command,
-                 username=None,
-                 retval="string",
-                 level=xenrt.RC_FAIL,
-                 timeout=300,
-                 idempotent=False,
-                 newlineok=False,
-                 nolog=False,
-                 outfile=None,
-                 useThread=False,
-                 password=None):
-        raise xenrt.XRTError("Unimplemented")
-
-    def execguest(self,
-                  command,
-                  username=None,
-                  retval="string",
-                  level=xenrt.RC_FAIL,
-                  timeout=300,
-                  idempotent=False,
-                  newlineok=False,
-                  getreply=True,
-                  nolog=False,
-                  outfile=None,
-                  password=None):
         raise xenrt.XRTError("Unimplemented")
 
     def getBasicArch(self):
@@ -3844,50 +3819,6 @@ class GenericHost(GenericPlace):
 
         return command
 
-    def execdom0(self,
-                 command,
-                 username=None,
-                 retval="string",
-                 level=xenrt.RC_FAIL,
-                 timeout=300,
-                 idempotent=False,
-                 newlineok=False,
-                 nolog=False,
-                 outfile=None,
-                 useThread=False,
-                 getreply=True,
-                 password=None):
-        """Execute a command on the dom0 of the specified machine.
-
-        @param retval:  Whether to return the result code or stdout as a string
-            "C{string}" (default), "C{code}"
-            if "C{string}" is used then a failure results in an exception
-        @param level:   Exception level to use if appropriate.
-        @param nolog:   If C{True} then don't log the output of the command
-        @param useThread: If C{True} then run the SSH command in a thread to
-                        guard against hung SSH sessions
-        """
-        if not username:
-            if self.windows:
-                username = "Administrator"
-            else:
-                username = "root"
-        if not password:
-            password = self.password
-        return xenrt.ssh.SSH(self.getIP(),
-                             self.transformCommand(command),
-                             level=level,
-                             retval=retval,
-                             password=password,
-                             timeout=timeout,
-                             username=username,
-                             idempotent=idempotent,
-                             newlineok=newlineok,
-                             nolog=nolog,
-                             outfile=outfile,
-                             getreply=getreply,
-                             useThread=useThread)
-
     def postInstall(self):
         """Perform any product-specific post install actions."""
         pass
@@ -6728,56 +6659,6 @@ class GenericGuest(GenericPlace):
             self.checkNetworkSSH()
         else:
             self.checkNetworkNoSSH()
-
-    def execguest(self,
-                  command,
-                  username=None,
-                  retval="string",
-                  level=xenrt.RC_FAIL,
-                  timeout=1200,
-                  idempotent=False,
-                  newlineok=False,
-                  getreply=True,
-                  nolog=False,
-                  useThread=False,
-                  outfile=None,
-                  password=None):
-        """Execute a command on the guest.
-
-        @param retval:  Whether to return the result code or stdout as a string
-            "C{string}" (default), "C{code}"
-            if "C{string}" is used then a failure results in an exception
-        @param level:   Exception level to use if appropriate.
-        @param nolog:   If C{True} then don't log the output of the command
-        """
-        if not self.mainip:
-            raise xenrt.XRTError("Unknown IP address to SSH to %s" %
-                                 (self.name))
-        if not username:
-            if self.windows:
-                username = "Administrator"
-            else:
-                username = "root"
-        if not self.password and self.windows:
-            password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
-                                           "ADMINISTRATOR_PASSWORD"],
-                                          "xensource")
-        else:
-            if password is None:
-                password = self.password
-        return xenrt.ssh.SSH(self.mainip,
-                             command,
-                             username=username,
-                             password=password,
-                             level=level,
-                             retval=retval,
-                             timeout=timeout,
-                             idempotent=idempotent,
-                             newlineok=newlineok,
-                             getreply=getreply,
-                             nolog=nolog,
-                             useThread=useThread,
-                             outfile=outfile)
 
     def reboot(self, force=False, skipsniff=False):
         # Per-product guest subclasses will override this. Define a fallback

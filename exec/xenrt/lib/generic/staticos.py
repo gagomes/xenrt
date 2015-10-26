@@ -27,11 +27,8 @@ class StaticOS(object):
     def getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
         return self.mainip
 
-    def getIPAndPort(self, trafficType, timeout=600, level=xenrt.RC_ERROR):
-        return (self.mainip, self.os.tcpCommunicationPorts[trafficType])
-
     def getPort(self, trafficType):
-        return self.os.tcpCommunicationPorts[trafficType]
+        return None
 
     def setIP(self, ip):
         raise xenrt.XRTError("Not implemented")

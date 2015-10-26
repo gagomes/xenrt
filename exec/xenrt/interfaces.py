@@ -90,9 +90,6 @@ class OSParent(Interface):
     def getIP(trafficType, timeout, level):
         """Get the IP for the OS"""
 
-    def getIPAndPort(trafficType, timeout, level):
-        """Get the IP and Port for the OS"""
-
     def getPort(trafficType):
         """Get the port for the traffic type"""
 

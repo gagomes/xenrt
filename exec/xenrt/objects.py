@@ -162,6 +162,7 @@ class GenericPlace(object):
         self.host = None
         self.memory = None
         self.vcpus = None
+        self._os = None
 
     def populateSubclass(self, x):
         x.password = self.password
@@ -174,6 +175,7 @@ class GenericPlace(object):
         x.extraLogsToFetch = self.extraLogsToFetch
         x.logFetchExclude = self.logFetchExclude
         x.vifstem = self.vifstem
+        x._os = self._os
 
     def compareConfig(self, other):
         """Compare the configuration of this place to another place. This
@@ -190,12 +192,17 @@ class GenericPlace(object):
     @property
     def os(self):
         if not self._os:
-            if self.windows or not self.arch:
-                osdistro = self.distro
-            else:
-                osdistro = "%s_%s" % (self.distro, self.arch)
+            if self.distro:
+                if self.windows or not self.arch:
+                    osdistro = self.distro
+                else:
+                    osdistro = "%s_%s" % (self.distro, self.arch)
 
-            self._os = xenrt.lib.opsys.osFactory(osdistro, self, self.password)
+                self._os = xenrt.lib.opsys.osFactory(osdistro, self, self.password)
+            else:
+                self._os = xenrt.lib.opsys.osFromExisting(self, self.password)
+                self.password = self._os.password
+                self.distro = self._os.distro
             self._os.tailor()
         return self._os
 
@@ -3621,7 +3628,6 @@ class GenericHost(GenericPlace):
         self.ipv6_mode = None
         self.controller = None
         self.containerHost = None
-        self._os = None
         self.jobTests = []
 
         xenrt.TEC().logverbose("Creating %s instance." % (self.__class__.__name__))
@@ -3675,11 +3681,8 @@ class GenericHost(GenericPlace):
             return self.machine.ipaddr
         return None
 
-    def getIPAndPort(self, trafficType, timeout=600, level=xenrt.RC_ERROR):
-        return (self.getIP(), self.os.tcpCommunicationPorts[trafficType])
-
     def getPort(self, trafficType):
-        return self.os.tcpCommunicationPorts[trafficType]
+        return None
 
     def setIP(self,ip):
         if self.machine:
@@ -6232,11 +6235,8 @@ class GenericGuest(GenericPlace):
         # TODO add arp sniffing capabilities here
         return self.mainip
 
-    def getIPAndPort(self, trafficType, timeout=600, level=xenrt.RC_ERROR):
-        return (self.getIP(), self.os.tcpCommunicationPorts[trafficType])
-
     def getPort(self, trafficType):
-        return self.os.tcpCommunicationPorts[trafficType]
+        return None
 
     def setIP(self,ip):
         self.mainip = ip

@@ -100,7 +100,7 @@ class SLESBasedLinux(LinuxOS):
         f.write(ay)
         f.close()
 
-        installIP = self.parent.getIP(trafficType="OUTBOUND", timeout=600)
+        installIP = self.getIP(trafficType="OUTBOUND", timeout=600)
         path = "%s/%s" % (xenrt.TEC().lookup("GUESTFILE_BASE_PATH"), installIP)
         
         self.cleanupdir = path
@@ -113,7 +113,7 @@ class SLESBasedLinux(LinuxOS):
         shutil.copyfile(filename, "%s/autoyast" % (path))
 
     def waitForIsoAnswerfileAccess(self):
-        installIP = self.parent.getIP(trafficType="OUTBOUND", timeout=600)
+        installIP = self.getIP(trafficType="OUTBOUND", timeout=600)
         path = "%s/%s" % (xenrt.TEC().lookup("GUESTFILE_BASE_PATH"), installIP)
         filename = "%s/autoyast.stamp" % path
         xenrt.waitForFile(filename, 1800)
@@ -155,11 +155,15 @@ class SLESBasedLinux(LinuxOS):
     def waitForBoot(self, timeout):
         # We consider boot of a RHEL guest complete once it responds to SSH
         startTime = xenrt.util.timenow()
-        self.parent.getIP(trafficType="SSH", timeout=timeout)
+        self.getIP(trafficType="SSH", timeout=timeout)
         # Reduce the timeout by however long it took to get the IP
         timeout -= (xenrt.util.timenow() - startTime)
         # Now wait for an SSH response in the remaining time
         self.waitForSSH(timeout)
+
+    @classmethod
+    def osDetected(cls, parent, password):
+        return (False, password)
 
 class SLESLinux(SLESBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
@@ -177,6 +181,10 @@ class SLESLinux(SLESBasedLinux):
         if not SLESLinux.knownDistro(self.distro):
             return None
         return self._defaultIsoName
+
+    @classmethod
+    def osDetected(cls, parent, password):
+        return (False, password)
 
 registerOS(SLESLinux)
 

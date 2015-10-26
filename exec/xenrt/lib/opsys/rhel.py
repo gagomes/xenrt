@@ -106,7 +106,7 @@ class RHELBasedLinux(LinuxOS):
         f.write(ks)
         f.close()
 
-        installIP = self.parent.getIP(trafficType="OUTBOUND", timeout=600)
+        installIP = self.getIP(trafficType="OUTBOUND", timeout=600)
         path = "%s/%s" % (xenrt.TEC().lookup("GUESTFILE_BASE_PATH"), installIP)
 
         self.cleanupdir = path
@@ -119,7 +119,7 @@ class RHELBasedLinux(LinuxOS):
         shutil.copyfile(filename, "%s/kickstart" % (path))
 
     def waitForIsoAnswerfileAccess(self):
-        installIP = self.parent.getIP(trafficType="OUTBOUND", timeout=600)
+        installIP = self.getIP(trafficType="OUTBOUND", timeout=600)
         path = "%s/%s" % (xenrt.TEC().lookup("GUESTFILE_BASE_PATH"), installIP)
         filename = "%s/kickstart.stamp" % path
         xenrt.waitForFile(filename, 1800)
@@ -163,12 +163,21 @@ class RHELBasedLinux(LinuxOS):
     def waitForBoot(self, timeout):
         # We consider boot of a RHEL guest complete once it responds to SSH
         startTime = xenrt.util.timenow()
-        self.parent.getIP(trafficType="SSH", timeout=timeout)
+        self.getIP(trafficType="SSH", timeout=timeout)
         # Reduce the timeout by however long it took to get the IP
         timeout -= (xenrt.util.timenow() - startTime)
         # Now wait for an SSH response in the remaining time
         self.waitForSSH(timeout)
 
+    @classmethod
+    def osDetected(cls, parent, password):
+        obj=cls("testrhel", parent, password)
+        if obj.execSSH("test -e /etc/xensource-inventory", retval="code") == 0:
+            return (False, password)
+        if obj.execSSH("test -e /etc/redhat-release", retval="code") == 0:
+            return (True, password)
+        else:
+            return (False, password)
 
 class RHELLinux(RHELBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV,
@@ -187,7 +196,15 @@ class RHELLinux(RHELBasedLinux):
         if not RHELLinux.knownDistro(self.distro):
             return None
         return self._defaultIsoName
-
+    
+    @classmethod
+    def osDetected(cls, parent, password):
+        obj=cls("testrhel", parent, password)
+        if obj.execSSH("test -e /etc/centos-release", retval="code") == 0:
+            return (False, password)
+        distro = obj.execSSH("cat /etc/redhat-release | sed 's/Red Hat Enterprise Linux Server release /rhel/' | tr -d . | awk '{print $1}'")
+        return ("%s_%s" % (distro, obj.getArch()), password)
+        
 
 class CentOSLinux(RHELBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV,
@@ -207,6 +224,13 @@ class CentOSLinux(RHELBasedLinux):
             return None
         return self._defaultIsoName
 
+    @classmethod
+    def osDetected(cls, parent, password):
+        obj=cls("testcentos", parent, password)
+        if obj.execSSH("test -e /etc/centos-release", retval="code") != 0:
+            return (False, password)
+        distro = obj.execSSH("cat /etc/centos-release | sed 's/CentOS release /centos/' | tr -d . | awk '{print $1}'")
+        return ("%s_%s" % (distro, obj.getArch()), password)
 
 class OELLinux(RHELBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV,
@@ -229,6 +253,10 @@ class OELLinux(RHELBasedLinux):
     @property
     def defaultMemory(self):
         return 1610
+
+    @classmethod
+    def osDetected(cls, parent, password):
+        return (False, password)
 
 registerOS(RHELLinux)
 registerOS(CentOSLinux)

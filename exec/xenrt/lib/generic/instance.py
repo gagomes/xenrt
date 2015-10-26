@@ -71,15 +71,6 @@ class Instance(object):
         else:
             return self.os.tcpCommunicationPorts[trafficType] 
 
-    def getIPAndPort(self, trafficType, timeout=600, level=xenrt.RC_ERROR):
-        if self.inboundmap.has_key(trafficType):
-            return self.inboundmap[trafficType]
-        elif self.inboundip:
-            return (self.inboundip, self.os.tcpCommunicationPorts[trafficType])
-        else:
-            return (self.getMainIP(timeout, level), self.os.tcpCommunicationPorts[trafficType])
-        
-
     def getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
         if trafficType:
             if trafficType == "OUTBOUND":

@@ -158,13 +158,6 @@ class WindowsOS(OS):
         self.tailor()
 
     def tailor(self):
-        self.writeFile("c:\\onboot.cmd", "echo Booted > c:\\booted.stamp")
-        self.winRegAdd("HKLM",
-                       "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\"
-                       "Run",
-                       "Booted",
-                       "SZ",
-                       "c:\\onboot.cmd")
         try:
             self.cmdExec("""(Get-WmiObject -class "Win32_TSGeneralSetting" -Namespace root\\cimv2\\terminalservices -ComputerName $env:ComputerName -Filter "TerminalName='RDP-tcp'").SetUserAuthenticationRequired(0)""", powershell=True)
         except:
@@ -408,15 +401,24 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
         """Use the test execution daemon to shutdown the guest"""
         xenrt.TEC().logverbose("Shutting down %s" % (self.getIP()))
         self._xmlrpc().shutdown()
-        
+    
+    def initReboot(self):
+        self._xmlrpc().reboot()
+
     def reboot(self):
         """Use the test execution daemon to reboot the guest"""
         xenrt.TEC().logverbose("Rebooting %s" % (self.getIP()))
+        self.writeFile("c:\\onboot.cmd", "echo Booted > c:\\booted.stamp")
+        self.winRegAdd("HKLM",
+                       "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\"
+                       "Run",
+                       "Booted",
+                       "SZ",
+                       "c:\\onboot.cmd")
         self.cmdExec("del c:\\booted.stamp")
         deadline = xenrt.util.timenow() + 1800
 
-        self._xmlrpc().reboot()
-        
+        self.initReboot() 
         while True:
             try:
                 if self.fileExists("c:\\booted.stamp"):

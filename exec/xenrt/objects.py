@@ -212,7 +212,7 @@ class GenericPlace(object):
             'waitforxmlrpc': 'waitForDaemon',
             'xmlrpcUpdate': 'updateDaemon',
             'xmlrpcShutdown': 'shutdown',
-            'xmlrpcReboot': 'reboot',
+            'xmlrpcReboot': 'initReboot',
             'xmlrpcStart': 'cmdStart',
             'xmlrpcPoll': 'cmdPoll',
             'xmlrpcGetPID': 'cmdGetPID',

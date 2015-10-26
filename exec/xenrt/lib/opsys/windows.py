@@ -733,7 +733,10 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
         except Exception, e:
             self.checkHealth()
             raise
-    
+   
+    def getMemory(complete, unit):
+        return self._xmlrpc().getMemory(complete, unit)
+
     def getCPUs(self):
         xenrt.TEC().logverbose("GetCPUs on %s" % (self.getIP()))
         patient = xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True) 
@@ -1251,6 +1254,34 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
                 self.removeFile(location)
                 if word not in reread:
                     raise xenrt.XRTError("assertHealthy has failed")
+
+    def enableDHCP6(self):
+        self._xmlrpc().enableDHCP6()
+
+    def installAutoIt(self, withAutoItX=False):
+        """
+        Install AutoIt3 interpreter and compiler into a Windows XML-RPC guest.
+        The path to the autoit interpreter is returned.
+        """
+        is_x64 = self.getArch() == "amd64"
+        autoit = "c:\\Program Files" + (is_x64 and " (x86)" or "") + \
+                 "\\AutoIt3\\AutoIt3" + (is_x64 and "_x64" or "") + ".exe"
+        if self.globPattern(autoit):
+            xenrt.TEC().logverbose("AutoIt already installed")
+        else:
+            tempdir = self.tempDir()
+            self.unpackTarball("%s/autoit.tgz" %
+                                     (xenrt.TEC().lookup("TEST_TARBALL_BASE")),
+                                     tempdir)
+            self.cmdExec(tempdir + "\\autoit\\autoit-v3-setup.exe /S")
+            assert self.globPattern(autoit)
+        if withAutoItX:
+            self._xmlrpc().installAutoItX()
+        return autoit
+
+    def getAutoItX(self):
+        self.installAutoIt(withAutoItX=True)
+        return self._xmlrpc().autoitx
 
     def getPowershellVersion(self):
         version = 0.0

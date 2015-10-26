@@ -292,7 +292,10 @@ class GenericPlace(object):
             'getPowershellVersion': 'getPowershellVersion',
             'execdom0': 'execSSH',
             'execcmd': 'execSSH',
-            'execguest': 'execSSH'
+            'execguest': 'execSSH',
+            'waitForSSH': 'waitForSSH',
+            'installAutoIt': 'installAutoIt',
+            'getAutoItX': 'getAutoItX',
         }
 
         if attr in osMapping.keys():
@@ -337,10 +340,7 @@ class GenericPlace(object):
         try:
             xenrt.TEC().logverbose("getMemory on %s" % (self.getIP()))
             if self.windows:
-                if complete:
-                    rc = self._xmlrpc().getMemory(True,unit)
-                else:
-                    rc = self._xmlrpc().getMemory(False,unit)
+                rc = self.os.getMemory(bool(complete), unit)
             elif re.search("solaris", self.distro):
                 rc = int(self.execcmd("prtconf | grep Mem|awk '{if ($1 == \"Memory\") {print $3}}'"))
             else:
@@ -356,7 +356,7 @@ class GenericPlace(object):
     def getMyVCPUs(self):
         try:
             if self.windows:
-                return self._xmlrpc().getCPUs()
+                return self.os.getCPUs()
             elif re.search("solaris", self.distro):
                 return int(self.execcmd("prtconf|grep cpu|grep -cv cpus"))
             else:
@@ -546,64 +546,6 @@ class GenericPlace(object):
                     self.windows=True
                     return
 
-    def waitForSSH(self, timeout, level=xenrt.RC_FAIL, desc="Operation", username="root", cmd="true"):
-
-        if not self.getIP():
-            if level == xenrt.RC_FAIL:
-                self.checkHealth(unreachable=True)
-            return xenrt.XRT("%s: No IP address found" % (desc), level)
-
-        now = xenrt.util.timenow()
-        deadline = now + timeout
-        while 1:
-            if not self.password:
-                self.findPassword()
-            if xenrt.ssh.SSH(self.getIP(),
-                             cmd,
-                             password=self.password,
-                             level=xenrt.RC_OK,
-                             timeout=20,
-                             username=username,
-                             nowarn=True) == xenrt.RC_OK:
-                xenrt.TEC().logverbose(" ... OK reply from %s" %
-                                       (self.getIP()))
-                return xenrt.RC_OK
-            now = xenrt.util.timenow()
-            if now > deadline:
-                if level == xenrt.RC_FAIL:
-                    self.checkHealth(unreachable=True)
-                return xenrt.XRT("%s timed out" % (desc), level)
-            xenrt.sleep(15, log=False)
-
-    def waitforxmlrpc(self, timeout, level=xenrt.RC_FAIL, desc="Daemon", sleeptime=15, reallyImpatient=False):
-        now = xenrt.util.timenow()
-        deadline = now + timeout
-        perrors = 0
-        while True:
-            xenrt.TEC().logverbose("Checking for exec daemon on %s" %
-                                   (self.getIP()))
-            try:
-                if self._xmlrpc(impatient=True, reallyImpatient=reallyImpatient).isAlive():
-                    xenrt.TEC().logverbose(" ... OK reply from %s" %
-                                           (self.getIP()))
-                    return xenrt.RC_OK
-            except socket.error, e:
-                xenrt.TEC().logverbose(" ... %s" % (str(e)))
-            except socket.timeout, e:
-                xenrt.TEC().logverbose(" ... %s" % (str(e)))
-            except xmlrpclib.ProtocolError, e:
-                perrors = perrors + 1
-                if perrors >= 3:
-                    raise
-                xenrt.TEC().warning("XML-RPC daemon ProtocolError during "
-                                    "poll (%s)" % (str(e)))
-            now = xenrt.util.timenow()
-            if now > deadline:
-                if level == xenrt.RC_FAIL:
-                    self.checkHealth(unreachable=True)
-                return xenrt.XRT("%s timed out" % (desc), level)
-            xenrt.sleep(sleeptime, log=False)
-
     def checkHealth(self, unreachable=False, noreachcheck=False, desc=""):
         """Check the location is healthy."""
         pass
@@ -636,28 +578,6 @@ class GenericPlace(object):
             return False
         else:
             return self.xmlrpcIsAlive()
-
-    def _xmlrpc(self, impatient=False, patient=False, reallyImpatient=False, ipoverride=None):
-        if reallyImpatient:
-            trans = MyReallyImpatientTrans()
-        elif impatient:
-            trans = MyImpatientTrans()
-        elif patient:
-            trans = MyPatientTrans()
-        else:
-            trans = MyTrans()
-        if ipoverride:
-            ip = IPy.IP(ipoverride)
-        else:
-            ip = IPy.IP(self.getIP())
-        url = ""
-        if ip.version() == 6:
-            url = 'http://[%s]:8936'
-        else:
-            url = 'http://%s:8936'
-        return xmlrpclib.ServerProxy(url % (self.getIP()),
-                                     transport=trans,
-                                     allow_none=True)
 
     def joinDomain(self, adserver, computerName=None, adminUserName="Administrator", adminPassword=None):
         # works with ws2008 and ws2012
@@ -1519,31 +1439,6 @@ Add-WindowsFeature as-net-framework"""
 
         # CA-114127 - sleep to stop this interfering with .net installation later??
         xenrt.sleep(120)
-
-    def installAutoIt(self, withAutoItX=False):
-        """
-        Install AutoIt3 interpreter and compiler into a Windows XML-RPC guest.
-        The path to the autoit interpreter is returned.
-        """
-        is_x64 = self.xmlrpcGetArch() == "amd64"
-        autoit = "c:\\Program Files" + (is_x64 and " (x86)" or "") + \
-                 "\\AutoIt3\\AutoIt3" + (is_x64 and "_x64" or "") + ".exe"
-        if self.xmlrpcGlobPattern(autoit):
-            xenrt.TEC().logverbose("AutoIt already installed")
-        else:
-            tempdir = self.xmlrpcTempDir()
-            self.xmlrpcUnpackTarball("%s/autoit.tgz" %
-                                     (xenrt.TEC().lookup("TEST_TARBALL_BASE")),
-                                     tempdir)
-            self.xmlrpcExec(tempdir + "\\autoit\\autoit-v3-setup.exe /S")
-            assert self.xmlrpcGlobPattern(autoit)
-        if withAutoItX:
-            self._xmlrpc().installAutoItX()
-        return autoit
-
-    def getAutoItX(self):
-        self.installAutoIt(withAutoItX=True)
-        return self._xmlrpc().autoitx
 
     def getPowershellVersion(self):
         version = 0.0
@@ -3769,14 +3664,6 @@ class GenericHost(GenericPlace):
                                                 var,
                                                 default=default,
                                                 boolean=boolean)
-
-    def waitForSSH(self, timeout, level=xenrt.RC_FAIL, desc="Operation",
-                   username="root", cmd="true"):
-        timeout = timeout + int(self.lookup("ALLOW_EXTRA_HOST_BOOT_SECONDS", "0"))
-        GenericPlace.waitForSSH(self, timeout, level, desc, username, cmd)
-        if self.lookup("SERIAL_DISABLE_ON_BOOT",False, boolean=True) and self.machine.consoleLogger:
-            self.machine.consoleLogger.reload()
-
 
     def addGuest(self, guest):
         self.guests[guest.name] = guest
@@ -8506,7 +8393,7 @@ class GenericGuest(GenericPlace):
             raise xenrt.XRTError("Funcion not implemented for non-Windows guests")
 
         try:
-            self._xmlrpc().enableDHCP6()
+            self.os.enableDHCP6()
         except:
             pass
         if self.enlightenedDrivers:

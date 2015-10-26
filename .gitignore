@@ -42,4 +42,4 @@ unittest/build
 unittest/.env
 xenrtdhcpd/xenrtallocator.py
 xenrtdhcpd/xenrtdhcpd-init
-!tests/**/.rej
+!tests/**/*.rej

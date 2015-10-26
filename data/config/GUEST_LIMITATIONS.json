@@ -118,7 +118,6 @@
       "MAX_VM_VCPUS": "32",
       "MAX_VM_VCPUS64": "32",
       "MINMEMORY": "1024",
-      "STATICMINMEMORY": "512"
     },
     "centos7": {
       "MAXMEMORY64": "6291456",
@@ -153,7 +152,6 @@
       "MAX_VM_VCPUS": "32",
       "MAX_VM_VCPUS64": "32",
       "MINMEMORY": "256",
-      "STATICMINMEMORY": "128"
     },
     "debian80": {
       "MAXMEMORY": "65536",
@@ -161,7 +159,6 @@
       "MAX_VM_VCPUS": "32",
       "MAX_VM_VCPUS64": "32",
       "MINMEMORY": "256",
-      "STATICMINMEMORY": "128"
     },
     "debiantesting": {
       "MAXMEMORY": "65536",
@@ -169,7 +166,6 @@
       "MAX_VM_VCPUS": "32",
       "MAX_VM_VCPUS64": "32",
       "MINMEMORY": "256",
-      "STATICMINMEMORY": "128"
     },
     "fedoralatest": {
       "MAXMEMORY64": "6291456",
@@ -384,7 +380,6 @@
       "MAXMEMORY": "16384",
       "MAXMEMORY64": "131072",
       "MINMEMORY": "1024",
-      "STATICMINMEMORY": "512"
     },
     "rhel7": {
       "MAXMEMORY64": "6291456",
@@ -400,13 +395,11 @@
       "MAXMEMORY": "16384",
       "MAXMEMORY64": "131072",
       "MINMEMORY": "1024",
-      "STATICMINMEMORY": "512"
     },
     "rhelw66": {
       "MAXMEMORY": "16384",
       "MAXMEMORY64": "131072",
       "MINMEMORY": "1024",
-      "STATICMINMEMORY": "512"
     },
     "sl511": {
       "MAXMEMORY": "8192",
@@ -438,13 +431,11 @@
       "MAX_VM_VCPUS": "32",
       "MAX_VM_VCPUS64": "32",
       "MINMEMORY": "1024",
-      "STATICMINMEMORY": "512"
     },
     "sled12": {
       "MAXMEMORY": "16384",
       "MAXMEMORY64": "524288",
       "MINMEMORY": "1024",
-      "STATICMINMEMORY": "512"
     },
     "sles101": {
       "MAXMEMORY": "16384",
@@ -488,7 +479,6 @@
       "MAX_VM_VCPUS": "32",
       "MAX_VM_VCPUS64": "32",
       "MINMEMORY": "4096",
-      "STATICMINMEMORY": "512"
     },
     "sles114": {
       "MAXMEMORY": "16384",
@@ -496,13 +486,11 @@
       "MAX_VM_VCPUS": "32",
       "MAX_VM_VCPUS64": "32",
       "MINMEMORY": "4096",
-      "STATICMINMEMORY": "512"
     },
     "sles12": {
       "MAXMEMORY": "16384",
       "MAXMEMORY64": "524288",
       "MINMEMORY": "4096",
-      "STATICMINMEMORY": "512"
     },
     "sles92": {
       "MAXMEMORY": "16384",
@@ -540,7 +528,7 @@
       "MAXMEMORY64": "131072",
       "MAX_VM_VCPUS": "8",
       "MAX_VM_VCPUS64": "16",
-      "MINMEMORY": "256"
+      "MINMEMORY": "512"
     },
     "ubuntudevel": {
       "MAXMEMORY": "32768",
@@ -672,7 +660,7 @@
       "MIN_ROOTDISK_MEMORY_DIFF": "20480"
     },
     "win10-x86": {
-      "MAXMEMORY": "131072",
+      "MAXMEMORY": "4096",
       "MAXSOCKETS": "2",
       "MAX_VM_VCPUS": "16",
       "MINMEMORY": "1024",
@@ -710,7 +698,7 @@
       "MINMEMORY": "2048"
     },
     "win8-x86": {
-      "MAXMEMORY": "131072",
+      "MAXMEMORY": "4096",
       "MAXSOCKETS": "2",
       "MAX_VM_VCPUS": "16",
       "MINMEMORY": "1024"
@@ -724,7 +712,7 @@
       "MIN_ROOTDISK_MEMORY_DIFF": "20480"
     },
     "win81-x86": {
-      "MAXMEMORY": "131072",
+      "MAXMEMORY": "4096",
       "MAXSOCKETS": "2",
       "MAX_VM_VCPUS": "16",
       "MINMEMORY": "1024",

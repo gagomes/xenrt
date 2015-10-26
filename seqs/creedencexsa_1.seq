@@ -8,6 +8,7 @@
   </prepare>
 
   <testsequence>
+    <testcase tc="TC-27359" id="testcases.xenserver.security.TCXSA148" />
     <testcase tc="TC-20680" id="testcases.xenserver.security.TCXSA29" />
     <testcase tc="TC-20682" id="testcases.xenserver.security.TCXSA31" />
     <testcase tc="TC-20681" id="testcases.xenserver.security.TCXSA30" />

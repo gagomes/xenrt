@@ -48,7 +48,7 @@ class MelioHelper(object):
 
     def getMelioClient(self, host):
         # Get an instance of the websockets library to the Melio UI
-        logName="sanbolic-%s" % threading.currentThread().getName()
+        logName="melio-%s" % threading.currentThread().getName()
         if not logName in self.logNames:
             xenrt.setupLogging(logName, forceThisTEC=True)
             self.logNames.append(logName)
@@ -91,7 +91,7 @@ class MelioHelper(object):
 
     def installMelioOnHost(self, host, reinstall=False):
         # Install the Melio software on a single host
-        if host.execdom0("lsmod | grep warm_drive", retval="code") == 0 and not reinstall:
+        if host.execdom0("lsmod | grep melio", retval="code") == 0 and not reinstall:
             return
         host.execdom0("yum install -y boost boost-atomic boost-thread boost-filesystem")
         if not self.getRpmToDom0(host, "MELIO_RPM", "melio_rpm", "/root/melio.rpm"):
@@ -104,12 +104,12 @@ class MelioHelper(object):
         host.execdom0("sed -i /warm-drive/d /etc/rc.d/rc.local")
         host.execdom0("sed -i /ping/d /etc/rc.d/rc.local")
         host.execdom0("echo 'ping -c 30 -i 0.1 -W 2 %s' >> /etc/rc.d/rc.local" % xenrt.TEC().lookup("XENRT_SERVER_ADDRESS"))
-        host.execdom0("echo 'modprobe warm_drive' >> /etc/rc.d/rc.local")
-        host.execdom0("chkconfig warm-drived off")
-        host.execdom0("echo 'service warm-drived start' >> /etc/rc.d/rc.local")
-        if host.execdom0("test -e /lib/systemd/system/warm-drive-webserverd.service", retval="code") == 0:
-            host.execdom0("chkconfig warm-drive-webserverd off")
-            host.execdom0("echo 'service warm-drive-webserverd start' >> /etc/rc.d/rc.local")
+        host.execdom0("echo 'modprobe melio' >> /etc/rc.d/rc.local")
+        host.execdom0("chkconfig meliod off")
+        host.execdom0("echo 'service meliod start' >> /etc/rc.d/rc.local")
+        if host.execdom0("test -e /lib/systemd/system/melio-webserverd.service", retval="code") == 0:
+            host.execdom0("chkconfig melio-webserverd off")
+            host.execdom0("echo 'service melio-webserverd start' >> /etc/rc.d/rc.local")
         host.reboot()
         self.checkXapiResponsive(host)
         if self.getRpmToDom0(host, "FFS_RPM", "ffs_rpm", "/root/ffs.rpm"):
@@ -201,13 +201,13 @@ class MelioHelper(object):
     def mount(self, mountpoint):
         # Mount the melio device on every host in the cluster at the specified mountpoint
         for host in self.hosts:
-            host.execdom0("mount -t warm_fs /dev/%s %s" % (self.getSanDeviceForHost(host), mountpoint))
+            host.execdom0("mount -t melio-fs /dev/%s %s" % (self.getSanDeviceForHost(host), mountpoint))
     
     def checkMount(self, mountpoint):
         # Check that melioFS is mounted at the specified mountpoint on every host in the cluster
         for host in self.hosts:
-            if not "on %s type warm_fs" % mountpoint in host.execdom0("mount"):
-                raise xenrt.XRTError("warm_fs not mounted on %s" % host.getName())
+            if not "on %s type melio-fs" % mountpoint in host.execdom0("mount"):
+                raise xenrt.XRTError("melio-fs not mounted on %s" % host.getName())
 
     def createSR(self, name="Melio"):
         # Create the melio SR

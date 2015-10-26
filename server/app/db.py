@@ -24,7 +24,7 @@ def isDBMaster(returnDetail=False):
                     return "This node is connected to the master database - no partner node exists to check for split brain"
                 return True
             try:
-                r = requests.get("http://%s/xenrt/api/dbchecks/takeovertime" % config.partner_ha_node, timeout=3)
+                r = requests.get("https://%s/xenrt/api/dbchecks/takeovertime" % config.partner_ha_node, timeout=3)
                 r.raise_for_status()
                 remote_time = int(r.text.strip())
             except Exception, e:

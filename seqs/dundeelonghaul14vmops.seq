@@ -1,16 +1,15 @@
 <xenrt>
 
   <!-- Long Haul test sequence -->
+  <default name="ISCSIOPTIONS" value="ietvm" />
+  <default name="LONGHAUL_SKU" value="ID" />
 
   <variables>
-    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
-    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
   </variables>
-  <scheduler>
-    <resources>memory&gt;=12G/memory&lt;=16G/disk1&gt;=200G</resources>
-  </scheduler>
+
   <prepare>
-    <host>
+    <host id="0">
       <vm name="VM">
         <distro>ws12r2-x64</distro>
         <network device="0" />
@@ -21,15 +20,15 @@
         <network device="0" />
         <postinstall action="installDrivers" />
       </vm>
+      <storage type="lvmoiscsi" name="iscsi" size="300" vmhost="0" options="${ISCSIOPTIONS}" default="true" />
     </host>
   </prepare>
 
   <testsequence>
-    <serial group="ws12r2-x64">
-      <testcase id="xenserver.tc.longhaul.LongHaulTestVmOperations" name="TC20906" tc="TC-20906">
+    <serial group="${LONGHAUL_SKU}">
+      <testcase id="xenserver.tc.longhaul.LongHaulTestVmOperations" tc="TC-20906" sku="{LONGHAUL_SKU}">
         <arg>duration=1209600</arg>
       </testcase>
     </serial>
   </testsequence>
-
 </xenrt>

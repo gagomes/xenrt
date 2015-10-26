@@ -1841,10 +1841,10 @@ class Config(object):
         self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["lxc"] = self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["kvm"]
 
         self.config["CLOUD_CONFIG"]["4.6.0"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.5.1"])
-        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-07-22-4.6.0-xen.vhd.bz2"
-        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-07-22-4.6.0-kvm.qcow2.bz2"
-        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["hyperv"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-07-22-4.6.0-hyperv.vhd.bz2"
-        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-07-22-4.6.0-vmware.ova"
+        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-09-05-4.7.0-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-09-05-4.7.0-kvm.qcow2.bz2"
+        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["hyperv"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-09-05-4.7.0-hyperv.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-09-05-4.7.0-vmware.ova"
         self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["lxc"] = self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["kvm"]
 
         self.config["CLOUD_CONFIG"]["4.7.0"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.6.0"])
@@ -3091,6 +3091,9 @@ class Config(object):
         
         # Pixie: xen. Rolls up XS65E009,XS65E010,XS65E013,XS65E014,XS65ESP1002,XS65ESP1004,XS65ESP1008, XS65ESP1009.
         self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1011"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1011/104305/hotfix-XS65ESP1011/XS65ESP1011.xsupdate"
+        
+        # Crosswires: fixes for Storage Modules. Rolls up nothing
+        self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1013"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1013/107506/hotfix-XS65ESP1013/XS65ESP1013.xsupdate"
         return
 
     def setSecondaryVariables(self):
@@ -3272,6 +3275,7 @@ class Config(object):
             self.config["CARBON_PATCHES_CREEDENCE"]["HF05"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1005"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF10"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1010"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF11"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1011"]
+            self.config["CARBON_PATCHES_CREEDENCE"]["HF13"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1013"]
             
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

@@ -123,7 +123,7 @@ class LongHaulTestVmOperations(xenrt.TestCase):
     def prepare(self, arglist):
         
         self.host = self.getDefaultHost() 
-        self.defaultSR = self.host.getLocalSR()       
+        self.defaultSR = self.host.lookupDefaultSR()
         self.guest0 = self.getGuest("VM")
         self.guest1 = self.getGuest("VM_Operations")
         

@@ -203,7 +203,6 @@ class GenericPlace(object):
                 self._os = xenrt.lib.opsys.osFromExisting(self, self.password)
                 self.password = self._os.password
                 self.distro = self._os.distro
-            self._os.tailor()
         return self._os
 
     def __getattr__(self, attr):

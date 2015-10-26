@@ -16,6 +16,7 @@ examples/second_network_site.xml
 examples/site.xml
 exec/localxenrt.py
 exec/mkconf.py
+infrastructure/bin/xenrtsitecontroller
 infrastructure/cron/xenrt.cron
 performance/config.py
 progs/dnslookup/dnslookup

@@ -122,9 +122,12 @@ class Guest(xenrt.GenericGuest):
     def getCLIInstance(self):
         return self.getHost().getCLIInstance()
 
-    def asXapiObject(self):
-        objType = xenrt.lib.xenserver.VM.OBJECT_TYPE
-        return xenrt.lib.xenserver.objectFactory().getObject(objType)(self.getCLIInstance(), objType, self.uuid)
+    @property
+    def xapiObject(self):
+        """Gets a XAPI VM object for this Guest
+        @return: A xenrt.lib.xenserver.VM object for this Guest
+        @rtype: xenrt.lib.xenserver.VM"""
+        return xenrt.lib.xenserver.VM(self.getCLIInstance(), self.uuid)
 
     def getAllowedOperations(self):
 

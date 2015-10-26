@@ -23,16 +23,16 @@ class ReadCachingController(object):
         self.__vdiuuid = value
 
     def setVM(self, vm, vdiIndex=0):
-        self.setVDIuuid(vm.asXapiObject().VDI()[vdiIndex].uuid)
+        self.setVDIuuid(vm.xapiObject.VDIs[vdiIndex].uuid)
 
     def srTypeIsSupported(self):
         sr = self.srForGivenVDI()
         # Read cache only works for ext, nfs and cifs.
-        return sr.srType() in ('nfs', 'ext', 'cifs')
+        return sr.srType in ('nfs', 'ext', 'cifs')
 
     def srForGivenVDI(self):
-        host = self._host.asXapiObject()
-        return next((s for s in host.SR() if self.vdiuuid in [v.uuid for v in s.VDI()]), None)
+        xhost = self._host.xapiObject
+        return next((s for s in xhost.SRs() if self.vdiuuid in [v.uuid for v in s.VDIs]), None)
 
     def _searchForFlag(self, data, flag):
         regex = """[\"]*%s[\"]*: (?P<flagValue>[\w\"]+)""" % flag
@@ -58,8 +58,8 @@ class ReadCachingController(object):
         return self._searchForFlag(readCacheDump, self.__TAP_CTRL_FLAG)
 
     def __xapiIsEnabled(self):
-        xhost = self._host.asXapiObject()
-        vdis = list(itertools.chain(*[v.VDI() for v in xhost.SR()]))
+        xhost = self._host.xapiObject
+        vdis = list(itertools.chain(*[s.VDIs for s in xhost.SRs()]))
         vdi = next((v for v in vdis if v.uuid == self.vdiuuid), None)
         if not vdi:
             raise RuntimeError("VDI with uuid %s could not be found in the list %s" % (self.vdiuuid, vdis))

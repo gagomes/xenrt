@@ -670,9 +670,12 @@ class Host(xenrt.GenericHost):
                                self.execdom0("md5sum /boot/%s" % imgFile))
         xenrt.TEC().logverbose("initrd has been rebuilt")
 
-    def asXapiObject(self):
-        objType = xenrt.lib.xenserver.XapiHost.OBJECT_TYPE
-        return xenrt.lib.xenserver.objectFactory().getObject(objType)(self.getCLIInstance(), objType, self.uuid)
+    @property
+    def xapiObject(self):
+        """Gets a XAPI Host object for this Host
+        @return: A xenrt.lib.xenserver.XapiHost object for this Host
+        @rtype: xenrt.lib.xenserver.XapiHost"""
+        return xenrt.lib.xenserver.XapiHost(self.getCLIInstance(), self.uuid)
 
     def getPool(self):
         if not self.pool:

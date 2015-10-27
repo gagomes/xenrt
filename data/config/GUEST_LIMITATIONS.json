@@ -208,12 +208,12 @@
       "MINMEMORY": "512"
     },
     "oel58": {
-      "MAXMEMORY": "65536",
+      "MAXMEMORY": "16384",
       "MAXMEMORY64": "131072",
       "MINMEMORY": "512"
     },
     "oel59": {
-      "MAXMEMORY": "65536",
+      "MAXMEMORY": "16384",
       "MAXMEMORY64": "131072",
       "MINMEMORY": "512"
     },
@@ -243,14 +243,14 @@
       "MINMEMORY": "512"
     },
     "oel65": {
-      "MAXMEMORY": "16384",
+      "MAXMEMORY": "8192",
       "MAXMEMORY64": "131072",
       "MAX_VM_VCPUS": "32",
       "MAX_VM_VCPUS64": "32",
       "MINMEMORY": "512"
     },
     "oel66": {
-      "MAXMEMORY": "16384",
+      "MAXMEMORY": "8192",
       "MAXMEMORY64": "131072",
       "MAX_VM_VCPUS": "32",
       "MAX_VM_VCPUS64": "32",
@@ -402,15 +402,15 @@
       "MINMEMORY": "1024",
     },
     "sl511": {
-      "MAXMEMORY": "8192",
-      "MAXMEMORY64": "32768",
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
       "MAX_VM_VCPUS": "16",
       "MAX_VM_VCPUS64": "16",
       "MINMEMORY": "1024"
     },
     "sl66": {
-      "MAXMEMORY": "8192",
-      "MAXMEMORY64": "32768",
+      "MAXMEMORY": "16384",
+      "MAXMEMORY64": "131072",
       "MAX_VM_VCPUS": "16",
       "MAX_VM_VCPUS64": "16",
       "MINMEMORY": "1024"
@@ -453,7 +453,8 @@
       "MINMEMORY": "512"
     },
     "sles104": {
-      "MAXMEMORY": "491520",
+      "MAXMEMORY": "16834",
+      "MAXMEMORY64": "491520",
       "MAX_VM_VCPUS": "32",
       "MAX_VM_VCPUS64": "32",
       "MINMEMORY": "512"
@@ -524,7 +525,7 @@
       "MINMEMORY": "256"
     },
     "ubuntu1404": {
-      "MAXMEMORY": "32768",
+      "MAXMEMORY": "65536",
       "MAXMEMORY64": "131072",
       "MAX_VM_VCPUS": "8",
       "MAX_VM_VCPUS64": "16",

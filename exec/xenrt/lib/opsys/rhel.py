@@ -209,7 +209,7 @@ class RHELLinux(RHELBasedLinux):
                     "sed 's/Red Hat Enterprise Linux Server release /rhel/' | "
                     "sed 's/Red Hat Enterprise Linux Client release /rheld/' | "
                     "sed 's/Red Hat Enterprise Linux Workstation release /rhelw/' | "
-                    "awk '{print $1}'")
+                    "awk '{print $1}'").strip()
         dd = distro.split(".")
         distro = dd[0]
         if dd[1] != "0":
@@ -246,7 +246,7 @@ class CentOSLinux(RHELBasedLinux):
         distro = obj.execSSH("cat /etc/centos-release | "
                     "sed 's/CentOS release /centos/' | "
                     "sed 's/CentOS Linux release /centos/' | "
-                    "awk '{print $1}'")
+                    "awk '{print $1}'").strip()
         dd = distro.split(".")
         distro = dd[0]
         if dd[1] != "0":
@@ -285,7 +285,7 @@ class OELLinux(RHELBasedLinux):
             return (False, password)
         distro = obj.execSSH("cat /etc/oracle-release | "
                     "sed 's/Oracle Linux Server release /oel/' | "
-                    "awk '{print $1}'")
+                    "awk '{print $1}'").strip()
         dd = distro.split(".")
         distro = dd[0]
         if dd[1] != "0":

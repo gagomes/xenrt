@@ -196,7 +196,7 @@ class SLESLinux(SLESBasedLinux):
                 ret += releaseMatch.group(1)
                 if patchMatch and patchMatch.group(1) != "0":
                     ret += patchMatch.group(1)
-                return "%s_%s" % (ret, obj.getA
+                return ("%s_%s" % (ret, obj.getArch()), password)
 
         return (False, password)
 

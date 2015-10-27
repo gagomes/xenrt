@@ -93,7 +93,7 @@ class LinuxOS(OS):
             # Use a 30s timeout if we know the IP. If we don't try 10s first
             if len(ipList) == 0:
                 timeouts = [30]
-                ipList = [self.getIPAndPort(trafficType="SSH")]
+                ipList = [(self.getIP(trafficType="SSH"), self.getPort(trafficType="SSH")]
             else:
                 timeouts = [10, 30]
                 ipList = [(x,22) for x in ipList]

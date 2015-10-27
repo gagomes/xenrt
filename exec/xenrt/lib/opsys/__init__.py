@@ -33,9 +33,6 @@ class OS(object):
     def getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
         return self.parent.getIP(trafficType, timeout, level)
 
-    def getIPAndPort(self, trafficType, timeout=600, level=xenrt.RC_ERROR):
-        return (self.getIP(trafficType, timeout, level), self.getPort(trafficType))
-
     def getPort(self, trafficType):
         return self.parent.getPort(trafficType) or self.tcpCommunicationPorts[trafficType]
 

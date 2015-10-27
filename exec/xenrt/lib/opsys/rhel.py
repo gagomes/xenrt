@@ -205,8 +205,12 @@ class RHELLinux(RHELBasedLinux):
             return (False, password)
         if obj.execSSH("test -e /etc/oracle-release", retval="code") == 0:
             return (False, password)
-        distro = obj.execSSH("cat /etc/redhat-release | sed 's/Red Hat Enterprise Linux Server release /rhel/' | tr -d . | awk '{print $1}'")
-        if re.match("^rhel(\d+)$", distro):
+        distro = obj.execSSH("cat /etc/redhat-release | "
+                    "sed 's/Red Hat Enterprise Linux Server release /rhel/' | "
+                    "sed 's/Red Hat Enterprise Linux Client release /rheld/' | "
+                    "sed 's/Red Hat Enterprise Linux Workstation release /rhelw/' | "
+                    "tr -d . | awk '{print $1}'")
+        if re.match("^rhel[dw]?(\d+)$", distro):
             return ("%s_%s" % (distro, obj.getArch()), password)
         else:
             return (False, password)

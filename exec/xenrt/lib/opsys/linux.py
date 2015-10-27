@@ -59,7 +59,7 @@ class LinuxOS(OS):
                              useThread=useThread)
 
     def getArch(self):
-        arch = self.execSSH("uname -m")
+        arch = self.execSSH("uname -m").strip()
         if arch == "x86_64":
             return "x86-64"
         else:

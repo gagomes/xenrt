@@ -872,6 +872,9 @@ class TCThinLVHDSRProtection(_ThinLVHDBase):
         bytetowrite = (initialalloc + beforedown) * 0.9
 
         step("Shutting down the pool master ...")
+        # Sync XAPI DB just in case.
+        self.pool.syncDatabase()
+        xenrt.sleep(10) # pool-sync-database is async call.
         self.master.machine.powerctl.off()
         xenrt.sleep(180)
 
@@ -887,6 +890,7 @@ class TCThinLVHDSRProtection(_ThinLVHDBase):
         self.master.machine.powerctl.on()
         # Wait for it to boot up
         self.master.waitForSSH(900)
+        xenrt.sleep(300) # Give some more time to xenvm get synced again.
 
         step("Verify host free space is recovered.")
         afterup = self.getHostFreeSpace(self.slave, self.sruuid)
@@ -894,12 +898,14 @@ class TCThinLVHDSRProtection(_ThinLVHDBase):
         if not self.checkVdiWrite(self.guest, device, size=afterup + 200 * xenrt.MEGA):
             raise xenrt.XRTFailure("Failed to write more than host free space. host: %s" % self.slave.uuid)
 
-        step("Eject the master from the pool ...")
+        step("Turn off the master and elect a new master...")
+        self.pool.syncDatabase()
+        xenrt.sleep(10) # pool-sync-database is async call.
         self.master.machine.powerctl.off()
-        xenrt.sleep(15)
+        xenrt.sleep(180)
         self.pool.setMaster(self.backupMaster)
         self.pool.recoverSlaves()
-        self.pool.eject(self.master)
+        xenrt.sleep(300) # Give some more time to xenvm get synced again.
 
         step("Verify that after new master is elected, free space is acquired.")
         afternewmaster = self.getHostFreeSpace(self.slave, self.sruuid)

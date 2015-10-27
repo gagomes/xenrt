@@ -205,7 +205,10 @@ class RHELLinux(RHELBasedLinux):
         if obj.execSSH("test -e /etc/oracle-release", retval="code") == 0:
             return (False, password)
         distro = obj.execSSH("cat /etc/redhat-release | sed 's/Red Hat Enterprise Linux Server release /rhel/' | tr -d . | awk '{print $1}'")
-        return ("%s_%s" % (distro, obj.getArch()), password)
+        if re.match("^rhel(\d+)$", distro):
+            return ("%s_%s" % (distro, obj.getArch()), password)
+        else:
+            return (False, password)
         
 
 class CentOSLinux(RHELBasedLinux):
@@ -232,7 +235,10 @@ class CentOSLinux(RHELBasedLinux):
         if obj.execSSH("test -e /etc/centos-release", retval="code") != 0:
             return (False, password)
         distro = obj.execSSH("cat /etc/centos-release | sed 's/CentOS release /centos/' | tr -d . | awk '{print $1}'")
-        return ("%s_%s" % (distro, obj.getArch()), password)
+        if re.match("^centos(\d+)$", distro):
+            return ("%s_%s" % (distro, obj.getArch()), password)
+        else:
+            return (False, password)
 
 class OELLinux(RHELBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV,
@@ -262,7 +268,10 @@ class OELLinux(RHELBasedLinux):
         if obj.execSSH("test -e /etc/oracle-release", retval="code") != 0:
             return (False, password)
         distro = obj.execSSH("cat /etc/oracle-release | sed 's/Oracle Linux Server release /oel/' | tr -d . | awk '{print $1}'")
-        return ("%s_%s" % (distro, obj.getArch()), password)
+        if re.match("^oel(\d+)$", distro):
+            return ("%s_%s" % (distro, obj.getArch()), password)
+        else:
+            return (False, password)
 
 registerOS(RHELLinux)
 registerOS(CentOSLinux)

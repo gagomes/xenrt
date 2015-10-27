@@ -211,10 +211,12 @@ class DebianLinux(DebianBasedLinux):
         if isUbuntu:
             return (False, password)
         else:
-            
             release = obj.execSSH("cat /etc/debian_version").strip()
             release = release.split(".")[0]
-            return ("debian%s0_%s" % (release, obj.getArch()), password)
+            if re.match("^debian\d+$", release):
+                return ("debian%s0_%s" % (release, obj.getArch()), password)
+            else:
+                return (False, password)
 
 class UbuntuLinux(DebianBasedLinux):
     """ NOTE: Lucid is not supported on XS 6.2 for ISO install but should work for http install"""
@@ -246,7 +248,10 @@ class UbuntuLinux(DebianBasedLinux):
             return (False, password)
         else:
             release = obj.execSSH("cat /etc/lsb-release | grep DISTRIB_RELEASE | cut -d = -f 2 | tr -d .")
-            return ("ubuntu%s0_%s" % (release, obj.getArch()), password)
+            if re.match("^ubuntu\d+$", release):
+                return ("ubuntu%s0_%s" % (release, obj.getArch()), password)
+            else:
+                return (False, password)
 
 registerOS(DebianLinux)
 registerOS(UbuntuLinux)

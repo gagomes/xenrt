@@ -163,7 +163,8 @@ class SLESBasedLinux(LinuxOS):
 
     @classmethod
     def osDetected(cls, parent, password):
-        return (False, password)
+        if obj.execSSH("test -e /etc/SuSE-release", retval="code") == 0:
+            return (True, password)
 
 class SLESLinux(SLESBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
@@ -185,18 +186,17 @@ class SLESLinux(SLESBasedLinux):
     @classmethod
     def osDetected(cls, parent, password):
         obj=cls("testsuse", parent, password)
-        if obj.execSSH("test -e /etc/SuSE-release", retval="code") == 0:
-            release = obj.execSSH("cat /etc/SuSE-release")
+        release = obj.execSSH("cat /etc/SuSE-release")
 
-            releaseMatch = re.search("VERSION = (\d+)", release)
-            patchMatch = re.search("PATCHLEVEL = (\d+)", release)
+        releaseMatch = re.search("VERSION = (\d+)", release)
+        patchMatch = re.search("PATCHLEVEL = (\d+)", release)
 
-            if releaseMatch:
-                ret = "sles"
-                ret += releaseMatch.group(1)
-                if patchMatch and patchMatch.group(1) != "0":
-                    ret += patchMatch.group(1)
-                return ("%s_%s" % (ret, obj.getArch()), password)
+        if releaseMatch:
+            ret = "sles"
+            ret += releaseMatch.group(1)
+            if patchMatch and patchMatch.group(1) != "0":
+                ret += patchMatch.group(1)
+            return ("%s_%s" % (ret, obj.getArch()), password)
 
         return (False, password)
 

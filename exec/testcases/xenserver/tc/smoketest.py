@@ -142,6 +142,11 @@ class _TCSmokeTest(xenrt.TestCase):
         self.guest.memset(self.postInstallMemory)
         self.guest.start()
 
+        # Check the in-guest memory matches what we expect
+        guestMemory = self.guest.getGuestMemory()
+        if guestMemory != self.postInstallMemory:
+            raise xenrt.XRTFailure("Guest reports %uMB memory, expecting %uMB" % (guestMemory, self.postInstallMemory))
+
     def installOS(self):
 
         disks = []
@@ -163,6 +168,11 @@ class _TCSmokeTest(xenrt.TestCase):
         self.uninstallOnCleanup(self.guest)
         self.getLogsFrom(self.guest)
         self.guest.check()
+
+        # Check the in-guest memory matches what we expect
+        guestMemory = self.guest.getGuestMemory()
+        if guestMemory != self.memory:
+            raise xenrt.XRTFailure("Guest reports %uMB memory, expecting %uMB" % (guestMemory, self.memory))
 
     def installDrivers(self):
         self.guest.installDrivers()

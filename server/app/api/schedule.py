@@ -470,6 +470,11 @@ class XenRTSchedule(XenRTAPIPage):
         for cluster in clusters.keys():
             clusterprios[cluster] = max([int(m[13]) for m in clusters[cluster].values()])
 
+        # Check if we have any clusters to look at
+        if len(clusters) == 0:
+            verbose.write("  no clusters to check (likely no remaining capacity in site)\n")
+            return False
+
         # Try each cluster
         # Randomise the list so we spread the load a bit (XRT-737)
         cs = clusters.keys()

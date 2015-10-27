@@ -163,6 +163,7 @@ class SLESBasedLinux(LinuxOS):
 
     @classmethod
     def osDetected(cls, parent, password):
+        obj=cls("testsuse", parent, password)
         if obj.execSSH("test -e /etc/SuSE-release", retval="code") == 0:
             return (True, password)
 

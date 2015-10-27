@@ -9,35 +9,39 @@
 #
 
 import xenrt, re, time, os, os.path, string, random, math, operator
-from xenrt.lazylog import step
+from xenrt.lazylog import step, log
 
 class _BalloonPerfBase(xenrt.TestCase):
     """Base class for balloon driver performance tests"""
     FAIL_BELOW = 0.1 # GiB/Ghz/s
-    DISTRO = "winxpsp3"
-    ARCH = "x86-32"
     SET_PAE = True
-    LIMIT_TO_30GB = True
 
-    def __init__(self, tcid=None):
-        self.WINDOWS = self.DISTRO.startswith("w") or self.DISTRO.startswith("v")
-        xenrt.TestCase.__init__(self, tcid=tcid)
+    def __init__(self, tcid="_BalloonPerfBase"):
+        super(_BalloonPerfBase, self).__init__(tcid=tcid)
+        self.distro = "win7sp1-x86"
+        self.arch = "x86-32"
+        self.limitTo30Gb = True
+        self.hap = None
+        self.doLifecycleOps = True
+        self.guestName = self.distro
 
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
-        if self.WINDOWS:
-            self.guest = self.host.createGenericWindowsGuest(distro=self.DISTRO, memory=1024)
-            if self.SET_PAE:
-                self.guest.forceWindowsPAE()
-        else:
-            self.guest = self.host.createBasicGuest(distro=self.DISTRO, memory=1024, arch=self.ARCH)
-
+        
+        self.parseArgs(arglist)
+        
+        step("Install Guest")
+        self.guest = self.getGuest()
+        self.uninstallOnCleanup(self.guest)
+        self.getLogsFrom(self.guest)
+        log("Guest Installation complete")
+        
         self.guest.shutdown()
 
-        maxmem = int(self.host.lookup(["GUEST_LIMITATIONS", self.DISTRO, "MAXMEMORY"], self.host.lookup("MAX_VM_MEMORY", "32768")))
+        maxmem = int(self.host.lookup(["GUEST_LIMITATIONS", self.distro, "MAXMEMORY"], self.host.lookup("MAX_VM_MEMORY", "32768")))
         if not self.SET_PAE and maxmem > 4096:
             maxmem = 4096
-        if self.LIMIT_TO_30GB and maxmem > 30720:
+        if self.limitTo30Gb and maxmem > 30720:
             maxmem = 30720
         self.maxMiB = maxmem
         xenrt.TEC().comment("max = %d GiB" % (self.maxMiB / xenrt.KILO))
@@ -128,66 +132,123 @@ class _BalloonPerfBase(xenrt.TestCase):
         if index < self.FAIL_BELOW:
             raise xenrt.XRTFailure("Balloon driver performance index less than %s GiB/Ghz/s" % (self.FAIL_BELOW),
                                    data="Calculated index %s GiB/Ghz/s" % (index))
+    
+    def parseArgs(self, arglist):
+        args = self.parseArgsKeyValue(arglist)
+        self.guestName = args.get("DISTRO", self.distro)
+        (self.distro, self.arch) = xenrt.getDistroAndArch(self.guestName)
+        self.hap = args.get("HAP", self.hap)
+        self.doLifecycleOps = args.get("DO_LIFECYCLE_OPS", self.doLifecycleOps)
+        self.limitTo30Gb = args.get("LIMIT_TO_30GB", self.limitTo30Gb)
+    
+    def getGuest(self):
+        # Set up the VM
+        guest = self.host.getGuest(self.guestName)
+        if not guest:
+            raise xenrt.XRTFailure("Guest %s not found on the host" % (self.guestName))
+
+        if guest.windows and self.SET_PAE:
+            guest.forceWindowsPAE()
+
+        return guest
 
 class _BalloonSmoketest(_BalloonPerfBase):
     """Base class for balloon driver smoketests and max range tests"""
-    DISTRO = "w2k3eesp1"
     WORKLOADS = ["Prime95"]
-    DO_LIFECYCLE_OPS = False
-    LIMIT_TO_30GB = True
     ITERATIONS = 1
     SET_PAE = True
     HOST = "RESOURCE_HOST_0"
-    HAP = None
+
+    def __init__(self):
+        super(_BalloonSmoketest, self).__init__("_BalloonSmoketest")
+        self.balloonUpInitialAlloc = True
+        self.lowMemoryConstraint = False
+        self.allowedTargetMismatch = 0
 
     def prepare(self, arglist=None):
         # Get the host
         self.host = self.getHost(self.HOST)
+        self.parseArgs(arglist)
+        
+        if self.hap:
+            self.checkHAP()
 
-        if self.HAP:
-            # Check this is the right sort of host
-            # XXX: At the moment we can only check if it's Intel or AMD - we
-            # need a way to check if its EPT or NPT!
-            if not self.HAP in ["NPT", "EPT"]:
-                raise xenrt.XRTError("Unknown HAP type %s" % (self.HAP))
-
-            if self.HAP == "NPT" and not self.host.isSvmHardware():
-                raise xenrt.XRTError("Attempting to test NPT but not running on"
-                                     " AMD hardware")
-            elif self.HAP == "EPT" and not self.host.isVmxHardware():
-                raise xenrt.XRTError("Attempting to test EPT but not running on"
-                                     " Intel hardware")
-
-        xenrt.TEC().logverbose("Sleeping to let host memory free settle...")
+        step("Sleeping to let host memory free settle...")
         time.sleep(30)
         self.hostMemory = int(self.host.paramGet("memory-free")) / xenrt.MEGA
         xenrt.TEC().logverbose("...done")
-
-        self.guest = self.installGuest()
+        
+        step("Install Guest")
+        self.guest = self.getGuest()
         self.uninstallOnCleanup(self.guest)
         self.getLogsFrom(self.guest)
+        log("Guest Installation complete")
 
+        step("Install Workloads")
         if len(self.WORKLOADS) > 0:
             self.guest.installWorkloads(self.WORKLOADS)
+
+        step("Get minimum and maximum memory for the guest")
+        if not self.guest.windows:
+            self.setLinuxContraints()
+        self.findMinMaxMemory()
+
+        step("Look up the dynamic range multiplier")
+        if self.guest.windows:
+            lookup = "WIN"
+        else:
+            lookup = "LINUX"
+        self.dmcPercent = int(self.host.lookup("DMC_%s_PERCENT" % (lookup),"25"))
+        log("Dynamic Range Multiplies = %s" % (self.dmcPercent))
+
         self.guest.shutdown()
 
-        # Find the min and max supported for this distro etc
+    def checkHAP(self):
+        # Check this is the right sort of host
+        # XXX: At the moment we can only check if it's Intel or AMD - we
+        # need a way to check if its EPT or NPT!
+        if not self.hap in ["NPT", "EPT"]:
+            raise xenrt.XRTError("Unknown HAP type %s" % (self.hap))
+
+        if self.hap == "NPT" and not self.host.isSvmHardware():
+            raise xenrt.XRTError("Attempting to test NPT but not running on"
+                                     " AMD hardware")
+        elif self.hap == "EPT" and not self.host.isVmxHardware():
+            raise xenrt.XRTError("Attempting to test EPT but not running on"
+                                     " Intel hardware")
+
+    def setLinuxContraints(self):
+        # All Linux distros behave differently on memory balloon up.
+        # Check the type and accordingly set the class variables
+        if self.guest.isNonBalloonablePVLinux():
+            log("This is an early PV guest and it cannot balloon up beyond initial memory allocation")
+            self.balloonUpInitialAlloc = False
+        elif self.guest.isHVMLinux():
+            log("This is HVM PV guest and we need to consider the constraint for 10 MB video memory")
+            self.allowedTargetMismatch = 10
+        elif self.arch == "x86-32":
+            log("This is a 32-bit PV guest and it cannot balloon up beyond 10 X Low memory")
+            self.lowMemoryConstraint = True
+
+    def findMinMaxMemory(self):
+        step("Find the min and max supported memory for this distro")
         minmem = self.host.lookup("MIN_VM_MEMORY")
-        minmem = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.DISTRO, "MINMEMORY"], minmem))
-        self.minSupported = int(self.host.lookup(["VM_MIN_MEMORY_LIMITS", self.DISTRO], minmem))
-        self.minStaticSupported = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.DISTRO, "STATICMINMEMORY"], self.minSupported))
+        minmem = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro, "MINMEMORY"], minmem))
+        self.minSupported = int(self.host.lookup(["VM_MIN_MEMORY_LIMITS", self.distro], minmem))
         max = self.host.lookup("MAX_VM_MEMORY")
-        self.maxSupported = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.DISTRO, "MAXMEMORY"], max))
+        self.maxSupported = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro, "MAXMEMORY"], max))
+
         if not self.SET_PAE and self.maxSupported > 4096:
             self.maxSupported = 4096
 
         # If the max is 32GB, then drop it to 30GB/(max available memory) so we can fit on a 32GB host
-        if self.LIMIT_TO_30GB and self.maxSupported > 30720:
+        if self.limitTo30Gb and self.maxSupported > 30720:
             xenrt.TEC().comment("Limiting test to 30GB...")
             freemem = self.host.getFreeMemory()
             availablemem = freemem - self.host.predictVMMemoryOverhead(freemem, False)
             self.maxSupported = min(30720, availablemem )
-
+        log("Minimum Supported memory =  %d" % (self.minSupported))
+        log("Maximum Supported memory =  %d" % (self.maxSupported))
 
         # Check if we've been asked to apply a cap
         cap = xenrt.TEC().lookup("DMC_MEMORY_CAP_MIB", None)
@@ -197,31 +258,25 @@ class _BalloonSmoketest(_BalloonPerfBase):
                 xenrt.TEC().warning("Capping test at %uMiB..." % (capto))
                 self.maxSupported = capto
 
-        # Look up the dynamic range multiplier (checking for a command line override
-        if self.WINDOWS:
-            lookup = "WIN"
-        else:
-            lookup = "LINUX"
-        self.dmcPercent = int(self.host.lookup("DMC_%s_PERCENT" % (lookup)))
-        self.dmcPercent = int(xenrt.TEC().lookup("DMC_%s_PERCENT" % (lookup), self.dmcPercent))
+        # Check if guest has LOW memory constraint
+        # 32-bit pv-ops guests cannot balloon up to more than 10x the amount of low memory 
+        if not self.guest.windows and self.lowMemoryConstraint:
+            lowMemory = self.guest.getLowMemory()
+            self.maxSupported = min(lowMemory * 10, self.maxSupported)
+            xenrt.TEC().logverbose("Due to low memory constraint, Capping maximum memory to %s" % (self.maxSupported))
 
-    def installGuest(self):
-        # Set up the VM
-        if self.WINDOWS:
-            guest = self.host.createGenericWindowsGuest(distro=self.DISTRO, vcpus=2)
-            if self.SET_PAE:
-                guest.forceWindowsPAE()
-        else:
-            guest = self.host.createBasicGuest(distro=self.DISTRO,
-                                               arch=self.ARCH)
-
-        return guest
+    def preLogs(self):
+        # If it's shutdown, start it so we try and collect logs
+        if self.guest and self.guest.getState() == "DOWN":
+            xenrt.TEC().logverbose("Attempting to start guest for log collection")
+            val = max(self.minSupported, 1024)
+            self.guest.setMemoryProperties(None, val, val, val)
+            self.guest.start()
 
     def run(self, arglist=None):
-
-        # Windows VMs have a limitation on the range they can balloon over
+        # VMs have a limitation on the range they can balloon over
         # specified by the dmc multiplier
-        xenrt.TEC().logverbose("Testing max supported range starting at "
+        step("Testing max supported range starting at "
                                "minimum supported RAM...")
         if self.runSubcase("runCase", (self.minSupported,
                                        self.minSupported * 100 / self.dmcPercent, "min"),
@@ -231,7 +286,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
                 xenrt.TEC().logverbose("Unable to recover guest, other tests blocked.")
                 return
 
-        xenrt.TEC().logverbose("Trying max supported range centred over median "
+        step("Trying max supported range centred over median "
                                "supported RAM...")
         midpoint = self.minSupported + ((self.maxSupported - self.minSupported) / 2)
         min = midpoint * 2 * self.dmcPercent / (100 + self.dmcPercent)
@@ -243,40 +298,20 @@ class _BalloonSmoketest(_BalloonPerfBase):
                 xenrt.TEC().logverbose("Unable to recover guest, other tests blocked.")
                 return
 
-        xenrt.TEC().logverbose("Testing max supported range ending at maximum "
+        step("Testing max supported range ending at maximum "
                                "supported RAM...")
         if self.runSubcase("runCase", (self.maxSupported * self.dmcPercent / 100,
                                        self.maxSupported, "max"), "MaxRange",
                            "Max") != xenrt.RESULT_PASS:
-            xenrt.TEC().logverbose("Not checking static-min due to Max failure")
             return
-
-        # Now verify that static-min is equal to the min supported RAM
-        self.runSubcase("checkStaticMin", (), "Verify", "StaticMin")
-
-    def preLogs(self):
-        # If it's shutdown, start it so we try and collect logs
-        if self.guest and self.guest.getState() == "DOWN":
-            xenrt.TEC().logverbose("Attempting to start guest for log collection")
-            try:
-                self.guest.start()
-            except:
-                pass
-
-    def checkStaticMin(self):
-        smin = int(self.guest.paramGet("memory-static-min")) / xenrt.MEGA
-        if smin != self.minStaticSupported:
-            raise xenrt.XRTFailure("memory-static-min does not equal minimum supported RAM",
-                                   data="Expecting %dMiB, found %dMiB" % (self.minStaticSupported, smin))
-
 
     def runCase(self, min, max, type):
         success = 0
         try:
             for i in range(self.ITERATIONS):
-                xenrt.TEC().logverbose("Starting iteration %u/%u..." % (i+1, self.ITERATIONS))
-                self.status = "fail"
-                self.runCaseInner(min, max, ((i+1) == self.ITERATIONS))
+                step("Starting iteration %u/%u..." % (i+1, self.ITERATIONS))
+                testStatus = "fail"
+                self.runCaseInner(min, max, (i+1))
                 xenrt.TEC().logverbose("...done")
                 success += 1
                 if xenrt.GEC().abort:
@@ -284,82 +319,61 @@ class _BalloonSmoketest(_BalloonPerfBase):
                     break
         finally:
             xenrt.TEC().comment("%u/%u iterations successful" % (success, self.ITERATIONS))
-            if self.WINDOWS:
+            if self.guest.windows:
                 if not self.SET_PAE:
                     arch = "noPAE"
                 else:
                     arch = ""
             else:
-                arch = self.ARCH
-            logString = "DMCEnvelope,%s,%s,1,%s,%s," % (self.DISTRO, arch, max, self.dmcPercent)
+                arch = self.arch
+            logString = "DMCEnvelope,%s,%s,1,%s,%s," % (self.distro, arch, max, self.dmcPercent)
             if success == self.ITERATIONS:
-                self.status = "pass"
+                testStatus = "pass"
             else:
-                # Trigger a debug dump from the VM and give it some time to dump
+                step("Trigger a debug dump from the VM and give it some time to dump")
                 if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
                     self.host.execdom0("xl debug-keys q")
                 else:
                     self.host.execdom0("/opt/xensource/debug/xenops debugkeys q")
                 time.sleep(30)
-            logString += self.status
+            logString += testStatus
             logString += ",%s" % (type)
             xenrt.TEC().appresult(logString)
             
 
-    def runCaseInner(self, min, max, doLifecycleOps):
+    def runCaseInner(self, minMem, maxMem, iteration):
         try:
-            self.guest.setMemoryProperties(None, min, min, max)
-
+            if self.balloonUpInitialAlloc:
+                #Guests can balloon up from inital memory allocation
+                step("Set dynamic-min=dynamic-max=min, static-max=max")
+                self.guest.setMemoryProperties(None, minMem, minMem, maxMem)
+            else:
+                #Guests cannot balloon up beyond initial dynamic-min
+                #Assign dynamic-min = max memory so that we can balloon down to min and perform the test
+                step("Set dynamic-min=dynamic-max=static-max=max")
+                self.guest.setMemoryProperties(None, maxMem, maxMem, maxMem)
+                
             self.guest.start()
+            step("Check the target has been met correctly")
+            self.guest.waitForTarget(120, allowedTargetMismatch=self.allowedTargetMismatch)
+            log("Wait for few seconds for RRDs to settle")
+            xenrt.sleep(30)
             self.guest.checkMemory(inGuest=True)
-            self.status = "booted"
+                
+            step("Verify it can balloon down to min")
+            self.setDynamicMemRange(minMem, minMem)
 
-            # Check the target has been met correctly
-            self.guest.waitForTarget(0, desc="Not at target immediately after boot")
+            step("Verify VM can balloon up to max memory")
+            self.setDynamicMemRange(maxMem, maxMem)
 
-            # Verify it can balloon up to smax, and back down
-            xenrt.TEC().logverbose("Ballooning VM up and rebooting...")
-            self.guest.setDynamicMemRange(max, max)
-            self.guest.waitForTarget(600)
-            time.sleep(10)
-            self.guest.checkMemory(inGuest=True)
-            self.guest.reboot()
+            step("Verify it can balloon down to min")
+            self.setDynamicMemRange(minMem, minMem)
+                
 
-            xenrt.TEC().logverbose("Ballooning VM down, up, down...")
-            self.guest.setDynamicMemRange(min, min)
-            self.guest.waitForTarget(600)
-            time.sleep(10)
-            self.guest.checkMemory(inGuest=True)
-            self.guest.setDynamicMemRange(max, max)
-            self.guest.waitForTarget(600)
-            time.sleep(10)
-            self.guest.checkMemory(inGuest=True)
-            self.guest.setDynamicMemRange(min, min)
-            self.guest.waitForTarget(600)
-            time.sleep(10)
-            self.guest.checkMemory(inGuest=True)
-
-            xenrt.TEC().logverbose("Rebooting and ballooning up and down...")
-            self.guest.reboot()
-            self.guest.setDynamicMemRange(max, max)
-            self.guest.waitForTarget(600)
-            time.sleep(10)
-            self.guest.checkMemory(inGuest=True)
-            self.guest.setDynamicMemRange(min, min)
-            self.guest.waitForTarget(600)
-            time.sleep(10)
-            self.guest.checkMemory(inGuest=True)
-
-            xenrt.TEC().logverbose("Ballooning VM up...")
-            self.guest.setDynamicMemRange(max, max)
-            self.guest.waitForTarget(600)
-            time.sleep(10)
-            self.guest.checkMemory(inGuest=True)
-            
-            # Are we meant to do lifecycle ops (only for primary distros)?
-            if self.DO_LIFECYCLE_OPS and doLifecycleOps:
-                self.guest.setDynamicMemRange(min, max)
-                self.lifecycleOps(min)
+            # Perform lifecycle operations if it is the last iteration
+            if self.doLifecycleOps and (iteration == self.ITERATIONS):
+                self.guest.setDynamicMemRange(minMem, maxMem)
+                self.lifecycleOps(minMem)
 
             self.guest.shutdown()
         except xenrt.XRTFailure, e:
@@ -371,7 +385,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
             #...Windows is behaving perfectly reasonably and ballooning driver cannot...
             #...handle this situation. So modying testcase to handle this failure if it happens.
             #Change Dynamic Min to 512 and re-run the subcase.
-            if self.DISTRO in ["winxpsp3", "w2k3eesp2"] and min == 256 and "Domain running but not reachable" in str(e):
+            if self.distro in ["winxpsp3", "w2k3eesp2"] and minMem == 256 and "Domain running but not reachable" in str(e):
                 self.minSupported = 512
                 xenrt.TEC().warning("unable to balloon so low... changing min to 512MiB")
                 # Windows VMs have a limitation on the range they can balloon over
@@ -389,12 +403,38 @@ class _BalloonSmoketest(_BalloonPerfBase):
                         xenrt.TEC().logverbose("Unable to recover guest, other tests blocked.")
                         return
                 pass
+            #EXT-119- The product is behaving as intended. It initiates its side of the contract 
+            # which is to write a memory target for the VM to Xenstore. 
+            #If the guest doesn't manage to comply with this target for any of many reasons 
+            #(ranging from too busy, crashed guest, malicious guest, buggy balloon driver)
+            #then the product marks the guest as uncooperative
+            #Check for uncooperative tag, if found shut down the VM and raise a failure
+            elif "Target not reached" in str(e):
+                if self.guest.isUncooperative():
+                    log("Caught failure: %s" % str(e))
+                    log("Guest marked uncooperative")
+                    log("Shut down the guest")
+                    try:
+                        self.guest.shutdown(force=True)
+                    except:
+                        pass
+                raise
             else:
                 raise
-               
+
+    def setDynamicMemRange(self, min, max):
+        """Set guest's dynamic memory to given limits and check if target is met"""
+
+        self.guest.setDynamicMemRange(min, max)
+
+        self.guest.waitForTarget(300, allowedTargetMismatch=self.allowedTargetMismatch)
+        log("Wait for few seconds for RRDs to settle")
+        xenrt.sleep(30)
+        self.guest.checkMemory(inGuest=True)
+
 
     def lifecycleOps(self, min):
-        xenrt.TEC().logverbose("Performing lifecycle operations on VM...")
+        step("Perform Lifecycle operations on the VM")
         self.guest.shutdown()
         self.guest.start()
         self.guest.reboot()
@@ -408,8 +448,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
         xenrt.TEC().logverbose("...done")
 
     def recoverGuest(self):
-        # Recover a guest from a potentially crashed / failed state
-        xenrt.TEC().logverbose("Attempting to recover guest...")
+        step("Attempting to recover a guest from a potentially crashed / failed state...")
         try:
             self.guest.shutdown(force=True)
         except:
@@ -429,345 +468,61 @@ class _P2VBalloonSmoketest(_BalloonSmoketest):
     WORKLOADS = ["LinuxSysbench"]
     HOST = "RESOURCE_HOST_1"
 
-    def installGuest(self):
+    def getGuest(self):
         # We assume that the default host is the target host, and that
         # RESOURCE_HOST_0 is the native host
         mname = xenrt.TEC().lookup("RESOURCE_HOST_0")
         m = xenrt.PhysicalHost(mname)
         xenrt.GEC().startLogger(m)
         self.p2vhost = xenrt.lib.native.NativeLinuxHost(m)
-        self.p2vhost.installLinuxVendor(self.DISTRO)
+        self.p2vhost.installLinuxVendor(self.distro)
 
         guest = self.host.p2v(xenrt.randomGuestName(),
-                              self.DISTRO,
+                              self.distro,
                               self.p2vhost)
 
         return guest
 
-#
-# Windows VM Balloon Driver Performance Tests (primary OS's)
-#
-
-class TC9240(_BalloonPerfBase):
-    """Windows 2000 SP4 balloon driver performance test"""
-    DISTRO = "w2kassp4"
-
-class TC9241(_BalloonPerfBase):
-    """Windows 2003 EE SP2 balloon driver performance test"""
-    DISTRO = "w2k3eesp2"
-
-class TC10517(_BalloonPerfBase):
-    """Windows 2003 EE SP2 non-PAE balloon driver performance test"""
-    DISTRO = "w2k3eesp2"
-    SET_PAE = False
-
-class TC9242(_BalloonPerfBase):
-    """Windows XP SP3 balloon driver performance test"""
-    DISTRO = "winxpsp3"
-
-class TC9243(_BalloonPerfBase):
-    """Windows Vista EE SP2 balloon driver performance test"""
-    DISTRO = "vistaeesp2"
-
-class TC9244(_BalloonPerfBase):
-    """Windows 2008 SP2 x86 balloon driver performance test"""
-    DISTRO = "ws08sp2-x86"
-
-class TC12574(_BalloonPerfBase):
-    """Windows 7 SP1 x86 balloon driver performance test"""
-    DISTRO = "win7sp1-x86"
-
-class TC9245(_BalloonPerfBase):
-    """Windows 2003 EE SP2 x64 balloon driver performance test"""
-    DISTRO = "w2k3eesp2-x64"
-
-class TC9246(_BalloonPerfBase):
-    """Windows Vista EE SP2 x64 balloon driver performance test"""
-    DISTRO = "vistaeesp2-x64"
-
-class TC9247(_BalloonPerfBase):
-    """Windows 2008 SP2 x64 balloon driver performance test"""
-    DISTRO = "ws08sp2-x64"
-
-class TC12575(_BalloonPerfBase):
-    """Windows 7 SP1 x64 balloon driver performance test"""
-    DISTRO = "win7sp1-x64"
-
-class TC12576(_BalloonPerfBase):
-    """Windows 2008 R2 SP1 x64 balloon driver performance test"""
-    DISTRO = "ws08r2sp1-x64"
 
 #
 # Linux VM Balloon Driver Performance Tests (primary OS's)
 #
-
 class _LinuxBalloonPerfBase(_BalloonPerfBase):
     WORKLOADS = ["LinuxSysbench"]
 
-class TC9248(_LinuxBalloonPerfBase):
-    """RHEL 4.7 balloon driver performance test"""
-    DISTRO = "rhel47"
-
-class TC9537(_LinuxBalloonPerfBase):
-    """RHEL 4.8 balloon driver performance test"""
-    DISTRO = "rhel48"
-
-class TC12577(_LinuxBalloonPerfBase):
-    """RHEL 5.5 balloon driver performance test"""
-    DISTRO = "rhel55"
-
-class TC12578(_LinuxBalloonPerfBase):
-    """RHEL 5.5 x64 balloon driver performance test"""
-    DISTRO = "rhel55"
-    ARCH = "x86-64"
-
-class TC9250(_LinuxBalloonPerfBase):
-    """SLES9 SP4 balloon driver performance test"""
-    DISTRO = "sles94"
-
-class TC9251(_LinuxBalloonPerfBase):
-    """SLES10 SP2 balloon driver performance test"""
-    DISTRO = "sles102"
-
-class TC9289(_LinuxBalloonPerfBase):
-    """SLES10 SP2 x64 balloon driver performance test"""
-    DISTRO = "sles102"
-    ARCH = "x86-64"
-
-class TC12579(_LinuxBalloonPerfBase):
-    """SLES11 SP1 balloon driver performance test"""
-    DISTRO = "sles111"
-
-class TC12580(_LinuxBalloonPerfBase):
-    """SLES11 SP1 x64 balloon driver performance test"""
-    DISTRO = "sles111"
-    ARCH = "x86-64"
-
-class TC9253(_LinuxBalloonPerfBase):
-    """Debian Etch balloon driver performance test"""
-    DISTRO = "etch"
-
-class TC9254(_LinuxBalloonPerfBase):
-    """Debian Lenny balloon driver performance test"""
-    DISTRO = "debian50"
+class TCLinuxBalloonPerf(_LinuxBalloonPerfBase):
+    """Linux balloon driver performance test"""
+    pass
 
 #
-# Windows VM Balloon Driver Performance Tests (secondary + tertiary OS's)
+# Windows VM Balloon Driver Performance Tests
 #
-class TC10518(_BalloonPerfBase):
-    """Windows 7 x86 balloon driver performance test"""
-    DISTRO = "win7-x86"
+class TCWindowsBalloonPerf(_BalloonPerfBase):
+    """Windows balloon driver performance test"""
+    pass
 
-class TC10519(_BalloonPerfBase):
-    """Windows 7 x64 balloon driver performance test"""
-    DISTRO = "win7-x64"
-
-class TC10520(_BalloonPerfBase):
-    """Windows 2008 R2 x64 balloon driver performance test"""
-    DISTRO = "ws08r2-x64"
 
 #
-# Linux VM Balloon Driver Performance Tests (secondary + tertiary OS's)
+# Linux VM Balloon Driver Driver Max range tests
 #
-class TC9252(_LinuxBalloonPerfBase):
-    """SLES11 balloon driver performance test"""
-    DISTRO = "sles11"
+class _MaxRangeBase(_BalloonSmoketest):
+    """Base class for max range testcases"""
+    ITERATIONS = 3
 
-class TC9290(_LinuxBalloonPerfBase):
-    """SLES11 x64 balloon driver performance test"""
-    DISTRO = "sles11"
-    ARCH = "x86-64"
-
-class TC9249(_LinuxBalloonPerfBase):
-    """RHEL 5.3 balloon driver performance test"""
-    DISTRO = "rhel53"
-
-class TC9288(_LinuxBalloonPerfBase):
-    """RHEL 5.3 x64 balloon driver performance test"""
-    DISTRO = "rhel53"
-    ARCH = "x86-64"
-
-#
-# Windows VM Balloon Driver Smoketests (secondary + tertiary OS's)
-#
-
-class TC9256(_BalloonSmoketest):
-    """Windows 2003 EE SP1 balloon driver smoketest"""
-    DISTRO = "w2k3eesp1"
-class TC9257(_BalloonSmoketest):
-    """Windows 2003 EE balloon driver smoketest"""
-    DISTRO = "w2k3ee"
-class TC9258(_BalloonSmoketest):
-    """Windows 2003 SE SP2 balloon driver smoketest"""
-    DISTRO = "w2k3sesp2"
-class TC9259(_BalloonSmoketest):
-    """Windows 2003 SE SP1 balloon driver smoketest"""
-    DISTRO = "w2k3sesp1"
-class TC9260(_BalloonSmoketest):
-    """Windows 2003 SE balloon driver smoketest"""
-    DISTRO = "w2k3se"
-class TC9261(_BalloonSmoketest):
-    """Windows XP SP2 balloon driver smoketest"""
-    DISTRO = "winxpsp2"
-class TC9774(_BalloonSmoketest):
-    """Windows Vista EE SP1 balloon driver smoketest"""
-    DISTRO = "vistaeesp1"
-class TC9907(_BalloonSmoketest):
-    """Windows Server 2008 balloon driver smoketest"""
-    DISTRO = "ws08-x86"
-class TC9775(_BalloonSmoketest):
-    """Windows Vista EE SP1 x64 balloon driver smoketest"""
-    DISTRO = "vistaeesp1-x64"
-class TC9908(_BalloonSmoketest):
-    """Windows Server 2008 x64 balloon driver smoketest"""
-    DISTRO = "ws08-x64"
-class TC12581(_BalloonSmoketest):
-    """Windows 7 x86 balloon driver smoketest"""
-    DISTRO = "win7-x86"
-class TC12582(_BalloonSmoketest):
-    """Windows 7 x64 balloon driver smoketest"""
-    DISTRO = "win7-x64"
-class TC12583(_BalloonSmoketest):
-    """Windows 2008 R2 x64 balloon driver smoketest"""
-    DISTRO = "ws08r2-x64"
-
-#
-# Linux VM Balloon Driver Smoketests (secondary + tertiary OS's)
-#
-
-class _LinuxBalloonSmoketest(_BalloonSmoketest):
+class _LinuxMaxRangeBase(_MaxRangeBase):
     WORKLOADS = ["LinuxSysbench"]
 
-class TC9539(_LinuxBalloonSmoketest):
-    """RHEL 4.7 balloon driver smoketest"""
-    DISTRO = "rhel47"
-class TC9262(_LinuxBalloonSmoketest):
-    """RHEL 4.6 balloon driver smoketest"""
-    DISTRO = "rhel46"
-class TC9263(_LinuxBalloonSmoketest):
-    """RHEL 4.5 balloon driver smoketest"""
-    DISTRO = "rhel45"
-class TC10982(_LinuxBalloonSmoketest):
-    """RHEL 5.3 balloon driver smoketest"""
-    DISTRO = "rhel53"
-class TC10983(_LinuxBalloonSmoketest):
-    """RHEL 5.3 x64 balloon driver smoketest"""
-    DISTRO = "rhel53"
-    ARCH = "x86-64"
-class TC12584(_LinuxBalloonSmoketest):
-    """RHEL 5.4 balloon driver smoketest"""
-    DISTRO = "rhel54"
-class TC12585(_LinuxBalloonSmoketest):
-    """RHEL 5.4 x64 balloon driver smoketest"""
-    DISTRO = "rhel54"
-    ARCH = "x86-64"
-class TC9264(_LinuxBalloonSmoketest):
-    """RHEL 5.2 balloon driver smoketest"""
-    DISTRO = "rhel52"
-class TC9291(_LinuxBalloonSmoketest):
-    """RHEL 5.2 x64 balloon driver smoketest"""
-    DISTRO = "rhel52"
-    ARCH = "x86-64"
-class TC9265(_LinuxBalloonSmoketest):
-    """RHEL 5.1 balloon driver smoketest"""
-    DISTRO = "rhel51"
-class TC9292(_LinuxBalloonSmoketest):
-    """RHEL 5.1 x64 balloon driver smoketest"""
-    DISTRO = "rhel51"
-    ARCH = "x86-64"
-class TC9266(_LinuxBalloonSmoketest):
-    """RHEL 5.0 balloon driver smoketest"""
-    DISTRO = "rhel5"
-class TC9293(_LinuxBalloonSmoketest):
-    """RHEL 5.0 x64 balloon driver smoketest"""
-    DISTRO = "rhel5"
-    ARCH = "x86-64"
-class TC9267(_LinuxBalloonSmoketest):
-    """SLES10 SP1 balloon driver smoketest"""
-    DISTRO = "sles101"
-class TC9294(_LinuxBalloonSmoketest):
-    """SLES10 SP1 x64 balloon driver smoketest"""
-    DISTRO = "sles101"
-    ARCH = "x86-64"
-class TC12586(_LinuxBalloonSmoketest):
-    """SLES11 balloon driver smoketest"""
-    DISTRO = "sles11"
-class TC12587(_LinuxBalloonSmoketest):
-    """SLES11 x64 balloon driver smoketest"""
-    DISTRO = "sles11"
-    ARCH = "x86-64"
-class TC9548(_LinuxBalloonSmoketest):
-    """CentOS 4.8 balloon driver smoketest"""
-    DISTRO = "centos48"
-class TC9268(_LinuxBalloonSmoketest):
-    """CentOS 4.7 balloon driver smoketest"""
-    DISTRO = "centos47"
-class TC9269(_LinuxBalloonSmoketest):
-    """CentOS 4.6 balloon driver smoketest"""
-    DISTRO = "centos46"
-class TC9270(_LinuxBalloonSmoketest):
-    """CentOS 4.5 balloon driver smoketest"""
-    DISTRO = "centos45"
-class TC10964(_LinuxBalloonSmoketest):
-    """CentOS 5.4 balloon driver smoketest"""
-    DISTRO = "centos54"
-class TC10967(_LinuxBalloonSmoketest):
-    """CentOS 5.4 x64 balloon driver smoketest"""
-    DISTRO = "centos54"
-    ARCH = "x86-64"
-class TC9271(_LinuxBalloonSmoketest):
-    """CentOS 5.3 balloon driver smoketest"""
-    DISTRO = "centos53"
-class TC9295(_LinuxBalloonSmoketest):
-    """CentOS 5.3 x64 balloon driver smoketest"""
-    DISTRO = "centos53"
-    ARCH = "x86-64"
-class TC9272(_LinuxBalloonSmoketest):
-    """CentOS 5.2 balloon driver smoketest"""
-    DISTRO = "centos52"
-class TC9296(_LinuxBalloonSmoketest):
-    """CentOS 5.2 x64 balloon driver smoketest"""
-    DISTRO = "centos52"
-    ARCH = "x86-64"
-class TC9273(_LinuxBalloonSmoketest):
-    """CentOS 5.1 balloon driver smoketest"""
-    DISTRO = "centos51"
-class TC9297(_LinuxBalloonSmoketest):
-    """CentOS 5.1 x64 balloon driver smoketest"""
-    DISTRO = "centos51"
-    ARCH = "x86-64"
-class TC9274(_LinuxBalloonSmoketest):
-    """CentOS 5.0 balloon driver smoketest"""
-    DISTRO = "centos5"
-class TC9298(_LinuxBalloonSmoketest):
-    """CentOS 5.0 x64 balloon driver smoketest"""
-    DISTRO = "centos5"
-    ARCH = "x86-64"
+class TCLinuxMaxRange(_LinuxMaxRangeBase):
+    """Linux VM operations with maximum dynamic range"""
+    pass
 
-class TC10977(_LinuxBalloonSmoketest):
-    """Oracle 5.3 balloon driver smoketest"""
-    DISTRO = "oel53"
-class TC10978(_LinuxBalloonSmoketest):
-    """Oracle 5.3 x64 balloon driver smoketest"""
-    DISTRO = "oel53"
-    ARCH = "x86-64"
-class TC10980(_LinuxBalloonSmoketest):
-    """Oracle 5.4 balloon driver smoketest"""
-    DISTRO = "oel54"
-class TC10981(_LinuxBalloonSmoketest):
-    """Oracle 5.4 x64 balloon driver smoketest"""
-    DISTRO = "oel54"
-    ARCH = "x86-64"
+#
+# Windows VM Balloon Driver Max range tests
+#
+class TCWindowsMaxRange(_MaxRangeBase):
+    """Windows max range test"""
+    ITERATIONS = 1
 
-class TC9625(_P2VBalloonSmoketest):
-    """P2V RHEL 3.8 balloon driver smoketest"""
-    DISTRO = "rhel38"
-class TC9626(_P2VBalloonSmoketest):
-    """P2V SLES 9.2 balloon driver smoketest"""
-    DISTRO = "sles92"
-class TC9627(_P2VBalloonSmoketest):
-    """P2V SLES 9.3 balloon driver smoketest"""
-    DISTRO = "sles93"
 
 class TC9284(xenrt.TestCase):
     """Perform a set of lifecycle operations on an overcommitted host"""
@@ -1375,8 +1130,9 @@ class TC9286(xenrt.TestCase):
                                    "uninstalling PV drivers with DMC")
 
 
-# Host choosing algorithm testcases
 
+
+# Host choosing algorithm testcases
 class _HostChooserBase(xenrt.TestCase):
 
     def __init__(self, tcid=None):
@@ -1879,8 +1635,8 @@ class TC9313(_BalloonHABase):
                                    "booted on different host")
 
 
-# Host upgrade
 
+# Host upgrade
 class TC9322(xenrt.TestCase):
     """Verify upgrade from non-DMC release to DMC release behaviour"""
 
@@ -2121,268 +1877,18 @@ class TC9354(xenrt.TestCase):
         except:
             pass       
 
-class _MaxRangeBase(_BalloonSmoketest):
-    """Base class for max range testcases"""
-    DO_LIFECYCLE_OPS = True
-    ITERATIONS = 3
-class TC9326(_MaxRangeBase):
-    """Windows 2000 SP4 operation with maximum dynamic range"""
-    DISTRO = "w2kassp4"
-class TC9519(_MaxRangeBase):
-    """Windows 2000 SP4 (non-PAE) operation with maximum dynamic range"""
-    DISTRO = "w2kassp4"
-    SET_PAE = False
-class TC9327(_MaxRangeBase):
-    """Windows 2003 EE SP2 operation with approx maximum dynamic range"""
-    DISTRO = "w2k3eesp2"
-class TC9520(_MaxRangeBase):
-    """Windows 2003 EE SP2 (non-PAE) operation with maximum dynamic range"""
-    DISTRO = "w2k3eesp2"
-    SET_PAE = False
-class TC9392(_MaxRangeBase):
-    """Windows 2003 EE SP2 operation with maximum dynamic range"""
-    DISTRO = "w2k3eesp2"
-    LIMIT_TO_30GB = False
-class TC9328(_MaxRangeBase):
-    """Windows XP SP3 operation with maximum dynamic range"""
-    DISTRO = "winxpsp3"
-class TC9329(_MaxRangeBase):
-    """Windows Vista EE SP2 operation with maximum dynamic range"""
-    DISTRO = "vistaeesp2"
-class TC9330(_MaxRangeBase):
-    """Windows 2008 SP2 x86 operation with approx maximum dynamic range"""
-    DISTRO = "ws08sp2-x86"
-class TC9394(_MaxRangeBase):
-    """Windows 2008 SP2 x86 operation with maximum dynamic range"""
-    DISTRO = "ws08sp2-x86"
-    LIMIT_TO_30GB = False
-class TC9521(_MaxRangeBase):
-    """Windows 7 x86 operation with approx maximum dynamic range"""
-    DISTRO = "win7-x86"
-class TC9522(_MaxRangeBase):
-    """Windows 7 x86 operation with maximum dynamic range"""
-    DISTRO = "win7-x86"
-    LIMIT_TO_30GB = False
-class TC12588(_MaxRangeBase):
-    """Windows 7 SP1 x86 operation with approx maximum dynamic range"""
-    DISTRO = "win7sp1-x86"
-class TC12589(_MaxRangeBase):
-    """Windows 7 SP1 x86 operation with maximum dynamic range"""
-    DISTRO = "win7sp1-x86"
-    LIMIT_TO_30GB = False
-class TC9331(_MaxRangeBase):
-    """Windows 2003 EE SP2 x64 operation with approx maximum dynamic range"""
-    DISTRO = "w2k3eesp2-x64"
-class TC9395(_MaxRangeBase):
-    """Windows 2003 EE SP2 x64 operation with maximum dynamic range"""
-    DISTRO = "w2k3eesp2-x64"
-    LIMIT_TO_30GB = False
-class TC9332(_MaxRangeBase):
-    """Windows Vista EE SP2 x64 operation with approx maximum dynamic range"""
-    DISTRO = "vistaeesp2-x64"
-class TC9396(_MaxRangeBase):
-    """Windows Vista EE SP2 x64 operation with maximum dynamic range"""
-    DISTRO = "vistaeesp2-x64"
-    LIMIT_TO_30GB = False
-class TC9333(_MaxRangeBase):
-    """Windows 2008 SP2 x64 operation with approx maximum dynamic range"""
-    DISTRO = "ws08sp2-x64"
-class TC9397(_MaxRangeBase):
-    """Windows 2008 SP2 x64 operation with maximum dynamic range"""
-    DISTRO = "ws08sp2-x64"
-    LIMIT_TO_30GB = False
-class TC9525(_MaxRangeBase):
-    """Windows 7 x64 operation with approx maximum dynamic range"""
-    DISTRO = "win7-x64"
-class TC9526(_MaxRangeBase):
-    """Windows 7 x64 operation with maximum dynamic range"""
-    DISTRO = "win7-x64"
-    LIMIT_TO_30GB = False
-class TC12590(_MaxRangeBase):
-    """Windows 7 SP1 x64 operation with approx maximum dynamic range"""
-    DISTRO = "win7sp1-x64"
-class TC12591(_MaxRangeBase):
-    """Windows 7 SP1 x64 operation with maximum dynamic range"""
-    DISTRO = "win7sp1-x64"
-    LIMIT_TO_30GB = False
-class TC9523(_MaxRangeBase):
-    """Windows 2008 R2 operation with approx maximum dynamic range"""
-    DISTRO = "ws08r2-x64"
-class TC9524(_MaxRangeBase):
-    """Windows 2008 R2 operation with maximum dynamic range"""
-    DISTRO = "ws08r2-x64"
-    LIMIT_TO_30GB = False
-class TC12592(_MaxRangeBase):
-    """Windows 2008 R2 SP1 operation with approx maximum dynamic range"""
-    DISTRO = "ws08r2sp1-x64"
-class TC12593(_MaxRangeBase):
-    """Windows 2008 R2 SP1 operation with maximum dynamic range"""
-    DISTRO = "ws08r2sp1-x64"
-    LIMIT_TO_30GB = False
 
-class _LinuxMaxRangeBase(_MaxRangeBase):
-    WORKLOADS = ["LinuxSysbench"]
-class TC9552(_LinuxMaxRangeBase):
-    """RHEL 4.8 operation with maximum dynamic range"""
-    DISTRO = "rhel48"
-class TC9334(_LinuxMaxRangeBase):
-    """RHEL 4.7 operation with maximum dynamic range"""
-    DISTRO = "rhel47"
-class TC10984(_LinuxMaxRangeBase):
-    """RHEL 5.4 operation with maximum dynamic range"""
-    DISTRO = "rhel54"
-class TC10985(_LinuxMaxRangeBase):
-    """RHEL 5.4 x64 operation with maximum dynamic range"""
-    DISTRO = "rhel54"
-    ARCH = "x86-64"
-class TC12594(_LinuxMaxRangeBase):
-    """RHEL 5.5 operation with maximum dynamic range"""
-    DISTRO = "rhel55"
-class TC20691(_LinuxMaxRangeBase):
-    """RHEL 5.6 operation with maximum dynamic range"""
-    DISTRO = "rhel56"
-class TC12595(_LinuxMaxRangeBase):
-    """RHEL 5.5 x64 operation with maximum dynamic range"""
-    DISTRO = "rhel55"
-    ARCH = "x86-64"
-class TC9335(_LinuxMaxRangeBase):
-    """RHEL 5.3 operation with maximum dynamic range"""
-    DISTRO = "rhel53"
-class TC9336(_LinuxMaxRangeBase):
-    """RHEL 5.3 x64 operation with maximum dynamic range"""
-    DISTRO = "rhel53"
-    ARCH = "x86-64"
-class TC26859(_LinuxMaxRangeBase):
-    """RHEL 6.6 operation with maximum dynamic range"""
-    DISTRO = "rhel66"
-class TC26860(_LinuxMaxRangeBase):
-    """RHEL 6.6 x64 operation with maximum dynamic range"""
-    DISTRO = "rhel66"
-    ARCH = "x86-64"
-class TC26861(_LinuxMaxRangeBase):
-    """RHEL 7.1 x64 operation with maximum dynamic range"""
-    DISTRO = "rhel71"
-    ARCH = "x86-64"
-class TC9337(_LinuxMaxRangeBase):
-    """SLES9 SP4 operation with approx maximum dynamic range"""
-    DISTRO = "sles94"
-class TC9398(_LinuxMaxRangeBase):
-    """SLES9 SP4 operation with maximum dynamic range"""
-    DISTRO = "sles94"
-    LIMIT_TO_30GB = False
-class TC9338(_LinuxMaxRangeBase):
-    """SLES10 SP2 operation with approx maximum dynamic range"""
-    DISTRO = "sles102"
-class TC9399(_LinuxMaxRangeBase):
-    """SLES10 SP2 operation with maximum dynamic range"""
-    DISTRO = "sles102"
-    LIMIT_TO_30GB = False
-class TC9339(_LinuxMaxRangeBase):
-    """SLES10 SP2 x64 operation with approx maximum dynamic range"""
-    DISTRO = "sles102"
-    ARCH = "x86-64"
-class TC9400(_LinuxMaxRangeBase):
-    """SLES10 SP2 x64 operation with maximum dynamic range"""
-    DISTRO = "sles102"
-    ARCH = "x86-64"
-    LIMIT_TO_30GB = False
-class TC9340(_LinuxMaxRangeBase):
-    """SLES 11 operation with approx maximum dynamic range"""
-    DISTRO = "sles11"
-class TC9401(_LinuxMaxRangeBase):
-    """SLES 11 operation with maximum dynamic range"""
-    DISTRO = "sles11"
-    LIMIT_TO_30GB = False
-class TC12596(_LinuxMaxRangeBase):
-    """SLES 11 SP1 operation with approx maximum dynamic range"""
-    DISTRO = "sles111"
-class TC12598(_LinuxMaxRangeBase):
-    """SLES 11 SP1 operation with maximum dynamic range"""
-    DISTRO = "sles111"
-    LIMIT_TO_30GB = False
-class TC9341(_LinuxMaxRangeBase):
-    """SLES 11 x64 operation with approx maximum dynamic range"""
-    DISTRO = "sles11"
-    ARCH = "x86-64"
-class TC9402(_LinuxMaxRangeBase):
-    """SLES 11 x64 operation with maximum dynamic range"""
-    DISTRO = "sles11"
-    ARCH = "x86-64"
-    LIMIT_TO_30GB = False
-class TC12597(_LinuxMaxRangeBase):
-    """SLES 11 SP1 x64 operation with approx maximum dynamic range"""
-    DISTRO = "sles111"
-    ARCH = "x86-64"
-class TC12599(_LinuxMaxRangeBase):
-    """SLES 11 SP1 x64 operation with maximum dynamic range"""
-    DISTRO = "sles111"
-    ARCH = "x86-64"
-    LIMIT_TO_30GB = False
-class TC26856(_LinuxMaxRangeBase):
-    """SLES 11.3 SP1 operation with maximum dynamic range"""
-    DISTRO = "sles113"
-class TC26857(_LinuxMaxRangeBase):
-    """SLES 11.3 x64 operation with approx maximum dynamic range"""
-    DISTRO = "sles113"
-    ARCH = "x86-64"
-class TC26858(_LinuxMaxRangeBase):
-    """SLES 12 x64 operation with approx maximum dynamic range"""
-    DISTRO = "sles12"
-    ARCH = "x86-64"
-class TC9342(_LinuxMaxRangeBase):
-    """Debian Etch operation with approx maximum dynamic range"""
-    DISTRO = "etch"
-class TC9403(_LinuxMaxRangeBase):
-    """Debian Etch operation with maximum dynamic range"""
-    DISTRO = "etch"
-    LIMIT_TO_30GB = False
-class TC9343(_LinuxMaxRangeBase):
-    """Debian Lenny operation with approx maximum dynamic range"""
-    DISTRO = "debian50"
-class TC9404(_LinuxMaxRangeBase):
-    """Debian Lenny operation with maximum dynamic range"""
-    DISTRO = "debian50"
-    LIMIT_TO_30GB = False
-class TC26854(_LinuxMaxRangeBase):
-    """Debian 7.0 operation with approx maximum dynamic range"""
-    DISTRO = "debian70"
-class TC26855(_LinuxMaxRangeBase):
-    """Debian 7.0 x64 operation with maximum dynamic range"""
-    DISTRO = "debian70"
-    ARCH = "x86-64"
-class TC26862(_LinuxMaxRangeBase):
-    """OEL 6.6 operation with approx maximum dynamic range"""
-    DISTRO = "oel66"
-class TC26863(_LinuxMaxRangeBase):
-    """OEL 6.6 x64 operation with maximum dynamic range"""
-    DISTRO = "oel66"
-    ARCH = "x86-64"
-class TC26864(_LinuxMaxRangeBase):
-    """OEL 7.0 x64 operation with maximum dynamic range"""
-    DISTRO = "oel7"
-    ARCH = "x86-64"
-class TC26865(_LinuxMaxRangeBase):
-    """CentOS 6.6 operation with approx maximum dynamic range"""
-    DISTRO = "centos66"
-class TC26866(_LinuxMaxRangeBase):
-    """CentOS 6.6 x64 operation with maximum dynamic range"""
-    DISTRO = "centos66"
-    ARCH = "x86-64"
-class TC26867(_LinuxMaxRangeBase):
-    """CentOS 7.0 x64 operation with maximum dynamic range"""
-    DISTRO = "centos7"
-    ARCH = "x86-64"
-
-class TC9527(xenrt.TestCase):
-    """Verify the extra time for booting a ballooned down Windows XP SP3 VM is minimal"""
+class _BalloonBootTime(xenrt.TestCase):
+    """Verify the extra time for booting a ballooned down VM is minimal"""
     DISTRO = "winxpsp3"
     USEMEM = 512
     ALLOWED_INCREASE = 20
 
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
-        self.guest = self.host.createGenericWindowsGuest(distro=self.DISTRO)
-        self.uninstallOnCleanup(self.guest)
+        self.guest = self.getGuest(self.DISTRO)
+        if not self.guest:
+            raise xenrt.XRTError("Could not find guest: %s" % (self.DISTRO))
         self.guest.shutdown()
 
     def run(self, arglist=None):
@@ -2430,70 +1936,48 @@ class TC9527(xenrt.TestCase):
             time.sleep(10)
             guest.shutdown()
 
-class TC9528(TC9527):
+class TC9527(_BalloonBootTime):
+    """Verify the extra time for booting a ballooned down Windows XP sp3 VM is minimal"""
+    DISTRO = "winxpsp3"
+    USEMEM = 512
+
+class TC9528(_BalloonBootTime):
     """Verify the extra time for booting a ballooned down Windows 7 x86 VM is minimal"""
     DISTRO = "win7-x86"
     USEMEM = 1024
-class TC9529(TC9527):
+
+class TC9529(_BalloonBootTime):
     """Verify the extra time for booting a ballooned down Windows 7 x64 VM is minimal"""
     DISTRO = "win7-x64"
     USEMEM = 2048
 
-class TC10552(TC9527):
-    """Verify the extra time for booting a ballooned down Windows 7 x86 VM is less than 1 minute"""
-    DISTRO = "win7-x86"
-    USEMEM = 1024
-    ALLOWED_INCREASE = 60
-class TC10553(TC9527):
-    """Verify the extra time for booting a ballooned down Windows 7 x64 VM is less than 1 minute"""
-    DISTRO = "win7-x64"
-    USEMEM = 2048
-    ALLOWED_INCREASE = 60
-    
-class TC26440(TC9527):
-    """Verify the extra time for booting a ballooned down Windows 10 x86 VM is minimal"""
-    DISTRO = "win10-x86"
-    USEMEM = 1024
-
-class TC26441(TC9527):
-    """Verify the extra time for booting a ballooned down Windows 10 x64 VM is minimal"""
-    DISTRO = "win10-x64"
-    USEMEM = 2048
-
-class TC26439(TC9527):
-    """Verify the extra time for booting a ballooned down Windows 10 x86 VM is less than 1 minute"""
-    DISTRO = "win10-x86"
-    USEMEM = 1024
-    ALLOWED_INCREASE = 60
-    
-class TC26442(TC9527):
-    """Verify the extra time for booting a ballooned down Windows 10 x64 VM is less than 1 minute"""
-    DISTRO = "win10-x64"
-    USEMEM = 2048
-    ALLOWED_INCREASE = 60
-
-class TC12600(TC9527):
+class TC12600(_BalloonBootTime):
     """Verify the extra time for booting a ballooned down Windows 7 SP1 x86 VM is minimal"""
     DISTRO = "win7sp1-x86"
-    USEMEM = 1024
+    USEMEM = 2048
     #increasing extra time allowed to boot with DMC to 40 sec. CA-37461, CA-33630
     ALLOWED_INCREASE = 40
-class TC12601(TC9527):
+
+class TC12601(_BalloonBootTime):
     """Verify the extra time for booting a ballooned down Windows 7 SP1 x64 VM is minimal"""
     DISTRO = "win7sp1-x64"
     USEMEM = 2048
     ALLOWED_INCREASE = 60
 
-class TC12602(TC9527):
-    """Verify the extra time for booting a ballooned down Windows 7 SP1 x86 VM is less than 1 minute"""
-    DISTRO = "win7sp1-x86"
-    USEMEM = 1024
-    ALLOWED_INCREASE = 60
-class TC12603(TC9527):
-    """Verify the extra time for booting a ballooned down Windows 7 SP1 x64 VM is less than 1 minute"""
-    DISTRO = "win7sp1-x64"
+class TC26440(_BalloonBootTime):
+    """Verify the extra time for booting a ballooned down Windows 10 x86 VM is minimal"""
+    DISTRO = "win10-x86"
     USEMEM = 2048
     ALLOWED_INCREASE = 60
+
+class TC26441(_BalloonBootTime):
+    """Verify the extra time for booting a ballooned down Windows 10 x64 VM is minimal"""
+    DISTRO = "win10-x64"
+    USEMEM = 2048
+    ALLOWED_INCREASE = 60
+
+
+
 
 class _DMCMigrateBase(xenrt.TestCase):
     """Base class for DMC Migration test cases"""
@@ -2654,6 +2138,8 @@ class TC9535(_DMCMigrateBase):
     """VM migration from empty host to empty host with non-cooperative VM"""
     COOPERATIVE = False
 class TC9536(_DMCMigrateBase):
+
+
     """VM migration from empty host to full host with non-cooperative VM"""
     COOPERATIVE = False
     DEST_FULL = True
@@ -2703,97 +2189,9 @@ class BalloonTestBase(xenrt.TestCase):
             xenrt.TEC().comment("%u/5 iterations successful" % (success))
 
 
-class _HAPMaxRangeBase(_BalloonSmoketest):
-    """Base class for HAP (NPT+EPT) max range testcases"""    
-    ITERATIONS = 1
-    LIMIT_TO_30GB = True
-    HAP = "NPT"
 
-class TC9778(_HAPMaxRangeBase):
-    """Windows 2003 EE SP2 operation with approx maximum dynamic range on NPT"""
-    DISTRO = "w2k3eesp2"
-class TC9779(TC9778):
-    """Windows 2003 EE SP2 operation with approx maximum dynamic range on EPT"""
-    HAP = "EPT"
-class TC9780(_HAPMaxRangeBase):
-    """Windows 2003 EE SP2 (non-PAE) operation with maximum dynamic range on NPT"""
-    DISTRO = "w2k3eesp2"
-    SET_PAE = False
-class TC9781(TC9780):
-    """Windows 2003 EE SP2 (non-PAE) operation with maximum dynamic range on EPT"""
-    HAP = "EPT"
-class TC9782(_HAPMaxRangeBase):
-    """Windows XP SP3 operation with maximum dynamic range on NPT"""
-    DISTRO = "winxpsp3"
-class TC9783(TC9782):
-    """Windows XP SP3 operation with maximum dynamic range on EPT"""
-    HAP = "EPT"
-class TC9784(_HAPMaxRangeBase):
-    """Windows Vista EE SP2 operation with maximum dynamic range on NPT"""
-    DISTRO = "vistaeesp2"
-class TC9785(TC9784):
-    """Windows Vista EE SP2 operation with maximum dynamic range on EPT"""
-    HAP = "EPT"
-class TC9786(_HAPMaxRangeBase):
-    """Windows 2008 SP2 x86 operation with approx maximum dynamic range on NPT"""
-    DISTRO = "ws08sp2-x86"
-class TC9787(TC9786):
-    """Windows 2008 SP2 x86 operation with approx maximum dynamic range on EPT"""
-    HAP = "EPT"
-class TC9788(_HAPMaxRangeBase):
-    """Windows 7 x86 operation with approx maximum dynamic range on NPT"""
-    DISTRO = "win7-x86"
-class TC9789(TC9788):
-    """Windows 7 x86 operation with approx maximum dynamic range on EPT"""
-    HAP = "EPT"
-class TC12604(_HAPMaxRangeBase):
-    """Windows 7 SP1 x86 operation with approx maximum dynamic range on NPT"""
-    DISTRO = "win7sp1-x86"
-class TC12605(TC12604):
-    """Windows 7 SP1 x86 operation with approx maximum dynamic range on EPT"""
-    HAP = "EPT"
-class TC9790(_HAPMaxRangeBase):
-    """Windows 2003 EE SP2 x64 operation with approx maximum dynamic range on NPT"""
-    DISTRO = "w2k3eesp2-x64"
-class TC9791(TC9790):
-    """Windows 2003 EE SP2 x64 operation with approx maximum dynamic range on EPT"""
-    HAP = "EPT"
-class TC9792(_HAPMaxRangeBase):
-    """Windows Vista EE SP2 x64 operation with approx maximum dynamic range on NPT"""
-    DISTRO = "vistaeesp2-x64"
-class TC9793(TC9792):
-    """Windows Vista EE SP2 x64 operation with approx maximum dynamic range on EPT"""
-    HAP = "EPT"
-class TC9794(_HAPMaxRangeBase):
-    """Windows 2008 SP2 x64 operation with approx maximum dynamic range on NPT"""
-    DISTRO = "ws08sp2-x64"
-class TC9795(TC9794):
-    """Windows 2008 x64 operation with approx maximum dynamic range on EPT"""
-    HAP = "EPT"
-class TC9796(_HAPMaxRangeBase):
-    """Windows 7 x64 operation with approx maximum dynamic range on NPT"""
-    DISTRO = "win7-x64"
-class TC9797(TC9796):
-    """Windows 7 x64 operation with approx maximum dynamic range on EPT"""
-    HAP = "EPT"
-class TC12606(_HAPMaxRangeBase):
-    """Windows 7 SP1 x64 operation with approx maximum dynamic range on NPT"""
-    DISTRO = "win7sp1-x64"
-class TC12607(TC12606):
-    """Windows 7 SP1 x64 operation with approx maximum dynamic range on EPT"""
-    HAP = "EPT"
-class TC9798(_HAPMaxRangeBase):
-    """Windows 2008 R2 operation with approx maximum dynamic range on NPT"""
-    DISTRO = "ws08r2-x64"
-class TC9799(TC9798):
-    """Windows 2008 R2 operation with approx maximum dynamic range on EPT"""
-    HAP = "EPT"
-class TC12608(_HAPMaxRangeBase):
-    """Windows 2008 R2 SP1 operation with approx maximum dynamic range on NPT"""
-    DISTRO = "ws08r2sp1-x64"
-class TC12609(TC12608):
-    """Windows 2008 R2 SP1 operation with approx maximum dynamic range on EPT"""
-    HAP = "EPT"
+
+
 
 class TC11022(xenrt.TestCase):
     """Verify behaviour when importing a VM with a dynamic memory range in to a
@@ -2942,6 +2340,7 @@ class TC18537(_OverrideBallooning):
     GUEST = "ws08-64"
     
 class TC18538(_OverrideBallooning):
+
     """Verify the balloon overriding works well with Windows 2008 SP2 x64 boot load options"""
     GUEST = "ws08r2-64"
 

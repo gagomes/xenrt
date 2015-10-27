@@ -48,11 +48,11 @@ def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
         if optionNets:
             availablePorts = [p for p in ports if (p[2] or ignoreMissingMACs) and p[4] and p[0] == optionNets]
         else:
-            availablePorts = sorted([p for p in ports if (p[2] or ignoreMissingMACs) and p[4] and p[0].startswith("e")], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0]))
+            availablePorts = sorted([p for p in ports if (p[2] or ignoreMissingMACs) and p[4] and (p[0].lower().startswith("e") or p[0].lower().startswith("nic"))], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0]))
             xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "FORCE_NIC_ORDER"], "yes")
         # If there aren't any connected ports, use the first one anyway
         if len(availablePorts) == 0:
-            availablePorts = sorted([p for p in ports if (p[2] or ignoreMissingMACs) and p[0].startswith("e")], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0]))
+            availablePorts = sorted([p for p in ports if (p[2] or ignoreMissingMACs) and (p[0].lower().startswith("e") or p[0].lower().startswith("nic"))], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0]))
             ignoreDisconnectedPorts = True
 
         if len(availablePorts) > 0:
@@ -229,11 +229,11 @@ def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
     # Secondary NICs
     if not xenrt.TEC().lookupHost(machine,"NICS",None):
         i = 1
-        availablePorts = sorted([p for p in ports if (p[2] or ignoreMissingMACs) and p[3] and (p[4] or ignoreDisconnectedPorts) and p[0].startswith("e") and p[0] != primaryInterface], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0]))
+        availablePorts = sorted([p for p in ports if (p[2] or ignoreMissingMACs) and p[3] and (p[4] or ignoreDisconnectedPorts) and (p[0].lower().startswith("e") or p[0].lower().startswith("nic")) and p[0] != primaryInterface], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0]))
         for c in o.getChildren():
             if c.getType() == "PCI Card":
                 cports = c.getPorts()
-                availablePorts.extend(sorted([p for p in cports if (p[2] or ignoreMissingMACs) and p[3] and (p[4] or ignoreDisconnectedPorts) and p[0].startswith("e")], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0])))
+                availablePorts.extend(sorted([p for p in cports if (p[2] or ignoreMissingMACs) and p[3] and (p[4] or ignoreDisconnectedPorts) and (p[0].lower().startswith("e") or p[0].lower().startswith("nic"))], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0])))
         for p in availablePorts:
             netport = getNetPortNameForPort(p)
             nicinfo = p[3].split(" - ")[0].split("/")

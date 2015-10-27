@@ -2,6 +2,7 @@ import xenrt
 import os.path
 import os
 import shutil
+import re
 from xenrt.lib.opsys import LinuxOS, registerOS
 from xenrt.linuxanswerfiles import RHELKickStartFile
 from zope.interface import implements

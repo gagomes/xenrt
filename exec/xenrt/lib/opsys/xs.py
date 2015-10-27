@@ -31,5 +31,7 @@ class XSDom0(LinuxOS):
         obj=cls("XSDom0", parent, password)
         if obj.execSSH("test -e /etc/xensource-inventory", retval="code") == 0:
             return ("XSDom0", password)
+        else:
+            return (False, password)
 
 registerOS(XSDom0)

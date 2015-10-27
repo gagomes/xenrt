@@ -1,4 +1,4 @@
-import xenrt, os.path, os, shutil, IPy
+import xenrt, os.path, os, shutil, IPy, re
 from xenrt.lib.opsys import LinuxOS, registerOS
 from xenrt.linuxanswerfiles import DebianPreseedFile
 from zope.interface import implements

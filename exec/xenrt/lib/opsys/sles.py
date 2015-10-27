@@ -1,4 +1,4 @@
-import xenrt, os.path, os, shutil
+import xenrt, os.path, os, shutil, re
 from xenrt.lib.opsys import LinuxOS, registerOS
 from xenrt.linuxanswerfiles import SLESAutoyastFile
 from abc import ABCMeta, abstractproperty

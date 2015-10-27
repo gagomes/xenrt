@@ -202,6 +202,8 @@ class RHELLinux(RHELBasedLinux):
         obj=cls("testrhel", parent, password)
         if obj.execSSH("test -e /etc/centos-release", retval="code") == 0:
             return (False, password)
+        if obj.execSSH("test -e /etc/oracle-release", retval="code") == 0:
+            return (False, password)
         distro = obj.execSSH("cat /etc/redhat-release | sed 's/Red Hat Enterprise Linux Server release /rhel/' | tr -d . | awk '{print $1}'")
         return ("%s_%s" % (distro, obj.getArch()), password)
         
@@ -256,7 +258,11 @@ class OELLinux(RHELBasedLinux):
 
     @classmethod
     def osDetected(cls, parent, password):
-        return (False, password)
+        obj=cls("testcentos", parent, password)
+        if obj.execSSH("test -e /etc/oracle-release", retval="code") != 0:
+            return (False, password)
+        distro = obj.execSSH("cat /etc/oracle-release | sed 's/Oracle Linux Server release /oel/' | tr -d . | awk '{print $1}'")
+        return ("%s_%s" % (distro, obj.getArch()), password)
 
 registerOS(RHELLinux)
 registerOS(CentOSLinux)

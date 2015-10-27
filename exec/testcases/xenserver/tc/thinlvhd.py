@@ -295,6 +295,7 @@ class _ThinLVHDBase(xenrt.TestCase):
             sruuid = sr.uuid
         else:
             sruuid = sr
+            sr = xenrt.lib.xenserver.getStorageRepositoryClass(host, sruuid).fromExistingSR(host, sruuid)
 
         output = host.execRawStorageCommand(sr, "lvs /dev/VG_XenStorage-%s --nosuffix | grep %s-free" % (sruuid, host.uuid))
 

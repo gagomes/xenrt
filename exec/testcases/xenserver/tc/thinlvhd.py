@@ -17,9 +17,7 @@ class _ThinLVHDBase(xenrt.TestCase):
     """Base class of thinprovisioning TCS.
     All TC specific utilities should be implemented in this class."""
 
-    # Margin factor of VDI size checking
-    VDI_MIN_MARGIN = 0.95
-    VDI_MAX_MARGIN = 1.05
+    VDI_METADATA_SIZE = 8 * xenrt.MEGA
 
     def __init__(self):
         #self.noxenvmd is True if Sanlock is in use, if False XENVMD is in use
@@ -315,13 +313,18 @@ class _ThinLVHDBase(xenrt.TestCase):
         initial = self.getInitialAllocation(vdi)
         if initial == None:
             initial = self.getInitialAllocation(sr)
-
         if initial == None:
-            return
+            raise xenrt.XRTError("Neither VDI nor SR has initial_allocation in sm-config.")
+
+        quantum = self.getAllocationQuantum(vdi)
+        if quantum == None:
+            quantum = self.getAllocationQuantum(sr)
+        if quantum == None:
+            raise xenrt.XRTError("Neither VDI nor SR has allocation_quantum in sm-config.")
 
         vdisize = self.getPhysicalVDISize(vdi)
-        lowerboarder = initial * self.VDI_MIN_MARGIN
-        upperboarder = max(initial * self.VDI_MAX_MARGIN, 32 * xenrt.MEGA)
+        lowerboarder = initial
+        upperboarder = lowerboarder  + self.VDI_METADATA_SIZE + quantum
         if not (lowerboarder <= vdisize <= upperboarder):
             raise xenrt.XRTFailure("VDI size is not in the threshold. expected: %d <= vdi <= %d, vdisize: %d" %
                     (lowerboarder, upperboarder, vdisize))
@@ -634,7 +637,7 @@ class TCSRIncrement(_ThinLVHDBase):
             self.runSubcase("runCase", (sr,), sr.name, "Check %s" % sr.name)
 
 
-class TCThinAllocationDefault(_ThinLVHDBase):
+class TCThinAllocation(_ThinLVHDBase):
     """Verify the initial/quantum allocation works for SR and VDI ."""
 
     # At present, We have initial_allocation of 0 and 16 MiB as allocation_quantum by default.
@@ -642,7 +645,6 @@ class TCThinAllocationDefault(_ThinLVHDBase):
     DEFAULTQUANTUM = 16 * xenrt.MEGA
     WRITESIZE = xenrt.GIGA
     DEFAULTSRTYPE = "lvmoiscsi"
-    VDIMINSIZE = 10 * xenrt.MEGA
 
     def prepare(self, arglist=[]):
         args = self.parseArgsKeyValue(arglist)
@@ -660,45 +662,58 @@ class TCThinAllocationDefault(_ThinLVHDBase):
         else:
             self.guest = self.getGuest(guest)
 
-    def removeDisk(self,vdiuuid,vbduuid):
+    def removeDisk(self, vdiuuid, vbduuid):
         """ Function delete's  the VDI: unplug the VBD and destory the VDI """
         cli = self.host.getCLIInstance()
         cli.execute("vbd-unplug", "uuid=%s" % (vbduuid))
         cli.execute("vbd-destroy", "uuid=%s" % (vbduuid))
         cli.execute("vdi-destroy", "uuid=%s" % (vdiuuid))
-    
-    def checkSmconfig(self, obj, initial=DEFAULTINITIAL, quantum=DEFAULTQUANTUM):
+
+    def checkSMConfig(self, obj, initial, quantum):
         """Verify smconfig of sr/vdi have correct values
 
         @param obj: sr object, sr uuid string or vdi uuid string.
-
-        @initial : initial allocation of obj to be examine if not given then SR default initial will be taken
-
-        @quantum : allocation quantum of obj to be examine if not given then SR default quantum will be taken
+        @param initial : initial allocation of obj to be examine
+        @param quantum : allocation quantum of obj to be examine
         """
 
-        smconfigInitial = self.getInitialAllocation(obj=obj)
+        if self.host.pool:
+            host = self.host.pool.master
+            hostcount = len(host.pool.getHosts())
+        else:
+            host = self.host
+            hostcount = 1
 
-        if int(initial) != smconfigInitial:
-            raise xenrt.XRTFailure("initial_allocation is incorrect for %s. Expected %s found %d " %(obj, initial, smconfigInitial ))
+        if not isinstance(obj, xenrt.lib.xenserver.StorageRepository):
+            if obj in host.minimalList("vdi-list"):
+                sruuid = host.genParamGet("vdi", obj, "sr-uuid")
+            elif obj in host.minimalList("sr-list"):
+                sruuid = obj
+            else:
+                raise xenrt.XRTError("Only VDI and SR have sm-config.")
+            srsize = xenrt.lib.xenserver.getStorageRepositoryClass(host, sruuid).fromExistingSR(host, sruuid).physicalSize
+        else:
+            srsize = sr.physicalSize
+
+        # Refer https://info.citrite.net/display/xenserver/Thin-lvhd%3A+initial_allocation+and+allocation_quantum+customization
+        # for upper and lower bound of allocation quantum.
+        targetQuantum = quantum
+        if targetQuantum > srsize * hostcount / 4000:
+            targetQuantum = srsize * hostcount / 4000
+        if targetQuantum < srsize / 50000:
+            targetQuantum = srzie / 50000
+        if targetQuantum < self.DEFAULTQUANTUM:
+            targetQuantum = self.DEFAULTQUANTUM
+
+        smconfigInitial = self.getInitialAllocation(obj=obj)
+        if initial != smconfigInitial:
+            raise xenrt.XRTFailure("initial_allocation is incorrect for %s. Expected %s found %d " % (obj, initial, smconfigInitial))
 
         smconfigQuantum = self.getAllocationQuantum(obj=obj)
-        if int(quantum) != smconfigQuantum:
-            raise xenrt.XRTFailure("allocation_quantum is incorrect for %s. Expected %s found %d " %(obj, quantum, smconfigQuantum))
+        if targetQuantum != smconfigQuantum:
+            raise xenrt.XRTFailure("allocation_quantum is incorrect for %s. Expected %s found %d " % (obj, targetQuantum, smconfigQuantum))
 
-    def getExpectedAllocation(self, initial, quantum, vdiuuid):
-        """ Calculate the expected allocation based on the initial/quantum allocation and vdi virtual size"""
-
-        if self.requestedSize > initial:
-            # expected vdi size depends on initial allocation of the vdi and subsequent allocated quantum up to requested size
-            expected = initial + (self.requestedSize - initial) / quantum * quantum + (quantum if (self.requestedSize - initial) % quantum else 0)
-        else:
-            # VDI takes little space to store the meta data - and hence it never be 0
-            expected = initial if initial and initial > self.VDIMINSIZE else self.VDIMINSIZE
-
-        return expected
-        
-    def checkQuantumAlloc(self, vdiuuid, initial = DEFAULTINITIAL, quantum = DEFAULTQUANTUM):
+    def checkQuantumAlloc(self, vdiuuid, initial, quantum):
         """ Check the quantum allocation for the new request happens correctly based on the quantum allocation
 
         @param vdiuuid: UUID of vdi to examine
@@ -711,58 +726,57 @@ class TCThinAllocationDefault(_ThinLVHDBase):
         # Check that quantum allocation is as expected
         vbduuid = self.host.genParamGet("vdi", vdiuuid, "vbd-uuids")
         log("Writting %d bytes of data on to the guest" % (self.requestedSize))
-        self.fillDisk(self.guest, targetDir = "/dev/%s" %(self.host.genParamGet("vbd", vbduuid, "device")), size = self.requestedSize)
+        self.fillDisk(self.guest, targetDir="/dev/%s" % (self.host.genParamGet("vbd", vbduuid, "device")), size=self.requestedSize)
 
-        expected = self.getExpectedAllocation(initial, quantum, vdiuuid)
+        lower = initial
+        if self.requestedSize > initial:
+            # expected vdi size depends on initial allocation of the vdi and subsequent allocated quantum up to requested size
+            lower += (self.requestedSize - initial) / quantum * quantum + quantum
+        upper = lower + quantum + self.VDI_METADATA_SIZE
 
         final = self.getPhysicalVDISize(vdiuuid, self.host)
 
-        if not ((int(expected * self.VDI_MIN_MARGIN)) <= final <= int(expected * self.VDI_MAX_MARGIN)):
+        if not lower <= final <= upper:
             raise xenrt.XRTFailure("VDI size is not in expected range. (%d <= %d <= %d) after writing %d bytes." \
-                                  % (expected * self.VDI_MIN_MARGIN, final, expected * self.VDI_MAX_MARGIN, self.requestedSize))
+                                  % (lower, final, upper, self.requestedSize))
 
         log("VDI size is in expected range. (%d <= %d <= %d) after writing %d bytes." \
-            % (expected * self.VDI_MIN_MARGIN, final, expected * self.VDI_MAX_MARGIN, self.requestedSize))
+                % (lower, final, upper, self.requestedSize))
 
     def doTest(self, SRinitial, SRquantum):
         """Decides the VDI initial/quantum and initiate the VDI check
 
         @param SRinitial : initial_allocation of the SR
         @param SRquantum : allocation_quantum of the SR
-
-        @return : None
-
         """
+
         for vdiinitial,vdiquantum in map(None, self.vdiInitial, self.vdiQuantum):
             if not vdiinitial:
                 vdiinitial = SRinitial
+            else:
+                vdiinitial = int(vdiinitial)
             if not vdiquantum:
                 vdiquantum = SRquantum
-
-            # VDI creation expected to fail when VDI quantum specified less than the SR quantum defined
-            expectedToFail = True if vdiquantum < SRquantum else False
+            else:
+                vdiquantum = int(vdiquantum)
 
             try:
+                log("SR initial : %s SR quantum : %s VDI initial: %s VDI quantum : %s" % (SRinitial, SRquantum, vdiinitial, vdiquantum))
                 vdiuuid = self.createVDI(self.sr, self.sizebytes, initialAlloc=vdiinitial, quantumAlloc=vdiquantum, verifyInitial=True)
                 vbduuid = self.guest.createDisk(vdiuuid=vdiuuid, returnVBD=True)
             except Exception, e :
-                log("SR initial : %s SR quantum : %s VDI initial: %s VDI quantum : %s" % (SRinitial, SRquantum, vdiinitial, vdiquantum)) 
-                if not expectedToFail:
-                    raise xenrt.XRTFailure("VDI creation failed with exception %s" %(str(e)))
-                log("VDI creation failed with exception %s \n which is expected for the given quantum value" % (str(e)))
-            else:
-             if expectedToFail:
-                log("SR initial : %s SR quantum : %s VDI initial: %s VDI quantum : %s" % (SRinitial, SRquantum, vdiinitial, vdiquantum)) 
-                raise xenrt.XRTFailure("VDI creation succeeded even with VDI allocation quantum smaller than sr allocation quantum value")
-            
-            #check we have correct values populated in vdi smconfig
-            #self.checkSmconfig(vdiuuid, vdiinitial, vdiquantum)
-            
-            # Check quantum allocation is as expected for the VDI
-            self.checkQuantumAlloc(vdiuuid, int(vdiinitial), int(vdiquantum))
+                raise xenrt.XRTFailure("VDI creation failed with exception %s" % (str(e)))
 
-            # Delete the VDI created
-            if not expectedToFail:
+            try:
+                # check we have correct values populated in vdi smconfig
+                self.checkSMConfig(vdiuuid, vdiinitial, vdiquantum)
+
+                # Check quantum allocation is as expected for the VDI
+                self.checkQuantumAlloc(vdiuuid, vdiinitial, vdiquantum)
+            except:
+                raise
+            finally:
+                # Delete the VDI created
                 self.removeDisk(vdiuuid, vbduuid)
 
     def testThinAllocation(self, SRinitial, SRquantum, SRtype):
@@ -772,26 +786,30 @@ class TCThinAllocationDefault(_ThinLVHDBase):
 
         if not SRinitial:
             SRinitial = self.DEFAULTINITIAL
-        # Minimum quantum_allocation expected to be 16 MiB , even if we create with lesser it will adjust in the back end to default minimum.
+        # Minimum quantum_allocation expected to be 16 MiB , even if we create with less it will adjust in the back end to default minimum.
         if not SRquantum or int(SRquantum) < self.DEFAULTQUANTUM:
             SRquantum = self.DEFAULTQUANTUM
 
+        initial = int(SRinitial)
+        quantum = int(SRquantum)
+
         # Verify that SR smconfig have correct initial_allocation and allocation_quantum
-        self.checkSmconfig(self.sr.uuid, SRinitial, SRquantum)
-            
+        self.checkSMConfig(self.sr.uuid, initial, quantum)
+
         # Create a VDI without any smconfig and check if the initial allocation is correct
         vdiuuid = self.createVDI(self.sr, self.sizebytes, verifyInitial=True)
         vbduuid = self.guest.createDisk(vdiuuid=vdiuuid, returnVBD=True)
+
         #check we have correct values populated in vdi smconfig
-        self.checkSmconfig(vdiuuid, SRinitial, SRquantum)
-        
+        self.checkSMConfig(vdiuuid, initial, quantum)
+
         # Check quantum allocation is as expected for the VDI
-        self.checkQuantumAlloc(vdiuuid, int(SRinitial), int(SRquantum))
+        self.checkQuantumAlloc(vdiuuid, initial, quantum)
 
         # Delete the VDI created
         self.removeDisk(vdiuuid, vbduuid)
 
-        self.doTest(SRinitial, SRquantum)
+        self.doTest(initial, quantum)
 
         # Delete the SR
         log("Distroying SR.")
@@ -806,25 +824,7 @@ class TCThinAllocationDefault(_ThinLVHDBase):
         # Test with Custom SR allocation values (initial/quantum) i.e creating SR with custom allocation.
         for SRinitial, SRquantum in map(None, self.SRinitial, self.SRQuantum) :
             self.runSubcase("testThinAllocation", (SRinitial, SRquantum, self.srtype,), "ThinAllocation", '%s initial, %s quantum'
-                            % (SRinitial, SRquantum ) )
-
-
-class TCThinAllocation(TCThinAllocationDefault):
-
-    def testingThinAllocation(self, SRinitial = None, SRquantum = None):
-
-        self.doTest(SRinitial, SRquantum)
-
-    def run(self, arglist=[]):
-
-        # Create thin SR with default initial/quantum
-        self.sr = self.createThinSR(host = self.host, size=200, srtype = self.srtype)
-
-        self.testingThinAllocation()
-
-        # Test that we can change the default SR config with the custom value 
-        for SRinitial, SRquantum in map(None, self.SRinitial, self.SRQuantum):
-            self.testingThinAllocation(SRinitial, SRquantum )
+                            % (SRinitial, SRquantum))
 
 
 class TrimFuncNetAppThinISCSI(testcases.xenserver.tc.lunspace.TrimFuncNetAppISCSI):

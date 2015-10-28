@@ -3235,13 +3235,13 @@ class VMSecurityFacade(object):
         self._VM.checkHealth()
 
     def ipv6NetworkAddress(self, deviceNo = 0, ipNo = 0):
-        return self._VM.asXapiObject().ipv6NetworkAddress(deviceNo, ipNo)
+        return self._VM.xapiObject.ipv6NetworkAddress(deviceNo, ipNo)
 
     def configureNetwork(self, device,ip=None, netmask=None, gateway=None, metric=None):
         self._VM.configureNetwork(device, ip, netmask, gateway, metric)
 
     def getVMCPUUsage(self):
-        return float(self._VM.asXapiObject().cpuUsage['0'])*100
+        return float(self._VM.xapiObject.cpuUsage['0'])*100
 
     def getHostCPUUsage(self):
         return self._VM.host.dom0CPUUsageOverTime(60)

@@ -158,11 +158,11 @@ class _ThinLVHDBase(xenrt.TestCase):
             host = self.getDefaultHost()
 
         srs = []
-        for sr in host.asXapiObject().SR(False):
+        for sr in host.xapiObject.SRs:
             try:
                 srs.append(xenrt.lib.xenserver.getStorageRepositoryClass(host, sr.uuid).fromExistingSR(host, sr.uuid))
             except:
-                log("%s type is not supported in SR instantiation." % (sr.srType(),))
+                log("%s type is not supported in SR instantiation." % (sr.srType,))
 
         return [sr for sr in srs if sr.thinProvisioning]
 
@@ -559,8 +559,8 @@ class TCThinProvisioned(_ThinLVHDBase):
 
         vdisize = 0
         for guest in self.guests:
-            for xvdi in guest.asXapiObject().VDI():
-                vdisize += xvdi.size()
+            for xvdi in guest.xapiObject.VDIs:
+                vdisize += xvdi.size
 
         if aftersize >= origsize + vdisize:
             raise xenrt.XRTFailure("SR size is bigger than sum of all VDIs on ThinLVHD. (before: %d, after: %d, vdi: %s)" %
@@ -1169,7 +1169,7 @@ class TCSRUpgrade(_ThinLVHDBase):
         if not host:
             host = self.getDefaultHost()
 
-        xsrs = [sr for sr in host.asXapiObject().SR(False) if sr.srType() == srtype]
+        xsrs = [sr for sr in host.xapiObject.SRs if sr.srType == srtype]
         if not xsrs:
             raise xenrt.XRTError("Cannot find %s type SR." % srtype)
 

@@ -37,7 +37,7 @@ class SXUIAPI(object):
         
         xenrt.TEC().logverbose("Setting company")
         if not self.company:
-            self.company = self.post("/acl/usercompanies")['data'][0]['companyId']
+            self.company = self.post("/acl/usercompanies")['data'][-1]['companyId']
         self.post("/acl/setcompany", data={"companyId": self.company})
         
         xenrt.TEC().logverbose("Setting role")

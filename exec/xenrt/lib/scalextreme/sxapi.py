@@ -82,7 +82,7 @@ class SXAPI(object):
         companies = self.execute(command="companies", params={"client_id": self.apikey})
         if len(companies) < 1:
             raise xenrt.XRTError("Expected at least 1 company but received %d" % len(companies))
-        self.companyId = companies[0]["companyId"]
+        self.companyId = companies[-1]["companyId"]
 
         self.roles = self.execute(command="roles", params={"client_id": self.apikey, "company_id": self.companyId})
         if "Admin" not in self.roles:

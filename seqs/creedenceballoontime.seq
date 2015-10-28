@@ -1,0 +1,68 @@
+<xenrt>
+
+  <!-- Basic DMC balloon time tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <vm name="winxpsp3">
+        <distro>winxpsp3</distro>
+        <network device="0" />
+        <postinstall action="installDrivers" />
+      </vm>
+      <vm name="win7-x86">
+        <distro>win7-x86</distro>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+      </vm>
+      <vm name="win7-x64">
+        <distro>win7-x64</distro>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+      </vm>
+      <vm name="win7sp1-x86">
+        <distro>win7sp1-x86</distro>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+      </vm>
+      <vm name="win7sp1-x64">
+        <distro>win7sp1-x64</distro>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+      </vm>
+      <vm name="win10-x86">
+        <distro>win10-x86</distro>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+      </vm>
+      <vm name="win10-x64">
+        <distro>win10-x64</distro>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+      </vm>
+      <storage type="nfs" name="NFS" default="true" />
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC-9283">
+      <testcase id="xenserver.tc.balloon.TC9527" />
+      <testcase id="xenserver.tc.balloon.TC9528" />
+      <testcase id="xenserver.tc.balloon.TC9529" />
+      <testcase id="xenserver.tc.balloon.TC12600" />
+      <testcase id="xenserver.tc.balloon.TC12601" />
+      <testcase id="xenserver.tc.balloon.TC26440"/>
+      <testcase id="xenserver.tc.balloon.TC26441"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -26,6 +26,7 @@
       <vm name="rhel5x">
         <distro>rhel5x</distro>
         <network device="0"/>
+        <memory>1024</memory>
       </vm>
     </host>
   </prepare>

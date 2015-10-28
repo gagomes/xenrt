@@ -11,23 +11,22 @@
   </prepare>
 
   <testsequence>
-    <serial group="Linux1">
-      <testcase id="xenserver.tc.balloon.TC20691" tc="TC-20691"/>
-      <testcase id="xenserver.tc.balloon.TC26854" tc="TC-26854"/>
-      <testcase id="xenserver.tc.balloon.TC26855" tc="TC-26855"/>
-      <testcase id="xenserver.tc.balloon.TC26856" tc="TC-26856"/>
-      <testcase id="xenserver.tc.balloon.TC26857" tc="TC-26857"/>
-      <testcase id="xenserver.tc.balloon.TC26858" tc="TC-26858"/>
-      <testcase id="xenserver.tc.balloon.TC26859" tc="TC-26859"/>
-      <testcase id="xenserver.tc.balloon.TC26860" tc="TC-26860"/>
-      <testcase id="xenserver.tc.balloon.TC26861" tc="TC-26861"/>
-      <testcase id="xenserver.tc.balloon.TC26862" tc="TC-26862"/>
-      <testcase id="xenserver.tc.balloon.TC26863" tc="TC-26863"/>
-      <testcase id="xenserver.tc.balloon.TC26864" tc="TC-26864"/>
-      <testcase id="xenserver.tc.balloon.TC26865" tc="TC-26865"/>
-      <testcase id="xenserver.tc.balloon.TC26866" tc="TC-26866"/>
-      <testcase id="xenserver.tc.balloon.TC26867" tc="TC-26867"/>
-    </serial>
+    <parallel group="LinuxVMInstallation" workers="8">
+      <for iter="D" values="%DISTROS%"> 
+        <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" sku="${D}.dmc" tc="TC-14987">
+          <arg>RESOURCE_HOST_0</arg>
+          <arg>guest=${D}</arg>
+          <arg>distro=${D}</arg>
+        </testcase>
+      </for>
+    </parallel>
+    <parallel group="LinuxBalloonMaxRange" workers="2">
+      <for iter="D" values="%DISTROS%">
+        <testcase id="xenserver.tc.balloon.TCLinuxMaxRange" name="${D}" sku="${D}" tc="TC-9325">
+          <arg>DISTRO=${D}</arg>
+        </testcase>
+      </for>
+    </parallel>
   </testsequence>
 
 </xenrt>

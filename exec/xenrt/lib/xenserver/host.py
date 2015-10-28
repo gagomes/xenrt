@@ -808,7 +808,6 @@ class Host(xenrt.GenericHost):
             self.i_upgrade = upgrade
             self.i_async = async
             self.i_suppackcds = suppackcds
-            self.resetDisk()
 
         if upgrade:
             # Default to existing values if not specified
@@ -1833,8 +1832,17 @@ done
             self.execdom0('xe pif-set-primary-address-type primary_address_type=ipv6 uuid=%s' % pif)
             self.execdom0('xe host-management-reconfigure pif-uuid=%s' % pif)
             self.waitForSSH(300, "%s host-management-reconfigure (IPv6)" % self.getName())
-        
+
         return None
+
+    # Change the timestamp formatting in syslog
+    # For rsyslog (in Dundee):
+    # - TraditionalFileFormat: 1s resolution, default backwards compatible format
+    # - FileFormat: us resolution, useful for precise measurement of events in tests
+    def changeSyslogFormat(self, new="TraditionalFileFormat"):
+        orig="TraditionalFileFormat"
+        self.execdom0("sed -i 's/RSYSLOG_%s/RSYSLOG_%s' /etc/rsyslog.conf" % (orig, new) )
+        self.execdom0("service rsyslog restart")
 
     def swizzleSymlinksToUseNonDebugXen(self, pathprefix):
             return """
@@ -2150,6 +2158,10 @@ fi
             # Check to ensure that there is a multipath topology if we did multipath boot.
             if not len(self.getMultipathInfo()) > 0 :
                 raise xenrt.XRTFailure("There is no multipath topology found with multipath boot")
+
+        syslogfmt = xenrt.TEC().lookup("DOM0_SYSLOG_FORMAT", None)
+        if syslogfmt:
+            self.changeSyslogFormat(syslogfmt)
 
     def waitForFirstBootScriptsToComplete(self):
         ret = ""
@@ -8495,7 +8507,7 @@ rm -f /etc/xensource/xhad.conf || true
         args.append("plugin=prepare_host_upgrade.py")
         args.append("fn=main")
         args.append("args:url=%s/xe-phase-1/" % (xenrt.TEC().lookup("FORCE_HTTP_FETCH") + xenrt.TEC().lookup("INPUTDIR")))
-        output = cli.execute("host-call-plugin", string.join(args), timeout=480).strip()
+        output = cli.execute("host-call-plugin", string.join(args), timeout=900).strip()
         if output != "true":
             raise xenrt.XRTFailure("Unexpected output: %s" % (output))
         xenrt.TEC().logverbose("Expected output: %s" % (output))
@@ -12035,6 +12047,10 @@ class DundeeHost(CreedenceHost):
 
         # Without knowing SR, cannot determine whether it requires modification.
         if not sr:
+            return command
+
+        # If NO_XENVMD is defined and set to 'yes' xenvm modification is not required.
+        if xenrt.TEC().lookup("NO_XENVMD", False, boolean=True):
             return command
 
         # If given SR is not an SR instance consider it is a uuid and

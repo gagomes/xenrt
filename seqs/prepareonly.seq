@@ -1,0 +1,10 @@
+<xenrt>
+
+  <!-- Prepare a single machine -->
+
+  <prepare>
+    <host/>
+  </prepare>
+
+</xenrt>
+

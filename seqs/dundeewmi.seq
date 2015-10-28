@@ -75,26 +75,6 @@
           <arg>guest=winxp</arg>
         </testcase>
       </serial>
-      <serial group="w2k3-x86">
-        <testcase id="xenserver.tc.guest.WMIPowerShell" tc="TC-19107">
-          <arg>guest=w2k3-x86</arg>
-        </testcase>
-        <testcase id="xenserver.tc.guest.WMIVBS" tc="TC-19108">
-          <arg>guest=w2k3-x86</arg>
-        </testcase>
-        <testcase id="xenserver.tc.guest.WMICheckVMName" tc="TC-19109">
-          <arg>guest=w2k3-x86</arg>
-        </testcase>
-        <testcase id="xenserver.tc.guest.WMICheckVMIP" tc="TC-19110">
-          <arg>guest=w2k3-x86</arg>
-        </testcase>
-        <testcase id="xenserver.tc.guest.WMICheckXenStoreRead" tc="TC-19111">
-          <arg>guest=w2k3-x86</arg>
-        </testcase>
-        <testcase id="xenserver.tc.guest.WMICheckXenStoreWrite" tc="TC-19112">
-          <arg>guest=w2k3-x86</arg>
-        </testcase>
-      </serial>
       <serial group="ws08-x86">
         <testcase id="xenserver.tc.guest.WMIPowerShell" tc="TC-19125">
           <arg>guest=ws08-x86</arg>

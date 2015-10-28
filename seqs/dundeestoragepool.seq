@@ -96,9 +96,6 @@
           <arg>live</arg>
           <arg>to=${OTHERHOST}</arg>
         </testcase>
-        <testcase id="xenserver.guest.TCCheckToolsCD" tc="TC-14993">
-          <arg>guest=${GUESTNAME}</arg>
-        </testcase>
         <testcase id="guestops.basic.TCShutdown" tc="TC-14994">
           <arg>guest=${GUESTNAME}</arg>
         </testcase>

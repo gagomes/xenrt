@@ -3376,8 +3376,9 @@ class MixedGPUBootstorm(BootstormBase):
         linuxAllocation = passthroughAllocation - windowsAllocation
 
         linuxMaster = masters[self.LINUX_TYPE]
-
-        self.__configureMasterAndPopulate(linuxMaster, config, linuxAllocation, installer, self.nvidLinvGPU)
+        linuxMaster.setState("DOWN")
+        linPassthroughMaster = linuxMaster.cloneVM(noIP=False)
+        self.__configureMasterAndPopulate(linPassthroughMaster, config, linuxAllocation, installer, self.nvidLinvGPU)
 
         # Branch the windows master, so can use for both passthrough and vGPU
         windowsMaster = masters[self.WINDOWS_TYPE]
@@ -3817,7 +3818,35 @@ class TCNvidiaM60HVMLifeCycle(TCM60HVMBase):
         else: 
             raise xenrt.XRTFailure("vGPU-bound VM did not fail %s as expected" % operation)
 
+class TCM60ReassignGPU(TCM60HVMBase):
+    """ This testcase will check if assigning a vGPU to a VM already containing a vGPU fails"""
+    def insideRun(self, vm, config):
+        super(TCM60ReassignGPU, self).insideRun(vm, config)
+        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
+        self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
+        self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
+        
+        step("Calling the reassign method to check if vgpu reassign fails")
+        self.reassignGPU(vm)
             
+    def reassignGPU(self, vm):
+        cli = self.host.getCLIInstance()
+        step("Get the pGPU Uuid of the M60 pGPUs only")
+        self.pGPUs = GPUGroupManager(self.host).getPGPUUuids()
+        
+        step("Get the group Uuid of the M60 pGPUs only")
+        gpu_group_uuid = cli.execute("pgpu-list", "params=gpu-group-uuid, uuid=%s --minimal" % self.pGPUs[0])
+        vm.setState("DOWN")
+        
+        try:
+            cli.execute("vgpu-create", "vm-uuid=%s gpu-group-uuid=%s" % (vm.getUUID(), gpu_group_uuid)) 
+            
+        except xenrt.XRTFailure as e:
+            xenrt.TEC().logverbose("VGPU attach failed to the VM as expected: %s" % str(e))
+        
+        else:
+            raise xenrt.XRTFailure("vGPU-bound VM DID NOT FAIL to attach the  vGPU as expected") 
+ 
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
 
     """

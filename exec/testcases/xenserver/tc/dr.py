@@ -163,10 +163,7 @@ def installLinuxVM(site, stationary_vm=False, sr_uuid=None):
     
     sr_uuid = chooseSRUuid(site, stationary_vm, sr_uuid, '10GiB')
     guest_name = randomGuestName()
-    if xenrt.TEC().lookup("USE_DEBIAN50", False, boolean=True):
-        distro = "debian50"
-    else:
-        distro = "generic-linux"
+    distro = "rhel5x"
     guest = host.createBasicGuest(distro, name=guest_name, sr=sr_uuid)
     guest.reboot()
     return (guest, 'linux', sr_uuid, distro)
@@ -1539,7 +1536,7 @@ class DRUtils(object):
             g['guest'].changeCD(None)
             
     def upgradeVMs(self, site_name):
-        
+
         # upgrade guest objects
         assert self.sites.has_key(site_name)
         site = self.sites[site_name]
@@ -1550,21 +1547,19 @@ class DRUtils(object):
             pass
         else:
             return
-        
-        vms = site['vms'].values()
-        
-        for g in vms:
+
+        vms = site['vms']
+        for n,g in vms.iteritems():
+            newGuest = createGuestObject(g['guest'].host, g['vm_uuid'], g['distro'], g['vm_type'])
+            vms[n]['guest'] = newGuest
+
+        for g in vms.values():
             xenrt.TEC().progress("Upgrading VM %s" % (g['guest'].getName()))
             if g['guest'].windows:
                 g['guest'].installDrivers()
             else:
-                # Workaround for CA-78632
-                xenrt.TEC().logverbose("CA-78632 class %s template: %s" % (host.__class__, g['guest'].template))
-                if re.search("Lenny", g['guest'].template) and isinstance(host, xenrt.lib.xenserver.TampaHost):
-                    xenrt.TEC().logverbose("Skipping tools upgrade on %s" % (g['guest'].getName()))
-                else:
-                    g['guest'].installTools()
-        for g in vms:
+                g['guest'].installTools()
+        for g in vms.values():
             g['guest'].checkHealth()
 
 

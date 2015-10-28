@@ -1,0 +1,77 @@
+<xenrt>
+
+  <!-- Storage xen migration from thin provisoned sr to thick provisioned sr -->
+
+  <default name="ITERATIONS" value="2" />
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <!-- <pool id="0" name="sourceSXMPool"> -->
+    <pool id="0">
+      <storage type="nfs" name="nfs_sourceSR" />
+      <storage type="lvmoiscsi" name="lvmoiscsi_sourceSR" options="thin" />
+      <host id="0" installsr="ext" />
+      <host id="1" installsr="lvm" />
+    </pool>
+    <!-- <pool id="1" name="targetSXMPool"> -->
+    <pool id="1">
+      <storage type="nfs" name="nfs_targetSR" />
+      <storage type="lvmoiscsi" name="lvmoiscsi_targetSR" />
+      <host id="2" installsr="ext" />
+      <host id="3" installsr="lvm" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="CrossPoolSXM">
+      <!-- cross-pool sxm migration from sr-type ext to lvmoiscsi. -->
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16888" tc="TC-16888" sku="thin2thick">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvmoiscsi</arg>
+        <arg>iterations=${ITERATIONS}</arg>
+      </testcase>
+
+      <!-- cross-pool sxm migration from sr-type lvm to lvmoiscsi. -->
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16893" tc="TC-16893" sku="thin2thick">
+        <arg>src_SR=lvm</arg>
+        <arg>dest_SR=lvmoiscsi</arg>
+        <arg>iterations=${ITERATIONS}</arg>
+      </testcase>
+
+      <!-- cross-pool sxm migration from sr-type nfs to lvmoiscsi. -->
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16898" tc="TC-16898" sku="thin2thick">
+        <arg>src_SR=nfs</arg>
+        <arg>dest_SR=lvmoiscsi</arg>
+        <arg>iterations=${ITERATIONS}</arg>
+      </testcase>
+
+      <!-- cross-pool sxm migration from sr-type lvmoiscsi to ext, lvm, nfs, lvmoiscsi respectively. -->
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16900" tc="TC-16900" sku="thin2thick">
+        <arg>src_SR=lvmoiscsi</arg>
+        <arg>dest_SR=ext</arg>
+        <arg>iterations=${ITERATIONS}</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16901" tc="TC-16901" sku="thin2thick">
+        <arg>src_SR=lvmoiscsi</arg>
+        <arg>dest_SR=lvm</arg>
+        <arg>iterations=${ITERATIONS}</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16902" tc="TC-16902" sku="thin2thick">
+        <arg>src_SR=lvmoiscsi</arg>
+        <arg>dest_SR=nfs</arg>
+        <arg>iterations=${ITERATIONS}</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16903" tc="TC-16903" sku="thin2thick">
+        <arg>src_SR=lvmoiscsi</arg>
+        <arg>dest_SR=lvmoiscsi</arg>
+        <arg>iterations=${ITERATIONS}</arg>
+      </testcase>
+    </serial>
+
+  </testsequence>
+
+</xenrt>

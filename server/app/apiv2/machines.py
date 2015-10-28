@@ -246,6 +246,9 @@ class _MachineBase(XenRTAPIv2Page):
         elif key.lower() == "group":
             key = "mgroup"
 
+        if key.lower() == "aclid" and value == "":
+            value = None
+
         details = machines[machine]['params']
         if key.lower() in ("machine", "comment", "leaseto", "leasereason", "leasefrom"):
             raise XenRTAPIError(HTTPForbidden, "Can't update this field")

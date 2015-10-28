@@ -856,7 +856,7 @@ class _GetAttachmentUrl(_JobBase):
         job = int(self.request.matchdict['id'])
         server = self.getJobs(1, ids=[job], getParams=True, exceptionIfEmpty=True)[job]['params'][self.LOCATION_PARAM]
 
-        url = 'http://%s/xenrt/api/files/v2/fileget/%d.%s' % (server, job, self.request.matchdict['file'])
+        url = 'https://%s/xenrt/api/files/v2/fileget/%d.%s' % (server, job, self.request.matchdict['file'])
 
         if self.REDIRECT:
             return HTTPFound(location=url)
@@ -908,7 +908,7 @@ class GetJobDeployment(_JobBase):
 
         try:
             server = self.getJobs(1, ids=[job], getParams=True, exceptionIfEmpty=True)[job]['params']['LOG_SERVER']
-            r = requests.get('http://%s/xenrt/api/files/v2/fileget/%d.deployment.json' % (server, job))
+            r = requests.get('https://%s/xenrt/api/files/v2/fileget/%d.deployment.json' % (server, job))
             r.raise_for_status()
             return r.json()
         except Exception, e:

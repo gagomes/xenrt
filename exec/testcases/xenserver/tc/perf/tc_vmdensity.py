@@ -1816,13 +1816,19 @@ class Experiment_vmrun(Experiment):
                 sharedsr = ""
             else:
                 localsr = "ext"
-                sharedsr = '<storage type="%s" name="%s"/>' % (self.defaultsr, name_defaultsr)
+                options = self.defaultsr.split(":")[1:2] # eg. thin in lvmoiscsi:thin
+                self.defaultsr = self.defaultsr.split(":")[0]
+                if len(options) == 0:
+                  options = ""
+                else:
+                  options = 'options="%s"' % (options[0],)
+                sharedsr = '<storage type="%s" name="%s" %s/>' % (self.defaultsr, name_defaultsr, options)
 
                 #in the SCALE cluster, we prefer to use the reserved 10Gb network in NSEC
                 hn = xenrt.TEC().lookup("MACHINE", "WARNING: NO MACHINE NAME")
                 if "xrtuk-08-" in hn:
                     xenrt.TEC().logverbose("%s: xrtuk-08-* host detected, using NSEC+jumbo network configuration" % hn)
-                    sharedsr = '<storage type="%s" name="%s" jumbo="true" network="NSEC"/>' % (self.defaultsr, name_defaultsr)
+                    sharedsr = '<storage type="%s" name="%s" %s jumbo="true" network="NSEC"/>' % (self.defaultsr, name_defaultsr, options)
                     networkcfg = """<NETWORK><PHYSICAL network="NPRI"><NIC /><MANAGEMENT /><VMS />%s</PHYSICAL><PHYSICAL network="NSEC"><NIC /><STORAGE /></PHYSICAL></NETWORK>"""
                 else:
                     xenrt.TEC().logverbose("%s: xrtuk-08-* host NOT detected, using default network configuration" % hn)

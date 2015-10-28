@@ -11,9 +11,27 @@
   </prepare>
 
   <testsequence>
-    <serial group="WindowsNPT">
-      <testcase id="xenserver.tc.balloon.TC9784"/>
-      <testcase id="xenserver.tc.balloon.TC12606"/>
+    <parallel group="WindowsVMInstallation" workers="8">
+      <for iter="D" values="%DISTROS%"> 
+        <serial group="${D}">
+          <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" sku="${D}.dmc" tc="TC-14987">
+            <arg>RESOURCE_HOST_0</arg>
+            <arg>guest=${D}</arg>
+            <arg>distro=${D}</arg>
+          </testcase>
+          <testcase id="guestops.drivers.TCDriverInstall" sku="${D}.dmc" tc="TC-14988">
+            <arg>guest=${D}</arg>
+          </testcase>
+        </serial>
+      </for>
+    </parallel>
+    <serial group="WindowsBalloonMaxRange">
+      <for iter="D" values="%DISTROS%">
+        <testcase id="xenserver.tc.balloon.TCWindowsMaxRange" name="${D}" sku="${D}" tc="TC-9776">
+          <arg>DISTRO=${D}</arg>
+          <arg>HAP=NPT</arg>
+        </testcase>
+      </for>
     </serial>
   </testsequence>
 

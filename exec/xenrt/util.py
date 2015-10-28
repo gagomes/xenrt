@@ -1560,7 +1560,11 @@ def getCCPCommit(distro):
 def isUrlFetchable(filename):
     xenrt.TEC().logverbose("Attempting to check response for %s" % filename)
     try:
-        r = requests.head(filename, allow_redirects=True)
+        proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
+        kwargs = {}
+        if proxy:
+            kwargs['proxies'] = {"http": proxy, "https": proxy}
+        r = requests.head(filename, allow_redirects=True, **kwargs)
         return (r.status_code == 200)
     except:
         return False

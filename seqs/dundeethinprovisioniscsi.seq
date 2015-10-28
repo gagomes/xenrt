@@ -1,0 +1,16 @@
+<!-- Functional test cases for thin provisioning : Refer https://info.citrite.net/pages/viewpage.action?pageId=1228996737-->
+<xenrt>
+  <variables>
+  <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0" />
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.thinlvhd.ThinProvisionVerificationISCSI" tc="TC-27031" name="ThinProvisionISCSI">
+      <arg>lvmoiscsi</arg>
+    </testcase>
+  </testsequence>
+</xenrt>

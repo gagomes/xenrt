@@ -72,7 +72,7 @@ class _ThinLVHDBase(xenrt.TestCase):
                 smconf[key.strip()] = val.strip()
         else:
             smconf = obj.smconf
-            
+
         return smconf
 
     def getInitialAllocation(self, obj=None):
@@ -192,6 +192,28 @@ class _ThinLVHDBase(xenrt.TestCase):
 
         return int(self.__getSRObj(sr, scan).paramGet("physical-size"))
 
+    def getExactPhysicalUtilisation(self, sr, scan=True):
+        """Return exact physical utilisation of SR.
+        physical-utilisation is actual free space available in SR.
+        This does not include host free pool size, this can cause wrong calculation.
+        This is being fixed. Once it is done, this won't be needed."""
+
+        # TODO: Delete this function once CP-14242 is resolved.
+
+        if hasattr(self, "host"):
+            host = self.host
+        else:
+            host = self.getDefaultHost()
+
+        stat = self.getPhysicalUtilisation(sr, scan)
+        if host.pool:
+            for h in host.pool.getHosts():
+                stat += self.getHostFreeSpace(h, sr)
+        else:
+            stat += self.getHostFreeSpace(host, sr)
+
+        return stat
+
     def fillDisk(self, guest, targetDir=None, size=512*xenrt.MEGA, source="/dev/zero"):
         """Fill target disk by creating an empty file with
         given size on the given directory.
@@ -255,6 +277,7 @@ class _ThinLVHDBase(xenrt.TestCase):
 
     def getHostFreeSpace(self, host, sr=None):
         """Return host free space that can allocate.
+        HostFreeSpace is only available on xenvmd thinLVHD.
 
         @param sruuid: VDI uuid string
         @param host: host to query.
@@ -262,12 +285,18 @@ class _ThinLVHDBase(xenrt.TestCase):
         @return: allocation free space on given host in bytes.
         """
 
+        # Other than xenvmd environment there isn't such host free space.
+        if xenrt.TEC().lookup("NO_XENVMD", False, boolean=True):
+            return 0
+
         if not sr:
             host.lookupDefaultSR()
         if isinstance(sr, xenrt.lib.xenserver.StorageRepository):
-            sr = sr.uuid
+            sruuid = sr.uuid
+        else:
+            sruuid = sr
 
-        output = host.execdom0("xenvm lvs /dev/VG_XenStorage-%s --nosuffix | grep %s-free" % (sr, host.uuid))
+        output = host.execRawStorageCommand(sr, "lvs /dev/VG_XenStorage-%s --nosuffix | grep %s-free" % (sruuid, host.uuid))
 
         return int(output.split()[-1])
 
@@ -325,10 +354,9 @@ class _ThinLVHDBase(xenrt.TestCase):
         srs = self.getThinProvisioningSRs()
         for sr in srs:
             sr.scan()
-            host = sr.host
             try:
-                host.execdom0("xenvm vgs /dev/VG_XenStorage-%s" % sr.uuid)
-                host.execdom0("xenvm lvs /dev/VG_XenStorage-%s" % sr.uuid)
+                sr.host.execRawStorageCommand(sr, "vgs /dev/VG_XenStorage-%s" % sr.uuid)
+                sr.host.execRawStorageCommand(sr, "lvs /dev/VG_XenStorage-%s" % sr.uuid)
             except:
                 pass
 
@@ -459,18 +487,18 @@ class ResetOnBootThinSRSpace(_ThinLVHDBase):
 
         self.guest.setState("UP")
         xenrt.sleep(60)
-        srSizeBefore = self.getPhysicalUtilisation(self.srs[0])
-        log("Physical SR space allocated for the VDIs before writing: %d" % (srSizeBefore))
-        digestBefore = self.getDigest("/dev/%s" % device)
-        log("MD5 digest before writing into VDI: %s" % (digestBefore))
+        srSizeBeforeWrite = self.getExactPhysicalUtilisation(self.srs[0])
+        log("Physical SR space allocated for the VDIs before writing: %d" % (srSizeBeforeWrite))
+        digestBeforeWrite = self.getDigest("/dev/%s" % device)
+        log("MD5 digest before writing into VDI: %s" % (digestBeforeWrite))
 
         step("Writing some data onto VDI")
         self.fillDisk(self.guest, targetDir="/dev/%s" % device, size=xenrt.GIGA)
 
         step("Test trying to check SR physical space allocated for the VDI(s)")
         xenrt.sleep(60)
-        srSizeAfter = self.getPhysicalUtilisation(self.srs[0])
-        log("Physical SR space allocated for the VDIs after writing: %d" % (srSizeAfter))
+        srSizeAfterWrite = self.getExactPhysicalUtilisation(self.srs[0])
+        log("Physical SR space allocated for the VDIs after writing: %d" % (srSizeAfterWrite))
 
         # Now shutdown the guest
         step("Rebooting VM to release leaf of VDI") 
@@ -478,21 +506,21 @@ class ResetOnBootThinSRSpace(_ThinLVHDBase):
 
         step("Test trying to check the SR physical space allocated for the VDI after reset-on-boot VM shutdown")
         xenrt.sleep(60)
-        srSizeFinal = self.getPhysicalUtilisation(self.srs[0])
-        digestFinal = self.getDigest("/dev/%s" % device)
-        log("Physical SR space allocated for the VDI after the VM rebooted: %d" % (srSizeFinal))
-        log("MD5 digest after rebooting VM: %s" % (digestFinal))
+        srSizeAfterReboot = self.getExactPhysicalUtilisation(self.srs[0])
+        digestAfterReboot = self.getDigest("/dev/%s" % device)
+        log("Physical SR space allocated for the VDI after the VM rebooted: %d" % (srSizeAfterReboot))
+        log("MD5 digest after rebooting VM: %s" % (digestAfterReboot))
 
 
         # Check digest.
-        if digestBefore != digestFinal:
+        if digestBeforeWrite != digestAfterReboot:
             raise xenrt.XRTFailure("on-boot=reset VDI has not reset after VM reboot.")
 
         # We expect VM should release the space when it shutdown and VDI on boot set to 'reset'
-        if srSizeBefore >= srSizeAfter:
+        if srSizeBeforeWrite >= srSizeAfterWrite:
             raise xenrt.XRTFailure("SR physical utilisation has not been increased after writing data in VDI.")
 
-        if srSizeAfter >= srSizeFinal:
+        if srSizeAfterReboot >= srSizeAfterWrite:
             raise xenrt.XRTFailure("SR Physical utilisation is not decreased after reset-on-boot VM rebooted.")
 
 
@@ -1316,13 +1344,12 @@ class TCSRUpgrade(_ThinLVHDBase):
         device = self.master.createDisk(vdiuuid=vdi, returnDevice=True)
         expected = initial + quantum * 10
         self.fillDisk(self.master, targetDir="/dev/" + device, size=expected)
-        allocated = self.getPhysicalVDISize(vdi)
-        if allocated < expected or allocated > expected * 1.05:
-            raise xenrt.XRTFailure("Size of VDI is not increased as expected. Expected: %d, Allocated: %d" %
-                    (expected, allocated))
-
-        step("Destroying upgraded SR.")
-        self.sr.destroy()
+        increased = self.getPhysicalVDISize(vdi)
+        # maximum usage can be additional quantum size + VHD header size (8 MiB)
+        margin = quantum + 8 * xenrt.MEGA
+        if increased > expected + margin or increased < expected:
+            raise xenrt.XRTFailure("Size of VDI is not increased as expected. Expected: %d, Allocated: %d, Margin: %d" %
+                    (expected, increased, margin))
 
     def run(self, arglist=[]):
 

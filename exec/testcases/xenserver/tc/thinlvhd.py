@@ -157,7 +157,7 @@ class _ThinLVHDBase(xenrt.TestCase):
             host = self.getDefaultHost()
 
         srs = []
-        for sr in host.xapiObject.SR(False):
+        for sr in host.xapiObject.SRs:
             try:
                 srs.append(xenrt.lib.xenserver.getStorageRepositoryClass(host, sr.uuid).fromExistingSR(host, sr.uuid))
             except:
@@ -1161,7 +1161,7 @@ class TCSRUpgrade(_ThinLVHDBase):
         if not host:
             host = self.getDefaultHost()
 
-        xsrs = [sr for sr in host.xapiObject.SR(False) if sr.srType == srtype]
+        xsrs = [sr for sr in host.xapiObject.SRs if sr.srType == srtype]
         if not xsrs:
             raise xenrt.XRTError("Cannot find %s type SR." % srtype)
 

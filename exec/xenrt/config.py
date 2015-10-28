@@ -3088,10 +3088,13 @@ class Config(object):
         # Dec: xen-tools fixes and windows10 support. rolls up  XS65ESP1003
         self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1010"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1010/104245/hotfix-XS65ESP1010/XS65ESP1010.xsupdate"
         self.config["TOOLS_HOTFIXES"]["Creedence"]["SP1"].append("XS65ESP1010")
-        
+
         # Pixie: xen. Rolls up XS65E009,XS65E010,XS65E013,XS65E014,XS65ESP1002,XS65ESP1004,XS65ESP1008, XS65ESP1009.
         self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1011"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1011/104305/hotfix-XS65ESP1011/XS65ESP1011.xsupdate"
-        
+
+        # Amelie: xapi, rrdd. Rolls up Nothing
+        self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1012"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1012/107743/hotfix-XS65ESP1012/XS65ESP1012.xsupdate"
+
         # Crosswires: fixes for Storage Modules. Rolls up nothing
         self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1013"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1013/107506/hotfix-XS65ESP1013/XS65ESP1013.xsupdate"
         return
@@ -3275,6 +3278,7 @@ class Config(object):
             self.config["CARBON_PATCHES_CREEDENCE"]["HF05"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1005"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF10"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1010"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF11"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1011"]
+            self.config["CARBON_PATCHES_CREEDENCE"]["HF12"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1012"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF13"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1013"]
             
     def readFromFile(self, filename, path=None):

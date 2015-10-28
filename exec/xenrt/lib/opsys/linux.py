@@ -1,7 +1,7 @@
 import xenrt
 import string
 import socket
-from xenrt.lib.opsys import OS
+from xenrt.lib.opsys import OS,OSDetectionError
 
 
 class LinuxOS(OS):
@@ -172,8 +172,8 @@ class LinuxOS(OS):
             self.execSSH("dd if=%s iflag=direct of=/dev/null" % stampFile)
     
     @classmethod
-    def osDetected(cls, parent, password):
-        obj = cls("testlin", parent, password)
+    def detect(cls, parent, detectionState):
+        obj = cls("testlin", parent, detectionState['password'])
         try:
             sock = socket.socket()
             sock.settimeout(10)
@@ -181,7 +181,6 @@ class LinuxOS(OS):
             sock.close()
             obj.execSSH("true")
         except Exception, e:
-            xenrt.TEC().logverbose("OS appears not to have SSH: %s" % str(e))
-            return (False, password)
+            raise OSDetectionError("OS appears not to have SSH: %s" % str(e))
         else:
-            return (True, obj.password)
+            detectionState['password'] = obj.password

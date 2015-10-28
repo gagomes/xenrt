@@ -1,5 +1,5 @@
 import xenrt, os.path, os, shutil, IPy, re
-from xenrt.lib.opsys import LinuxOS, registerOS
+from xenrt.lib.opsys import LinuxOS, registerOS, OSDetectionError
 from xenrt.linuxanswerfiles import DebianPreseedFile
 from zope.interface import implements
 
@@ -175,9 +175,10 @@ class DebianBasedLinux(LinuxOS):
         self.execSSH("true")
 
     @classmethod
-    def osDetected(cls, parent, password):
-        obj=cls("testdeb", parent, password)
-        return (obj.execSSH("test -e /etc/debian_version", retval="code") == 0, password)
+    def detect(cls, parent, detectionState):
+        obj=cls("testdeb", parent, detectionState['password'])
+        if not obj.execSSH("test -e /etc/debian_version", retval="code") == 0:
+            raise OSDetectionError("OS is not debian")
 
 class DebianLinux(DebianBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
@@ -205,18 +206,18 @@ class DebianLinux(DebianBasedLinux):
             return "deb8_%s_xenrtinst.iso" % self.arch
 
     @classmethod
-    def osDetected(cls, parent, password):
-        obj=cls("testdeb", parent, password)
+    def detect(cls, parent, detectionState):
+        obj=cls("testdeb", parent, detectionState['password'])
         isUbuntu = obj.execSSH("grep Ubuntu /etc/lsb-release", retval="code") == 0
         if isUbuntu:
-            return (False, password)
+            raise OSDetectionError("OS is Ubuntu")
         else:
             release = obj.execSSH("cat /etc/debian_version").strip()
             release = release.split(".")[0]
             if re.match("^debian\d+$", release):
-                return ("debian%s0_%s" % (release, obj.getArch()), password)
+                return cls("debian%s0_%s" % (release, obj.getArch()), parent, obj.password)
             else:
-                return (False, password)
+                raise OSDetectionError("Couldn't determine Debian version")
 
 class UbuntuLinux(DebianBasedLinux):
     """ NOTE: Lucid is not supported on XS 6.2 for ISO install but should work for http install"""
@@ -241,17 +242,17 @@ class UbuntuLinux(DebianBasedLinux):
         return "%s_%s_xenrtinst.iso" % (self.distro, self.arch)
 
     @classmethod
-    def osDetected(cls, parent, password):
-        obj=cls("testdeb", parent, password)
+    def detect(cls, parent, detectionState):
+        obj=cls("testdeb", parent, detectionState['password'])
         isUbuntu = obj.execSSH("grep Ubuntu /etc/lsb-release", retval="code") == 0
         if not isUbuntu:
-            return (False, password)
+            raise OSDetectionError("OS is not Ubuntu")
         else:
             release = obj.execSSH("cat /etc/lsb-release | grep DISTRIB_RELEASE | cut -d = -f 2 | tr -d .")
             if re.match("^ubuntu\d+$", release):
-                return ("ubuntu%s0_%s" % (release, obj.getArch()), password)
+                return cls("ubuntu%s0_%s" % (release, obj.getArch()), parent, obj.password)
             else:
-                return (False, password)
+                raise OSDetectionError("Could not determine Ubuntu version")
 
 registerOS(DebianLinux)
 registerOS(UbuntuLinux)

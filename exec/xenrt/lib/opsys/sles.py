@@ -1,5 +1,5 @@
 import xenrt, os.path, os, shutil, re
-from xenrt.lib.opsys import LinuxOS, registerOS
+from xenrt.lib.opsys import LinuxOS, registerOS, OSDetectionError
 from xenrt.linuxanswerfiles import SLESAutoyastFile
 from abc import ABCMeta, abstractproperty
 from zope.interface import implements
@@ -162,10 +162,10 @@ class SLESBasedLinux(LinuxOS):
         self.waitForSSH(timeout)
 
     @classmethod
-    def osDetected(cls, parent, password):
-        obj=cls("testsuse", parent, password)
-        if obj.execSSH("test -e /etc/SuSE-release", retval="code") == 0:
-            return (True, password)
+    def detect(cls, parent, detectionState):
+        obj=cls("testsuse", parent, detectionState['password'])
+        if not obj.execSSH("test -e /etc/SuSE-release", retval="code") == 0:
+            raise OSDetectionError("OS is not SuSE based")
 
 class SLESLinux(SLESBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
@@ -185,8 +185,8 @@ class SLESLinux(SLESBasedLinux):
         return self._defaultIsoName
 
     @classmethod
-    def osDetected(cls, parent, password):
-        obj=cls("testsuse", parent, password)
+    def detect(cls, parent, detectionState):
+        obj=cls("testsuse", parent, detectionState['password'])
         release = obj.execSSH("cat /etc/SuSE-release")
 
         releaseMatch = re.search("VERSION = (\d+)", release)
@@ -197,9 +197,8 @@ class SLESLinux(SLESBasedLinux):
             ret += releaseMatch.group(1)
             if patchMatch and patchMatch.group(1) != "0":
                 ret += patchMatch.group(1)
-            return ("%s_%s" % (ret, obj.getArch()), password)
-
-        return (False, password)
+            return cls("%s_%s" % (ret, obj.getArch()), parent, obj.password)
+        raise OSDetectionError("Could not determine SLES version")
 
 registerOS(SLESLinux)
 

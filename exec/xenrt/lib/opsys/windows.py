@@ -4,7 +4,7 @@ try:
     import winrm
 except:
     pass
-from xenrt.lib.opsys import OS, registerOS
+from xenrt.lib.opsys import OS, registerOS, OSDetectionError
 from zope.interface import implements
 from xenrt.lazylog import *
 
@@ -1358,11 +1358,10 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
         return time.time() - start
 
     @classmethod
-    def osDetected(cls, parent, password):
+    def detect(cls, parent, detectionState):
         obj = cls.testInit(parent)
         if obj.isDaemonAlive():
-            return ("win", password)
-        else:
-            return (False, password)
+            return cls("win", parent, obj.password)
+        raise OSDetectionError("OS is not running exec daemon") 
 
 registerOS(WindowsOS)

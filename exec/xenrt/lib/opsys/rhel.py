@@ -3,7 +3,7 @@ import os.path
 import os
 import shutil
 import re
-from xenrt.lib.opsys import LinuxOS, registerOS
+from xenrt.lib.opsys import LinuxOS, registerOS, OSDetectionError
 from xenrt.linuxanswerfiles import RHELKickStartFile
 from zope.interface import implements
 
@@ -171,14 +171,12 @@ class RHELBasedLinux(LinuxOS):
         self.waitForSSH(timeout)
 
     @classmethod
-    def osDetected(cls, parent, password):
-        obj=cls("testrhel", parent, password)
+    def detect(cls, parent, detectionState):
+        obj=cls("testrhel", parent, detectionState['password'])
         if obj.execSSH("test -e /etc/xensource-inventory", retval="code") == 0:
-            return (False, password)
-        if obj.execSSH("test -e /etc/redhat-release", retval="code") == 0:
-            return (True, password)
-        else:
-            return (False, password)
+            raise OSDetectionError("OS is XenServer")
+        if not obj.execSSH("test -e /etc/redhat-release", retval="code") == 0:
+            raise OSDetectionError("OS is not RedHat based")
 
 class RHELLinux(RHELBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV,
@@ -199,12 +197,12 @@ class RHELLinux(RHELBasedLinux):
         return self._defaultIsoName
     
     @classmethod
-    def osDetected(cls, parent, password):
-        obj=cls("testrhel", parent, password)
+    def detect(cls, parent, detectionState):
+        obj=cls("testrhel", parent, detectionState['password'])
         if obj.execSSH("test -e /etc/centos-release", retval="code") == 0:
-            return (False, password)
+            raise OSDetectionError("OS is CentOS")
         if obj.execSSH("test -e /etc/oracle-release", retval="code") == 0:
-            return (False, password)
+            raise OSDetectionError("OS is Oracle Linux")
         distro = obj.execSSH("cat /etc/redhat-release | "
                     "sed 's/Red Hat Enterprise Linux Server release /rhel/' | "
                     "sed 's/Red Hat Enterprise Linux Client release /rheld/' | "
@@ -215,9 +213,9 @@ class RHELLinux(RHELBasedLinux):
         if dd[1] != "0":
             distro += dd[1]
         if re.match("^rhel[dw]?(\d+)$", distro):
-            return ("%s_%s" % (distro, obj.getArch()), password)
+            return cls("%s_%s" % (distro, obj.getArch()), parent, obj.password)
         else:
-            return (False, password)
+            raise OSDetectionError("Could not determine RHEL version")
         
 
 class CentOSLinux(RHELBasedLinux):
@@ -239,10 +237,10 @@ class CentOSLinux(RHELBasedLinux):
         return self._defaultIsoName
 
     @classmethod
-    def osDetected(cls, parent, password):
-        obj=cls("testcentos", parent, password)
+    def detect(cls, parent, detectionState):
+        obj=cls("testcentos", parent, detectionState['password'])
         if obj.execSSH("test -e /etc/centos-release", retval="code") != 0:
-            return (False, password)
+            raise OSDetectionError("OS is not CentOS")
         distro = obj.execSSH("cat /etc/centos-release | "
                     "sed 's/CentOS release /centos/' | "
                     "sed 's/CentOS Linux release /centos/' | "
@@ -252,9 +250,9 @@ class CentOSLinux(RHELBasedLinux):
         if dd[1] != "0":
             distro += dd[1]
         if re.match("^centos(\d+)$", distro):
-            return ("%s_%s" % (distro, obj.getArch()), password)
+            return cls("%s_%s" % (distro, obj.getArch()), parent, obj.password)
         else:
-            return (False, password)
+            raise OSDetectionError("Could not determine CentOS version")
 
 class OELLinux(RHELBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV,
@@ -279,10 +277,10 @@ class OELLinux(RHELBasedLinux):
         return 1610
 
     @classmethod
-    def osDetected(cls, parent, password):
-        obj=cls("testcentos", parent, password)
+    def detect(cls, parent, detectionState):
+        obj=cls("testoel", parent, detectionState['password'])
         if obj.execSSH("test -e /etc/oracle-release", retval="code") != 0:
-            return (False, password)
+            raise OSDetectionError("OS is not Oracle Linux")
         distro = obj.execSSH("cat /etc/oracle-release | "
                     "sed 's/Oracle Linux Server release /oel/' | "
                     "awk '{print $1}'").strip()
@@ -291,9 +289,9 @@ class OELLinux(RHELBasedLinux):
         if dd[1] != "0":
             distro += dd[1]
         if re.match("^oel(\d+)$", distro):
-            return ("%s_%s" % (distro, obj.getArch()), password)
+            return cls("%s_%s" % (distro, obj.getArch()), parent, obj.password)
         else:
-            return (False, password)
+            raise OSDetectionError("Could not determine Oracle Linux version")
 
 registerOS(RHELLinux)
 registerOS(CentOSLinux)

@@ -1,4 +1,4 @@
-from xenrt.lib.opsys import LinuxOS, registerOS
+from xenrt.lib.opsys import LinuxOS, registerOS, OSDetectionError
 
 __all__=["XSDom0"]
 
@@ -27,11 +27,10 @@ class XSDom0(LinuxOS):
         self.waitForSSH(timeout)
 
     @classmethod
-    def osDetected(cls, parent, password):
-        obj=cls("XSDom0", parent, password)
+    def detect(cls, parent, detectionState):
+        obj=cls("XSDom0", parent, detectionState['password'])
         if obj.execSSH("test -e /etc/xensource-inventory", retval="code") == 0:
-            return ("XSDom0", password)
-        else:
-            return (False, password)
+            return cls("XSDom0", parent, obj.password)
+        raise OSDetectionError("OS is not XenServer")
 
 registerOS(XSDom0)

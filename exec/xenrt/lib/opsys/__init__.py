@@ -4,6 +4,9 @@ from abc import abstractproperty
 
 oslist = []
 
+class OSDetectionError(Exception):
+    def __init__(self, msg):
+        self.msg = msg
 
 class OS(object):
     implements(xenrt.interfaces.OS)
@@ -59,34 +62,38 @@ class OS(object):
         return False
 
     @classmethod
-    def osDetected(cls, parent, password):
-        """Return tuple of boolean (is this OS detected) and password"""
-        return (True, password)
+    def runDetect(cls, parent, detectionState):
+        # Call runDetect on the base class (stop if we reach a class without a runDetect method)
+        base = cls.__bases__[0]
+        if hasattr(base, "runDetect"):
+            base.runDetect(parent, detectionState)
+        # Assuming the base class check was successful, check this class
+        clsName = "%s.%s" % (cls.__module__, cls.__name__)
+        # If we've previosly checked this class, don't do it again
+        if clsName in detectionState['checked']:
+            if detectionState['checked'][clsName]:
+                return None
+            else:
+                raise OSDetectionError("%s check already failed" % clsName)
+        else:
+            xenrt.TEC().logverbose("Checking %s" % clsName)
+            try:
+                ret = cls.detect(parent, detectionState)
+            except OSDetectionError, e:
+                xenrt.TEC().logverbose("OS is not %s - %s" % (clsName, e.msg))
+                # If we can't detect this OS, raise an exception to terminate the hierarchy
+                detectionState['checked'][clsName] = False
+                raise
+            else:
+                detectionState['checked'][clsName] = True
+                return ret
+        
 
     @classmethod
-    def detect(cls, parent, checked, password=None):
-        if len(cls.__bases__) != 1:
-            raise xenrt.XRTError("Multiple inheritance is not supported for OS classes")
-        # Find out what the base class is
-        base = cls.__bases__[0]
-        mystr = "%s.%s" % (cls.__module__, cls.__name__)
-        if mystr not in checked.keys():
-            print "Checking %s" % mystr
-            if base.__module__ == "__builtin__":
-                # End condition of recursion
-                baseret = True
-            else:
-                # Check the base class first
-                (baseret, password) = base.detect(parent, checked, password)
-            if baseret:
-                # If the base class is detected, check this class
-                (ret, password) = cls.osDetected(parent, password)
-            else:
-                ret = False
-            # And update the cache
-            checked[mystr] = ret
-        return (checked[mystr], password)
-                
+    def detect(cls, parent, detectionState):
+        """Return tuple of boolean (is this OS detected) and password"""
+        pass
+
     def assertHealthy(self, quick=False):
         raise xenrt.XRTError("Not implemented")
 
@@ -110,11 +117,15 @@ def osFactory(distro, parent, password=None):
         raise xenrt.XRTError("No class found for distro %s" % distro)
 
 def osFromExisting(parent, password=None):
-    checked = {}
+    detectionState = {"checked": {}, "password": password}
     for o in oslist:
-        (detected, password) = o.detect(parent, checked, password)
-        if detected:
-            return o(detected, parent, password)
+        try:
+            ret = o.runDetect(parent, detectionState)
+        except OSDetectionError:
+            continue
+        else:
+            if ret:
+                return ret
     raise xenrt.XRTError("Could not determine OS")
 
 __all__ = ["OS", "registerOS"]

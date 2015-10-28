@@ -230,7 +230,7 @@ def start_job(job):
     trace("Using branch '%s'\n" % (branch))
 
     try:
-        execCmd("cd %s && git reset --hard" % (_rootdir), errorException=False)
+        execCmd("cd %s && git reset --hard && git clean -d -f" % (_rootdir), errorException=False)
         execCmd("cd %s && git checkout -f %s && git reset --hard" % (_rootdir, _stablebranch))
         execCmd("cd %s && git pull --ff-only" % (_rootdir), errorException=otherBranch)
 

@@ -40,6 +40,7 @@ def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
     primaryInterface = None
     # For some infrastructure setup, we'll proceed without knowing the MAC addresses
     ignoreMissingMACs = xenrt.TEC().lookup("RACKTABLES_IGNORE_MISSING_MACS", False, boolean=True)
+    ignoreDisconnectedPorts = False
 
     # Get the main MAC address
     if not xenrt.GEC().config.lookupHost(machine, "MAC_ADDRESS", None):
@@ -47,8 +48,13 @@ def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
         if optionNets:
             availablePorts = [p for p in ports if (p[2] or ignoreMissingMACs) and p[4] and p[0] == optionNets]
         else:
-            availablePorts = sorted([p for p in ports if (p[2] or ignoreMissingMACs) and p[4] and p[0].startswith("e")], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0]))
+            availablePorts = sorted([p for p in ports if (p[2] or ignoreMissingMACs) and p[4] and (p[0].lower().startswith("e") or p[0].lower().startswith("nic"))], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0]))
             xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "FORCE_NIC_ORDER"], "yes")
+        # If there aren't any connected ports, use the first one anyway
+        if len(availablePorts) == 0:
+            availablePorts = sorted([p for p in ports if (p[2] or ignoreMissingMACs) and (p[0].lower().startswith("e") or p[0].lower().startswith("nic"))], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0]))
+            ignoreDisconnectedPorts = True
+
         if len(availablePorts) > 0:
             mac = availablePorts[0][2]
             if availablePorts[0][1].startswith("10G"):
@@ -223,11 +229,11 @@ def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
     # Secondary NICs
     if not xenrt.TEC().lookupHost(machine,"NICS",None):
         i = 1
-        availablePorts = sorted([p for p in ports if (p[2] or ignoreMissingMACs) and p[3] and p[4] and p[0].startswith("e") and p[0] != primaryInterface], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0]))
+        availablePorts = sorted([p for p in ports if (p[2] or ignoreMissingMACs) and p[3] and (p[4] or ignoreDisconnectedPorts) and (p[0].lower().startswith("e") or p[0].lower().startswith("nic")) and p[0] != primaryInterface], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0]))
         for c in o.getChildren():
             if c.getType() == "PCI Card":
                 cports = c.getPorts()
-                availablePorts.extend(sorted([p for p in cports if (p[2] or ignoreMissingMACs) and p[3] and p[4] and p[0].startswith("e")], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0])))
+                availablePorts.extend(sorted([p for p in cports if (p[2] or ignoreMissingMACs) and p[3] and (p[4] or ignoreDisconnectedPorts) and (p[0].lower().startswith("e") or p[0].lower().startswith("nic"))], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0])))
         for p in availablePorts:
             netport = getNetPortNameForPort(p)
             nicinfo = p[3].split(" - ")[0].split("/")
@@ -247,7 +253,8 @@ def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
                 xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"SPEED"],"10G")
             if p[1].startswith("40G"):
                 xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"SPEED"],"40G")
-            xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"NETPORT"],netport)
+            if netport:
+                xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"NETPORT"],netport)
             xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"NETWORK"],network)
             xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"MAC_ADDRESS"],mac)
             i += 1
@@ -371,6 +378,8 @@ def setDiskConfig(diskstring, path):
 
 def getNetPortNameForPort(port):
     netport = None
+    if not port[5]:
+        return None
     portNums = re.findall(r'\d+', port[5])
     if len(portNums) == 1:
         portNum = portNums[0]

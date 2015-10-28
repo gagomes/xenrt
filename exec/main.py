@@ -893,6 +893,7 @@ if aux and not shelllogging:
 # Read in JSON config data
 for cf in glob.glob("%s/data/config/*.json" % (localxenrt.SHAREDIR)):
     config.readFromJSONFile(cf)
+config.doPostLoadProcessing()
 
 def readConfigDir(directory):
     global config
@@ -1690,7 +1691,10 @@ if docgen:
 
 if lookupvar:
     try:
-        print xenrt.TEC().lookup(string.split(lookupvar, "/"))
+        if xenrt.TEC().lookup("OUTPUT_JSON", False, boolean=True):
+            print json.dumps({lookupvar: xenrt.TEC().lookup(string.split(lookupvar, "/"))}, indent=2, separators=(',', ': '), sort_keys=True)
+        else:
+            print xenrt.TEC().lookup(string.split(lookupvar, "/"))
     except:
         sys.stderr.write("Variable %s not found.\n" % (lookupvar))
         sys.exit(1)

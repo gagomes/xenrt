@@ -8,20 +8,28 @@
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
   </variables>
 
-  <prepare>
+  <preprepare>
     <pool id="0">
       <host id="0" />
     </pool>
+    <host id="1" />
+    <host id="2" />
+  </preprepare>
+
+   <prepare>
     <pool id="1">
-      <host id="1" />
-      <host id="2" />
+      <host container="1" vname="1" vcpus="2" vmemory="8192" vdisksize="80" />
+      <host container="1" vname="2" vcpus="2" vmemory="8192" vdisksize="50" />
+      <host container="1" vname="3" vcpus="2" vmemory="8192" vdisksize="50" />
+      <host container="1" vname="4" vcpus="2" vmemory="8192" vdisksize="50" />
     </pool>
     <pool id="2">
-      <host id="3" />
-      <host id="4" />
+      <host container="2" vname="5" vcpus="2" vmemory="8192" vdisksize="80" />
+      <host container="2" vname="6" vcpus="2" vmemory="8192" vdisksize="50" />
+      <host container="2" vname="7" vcpus="2" vmemory="8192" vdisksize="50" />
+      <host container="2" vname="8" vcpus="2" vmemory="8192" vdisksize="50" />
     </pool>
-
-  </prepare>
+   </prepare>
 
   <testsequence>
     <serial group="DR">

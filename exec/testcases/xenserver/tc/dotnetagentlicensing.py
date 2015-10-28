@@ -4,39 +4,40 @@ from xenrt.enum import XenServerLicenseSKU
 from xenrt.lib.xenserver.licensing import LicenseManager, XenServerLicenseFactory
 import datetime
 from xenrt.lib.xenserver.host import Host, Pool
+import xenrt.lib.assertions as assertions
 
 class DotNetAgentAdapter(object):
 
     def __init__(self,licenseServer):
-        self.licenseManager = LicenseManager()
-        self.licenseFactory = XenServerLicenseFactory()
-        self.v6 = licenseServer.getV6LicenseServer()
-        self.licensedEdition = xenrt.TEC().lookup("LICENSED_EDITION")
-        self.unlicensedEdition = xenrt.TEC().lookup("UNLICENSED_EDITION")
+        self.__licenseManager = LicenseManager()
+        self.__licenseFactory = XenServerLicenseFactory()
+        self.__v6 = licenseServer.getV6LicenseServer()
+        self.__licensedEdition = xenrt.TEC().lookup("LICENSED_EDITION")
+        self._unlicensedEdition = xenrt.TEC().lookup("UNLICENSED_EDITION")
 
 
     def applyLicense(self, hostOrPool, sku = None):
         if sku == None:
-            sku = self.licensedEdition
+            sku = self.__licensedEdition
         if issubclass(type(hostOrPool),Pool):
-            license = self.licenseFactory.licenseForPool(hostOrPool, sku)
+            license = self.__licenseFactory.licenseForPool(hostOrPool, sku)
         else:
-            license = self.licenseFactory.licenseForHost(hostOrPool, sku)
+            license = self.__licenseFactory.licenseForHost(hostOrPool, sku)
         try:
-            self.licenseManager.addLicensesToServer(self.v6,license, getLicenseInUse=False)
+            self.__licenseManager.addLicensesToServer(self.__v6,license, getLicenseInUse=False)
         except:
             pass
-        hostOrPool.licenseApply(self.v6, license)
+        hostOrPool.licenseApply(self.__v6, license)
 
     def releaseLicense(self, hostOrPool):
-        self.applyLicense(hostOrPool, self.unlicensedEdition)
+        self.applyLicense(hostOrPool, self._unlicensedEdition)
 
     def checkLicenseState(self,hostOrPool):
-        hostOrPool.checkLicenseState(self.licensedEdition)
+        hostOrPool.checkLicenseState(self.__licensedEdition)
 
     def cleanupLicense(self, hostOrPool):
-        self.licenseManager.releaseLicense(hostOrPool)
-        self.v6.removeAllLicenses()
+        self.__licenseManager.releaseLicense(hostOrPool)
+        self.__v6.removeAllLicenses()
 
     def exportVM(self, vm):
         vm.setState("DOWN")
@@ -113,16 +114,21 @@ class UnlicenseTrigger(PingTriggerStrategy):
 
 class DotNetAgentTestCases(xenrt.TestCase):
 
-    def _pingServer(self,trigger,server, shouldbe):
+    def _pingServer(self,trigger,server):
         startTime = datetime.datetime.now().time()
         trigger.execute()
         xenrt.sleep(60)
         pinged = server.isPinged(startTime)
         xenrt.TEC().logverbose("-----Server was pinged: %s-----"%str(pinged))
-        if pinged and not shouldbe:
-                raise xenrt.XRTFailure("Server was pinged when it shouldn't be")
-        if not pinged and shouldbe:
-                raise xenrt.XRTFailure("Server was not pinged when it should be")
+        return pinged
+
+    def _shouldBePinged(self,trigger,server):
+        pinged = self._pingServer(trigger,server)
+        assertions.assertTrue(pinged,"Server was not pinged when it should be")
+
+    def _shouldNotBePinged(self,trigger,server):
+        pinged = self._pingServer(trigger,server)
+        assertions.assertFalse(pinged,"Server was pinged when it shouldn't be")
 
     def _revertVMs(self):
         self.win1.revert(self.win1.asXapiObject().snapshot()[0].uuid)
@@ -165,15 +171,15 @@ class PoolAutoUpdateToggle(DotNetAgentTestCases):
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.disable()
         autoupdate.setURL("http://%s:16000"% server.getIP())
-        self._pingServer(trigger,server,False)
-        self._pingServer(trigger1,server,False)
+        self._shouldNotBePinged(trigger,server)
+        self._shouldNotBePinged(trigger1,server)
         autoupdate.enable()
-        self._pingServer(trigger,server,True)
-        self._pingServer(trigger1,server,True)
+        self._shouldBePinged(trigger,server)
+        self._shouldBePinged(trigger1,server)
         licTrigger = UnlicenseTrigger(self.adapter, self.getDefaultPool())
-        self._pingServer(licTrigger,server,False)
-        self._pingServer(trigger,server,False)
-        self._pingServer(trigger1,server,False)
+        self._shouldNotBePinged(licTrigger,server)
+        self._shouldNotBePinged(trigger,server)
+        self._shouldNotBePinged(trigger1,server)
 
 class VMAutoUpdateToggle(DotNetAgentTestCases):
 
@@ -185,13 +191,13 @@ class VMAutoUpdateToggle(DotNetAgentTestCases):
         autoupdate.setUserVMUser()
         autoupdate.disable()
         autoupdate.setURL("http://%s:16000"% server.getIP())
-        self._pingServer(trigger,server,False)
+        self._shouldNotBePinged(trigger,server)
         autoupdate.enable()
-        self._pingServer(trigger,server,True)
+        self._shouldBePinged(trigger,server)
         self.adapter.releaseLicense(self.getDefaultPool())
         if autoupdate.isLicensed():
             raise xenrt.XRTFailure("autoupdate is licensed when it shouldn't be")
-        self._pingServer(trigger,server,False)
+        self._shouldNotBePinged(trigger,server)
 
 class VSSQuiescedSnapshot(DotNetAgentTestCases):
 
@@ -215,7 +221,7 @@ class HTTPRedirect(DotNetAgentTestCases):
         autoupdate.setURL("http://%s:15000"% server.getIP())
         xenrt.sleep(60)
         server.addRedirect()
-        self._pingServer(trigger,server,True)
+        self._shouldBePinged(trigger,server)
 
 class AllHostsLicensed(DotNetAgentTestCases):
 
@@ -257,9 +263,9 @@ class ToggleAUHierarchy(DotNetAgentTestCases):
         autoupdate.setUserVMUser()
         if autoupdate.checkKeyPresent():
             raise xenrt.XRTFailure("DisableAutoUpdate reg key is present")
-        self._pingServer(trigger,server,False)
+        self._shouldNotBePinged(trigger,server)
         autoupdate.enable()
-        self._pingServer(trigger,server, True)
+        self._shouldBePinged(trigger,server)
         autoupdate.setUserPoolAdmin()
         autoupdate.disable()
         if autoupdate.checkKeyPresent() and not autoupdate.isActive():
@@ -271,7 +277,7 @@ class ToggleAUHierarchy(DotNetAgentTestCases):
             pass
         else:
             raise xenrt.XRTFailure("registry does not indicate that AutoUpdate is enabled")
-        self._pingServer(trigger,server,True)
+        self._shouldBePinged(trigger,server)
 
 class URLHierarchy(DotNetAgentTestCases):
 
@@ -288,8 +294,8 @@ class URLHierarchy(DotNetAgentTestCases):
         self.adapter.filesCleanup(self.win1)
         autoupdate.enable()
         autoupdate.setURL("http://%s:16000"% serverForPool.getIP())
-        self._pingServer(trigger,serverForPool,True)
-        self._pingServer(trigger,serverForVM,False)
+        self._shouldBePinged(trigger,serverForPool)
+        self._shouldNotBePinged(trigger,serverForVM)
         self.agent.restartAgent()
         xenrt.sleep(30)
         if autoupdate.checkDownloadedMSI() != None:
@@ -298,8 +304,8 @@ class URLHierarchy(DotNetAgentTestCases):
         autoupdate.setUserVMUser()
         autoupdate.enable()
         autoupdate.setURL("http://%s:16001"% serverForPool.getIP())
-        self._pingServer(trigger,serverForPool,False)
-        self._pingServer(trigger,serverForVM,True)
+        self._shouldNotBePinged(trigger,serverForPool)
+        self._shouldBePinged(trigger,serverForVM)
         self.agent.restartAgent()
         xenrt.sleep(30)
         if autoupdate.checkDownloadedMSI() != None:
@@ -307,8 +313,8 @@ class URLHierarchy(DotNetAgentTestCases):
         self.adapter.filesCleanup(self.win1)
         autoupdate.setUserPoolAdmin()
         autoupdate.defaultURL()
-        self._pingServer(trigger,serverForPool,False)
-        self._pingServer(trigger,serverForVM,True)
+        self._shouldNotBePinged(trigger,serverForPool)
+        self._shouldBePinged(trigger,serverForVM)
         self.agent.restartAgent()
         xenrt.sleep(30)
         if autoupdate.checkDownloadedMSI() != None:

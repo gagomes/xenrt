@@ -655,7 +655,6 @@ class _AuthenticationBase(xenrt.TestCase):
         self.valid = []
 
         self.pool = None
-        self.host = None
         self.slaves = []
         self.others = []
         self.getHostTopology()
@@ -765,7 +764,7 @@ class _AuthenticationBase(xenrt.TestCase):
             xenrt.TEC().logverbose("disbale others")
             try: other.disableAuthentication(self.authserver)
             except: pass
-        try: self.host.forgetSR(self.isosr)
+        try: self.pool.master.forgetSR(self.isosr)
         except: pass
 
 class _PoolAuthentication(_AuthenticationBase):

@@ -237,7 +237,7 @@ class _ThinLVHDBase(xenrt.TestCase):
 
         else:
             if not targetDir:
-                targetDir = guest.execguest("mktemp")
+                targetDir = guest.execguest("mktemp").strip()
 
             timeout = 900 + ((size / xenrt.GIGA) * 300) # 15 mins + 5 mins per GIGA
             guest.execguest("dd if=%s of=%s bs=1M count=%d" % (source, targetDir, size/xenrt.MEGA), timeout=timeout)
@@ -597,32 +597,32 @@ class TCSRIncrement(_ThinLVHDBase):
         guest.preCloneTailor()
         self.uninstallOnCleanup(guest)
 
-        origsize = self.getPhysicalUtilisation(sr)
+        origsize = self.getExactPhysicalUtilisation(sr)
         log("Original physical utilisation: %d" % origsize)
 
         log("Writing into VDI/VM")
         self.fillDisk(guest, size = 2 * xenrt.GIGA) # filling 2 GB
 
-        intersize = self.getPhysicalUtilisation(sr, scan=False)
+        intersize = self.getExactPhysicalUtilisation(sr, scan=False)
         log("Physical utilisation after writing: %d" % intersize)
         xenrt.sleep(150)
 
-        aftersize = self.getPhysicalUtilisation(sr, scan=False)
+        aftersize = self.getExactPhysicalUtilisation(sr, scan=False)
         log("Physical utilisation after 2 mins: %s" % aftersize)
 
-        finalsize = self.getPhysicalUtilisation(sr)
+        finalsize = self.getExactPhysicalUtilisation(sr)
         log("Physical utilisation after sr-scan: %s" % finalsize)
 
         if intersize != finalsize:
             # sr scan may happen before intersize. In this case skip this bits over.
-            if intersize <= aftersize:
+            if intersize == aftersize:
                 raise xenrt.XRTFailure("SR physical utilisation has not updated after 2 mins.")
             if aftersize != finalsize:
                 raise xenrt.XRTFailure("SR physical utilisation updated but different from sr-scan result.")
 
         if finalsize <= origsize:
             raise xenrt.XRTFailure("SR size is not growing. (SR: %s, before: %d, after: %d)" %
-                (sr.uuid, origsize, aftersize))
+                (sr.uuid, origsize, finalsize))
 
     def run(self, arglist=[]):
 

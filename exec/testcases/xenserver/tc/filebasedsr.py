@@ -13,7 +13,7 @@ class TCFileBasedSRProperty(xenrt.TestCase):
 
     def __getSRObj(self, rule):
 
-        xsr = next((sr for sr in self.host.xapiObject.SRs(False) if rule(sr)), None)
+        xsr = next((sr for sr in self.host.xapiObject.SRs if rule(sr)), None)
 
         if not xsr:
             raise xenrt.XRTError("Cannot find SR with given filter.")

@@ -236,11 +236,13 @@ class XapiHost(NamedXapiObject):
     _OBJECT_TYPE = "host"
 
     @xenrt.irregularName
-    def SRs(self, localOnly=True):
-        if localOnly:
-            return [SR(self.cli, uuid) for uuid in self._getObjectsReferencingName(SR._OBJECT_TYPE, self._OBJECT_TYPE)]
+    @property
+    def SRs(self):
         return [SR(self.cli, uuid) for uuid in self._getObjectsReferencing(SR._OBJECT_TYPE)]
 
+    @property
+    def localSRs(self):
+        return [SR(self.cli, uuid) for uuid in self._getObjectsReferencingName(SR._OBJECT_TYPE, self._OBJECT_TYPE)]
 
 class PBD(XapiObject):
     _OBJECT_TYPE = "pbd"

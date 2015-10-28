@@ -5077,7 +5077,7 @@ class TCCIFSLifecycle(xenrt.TestCase):
         self.host = self.getDefaultHost()
         srtype = "cifs"
 
-        xsr = next((s for s in self.host.xapiObject.SRs() if s.srType == srtype), None)
+        xsr = next((s for s in self.host.xapiObject.localSRs if s.srType == srtype), None)
         self.sr = xenrt.lib.xenserver.SMBStorageRepository.fromExistingSR(self.host, xsr.uuid)
 
     def run(self, arglist):

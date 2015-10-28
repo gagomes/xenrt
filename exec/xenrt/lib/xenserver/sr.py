@@ -106,7 +106,7 @@ class StorageRepository(object):
         @return: an instance of the class with the SR metadata populated
         @rtype: StorageRepository or decendent
         """
-        xsr = next((sr for sr in host.xapiObject.SRs(False) if sr.uuid == sruuid), None)
+        xsr = next((sr for sr in host.xapiObject.SRs if sr.uuid == sruuid), None)
 
         if not xsr:
             raise ValueError("Could not find sruuid %s on host %s" %(sruuid, host))

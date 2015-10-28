@@ -32,7 +32,7 @@ class ReadCachingController(object):
 
     def srForGivenVDI(self):
         xhost = self._host.xapiObject
-        return next((s for s in xhost.SRs() if self.vdiuuid in [v.uuid for v in s.VDIs]), None)
+        return next((s for s in xhost.localSRs if self.vdiuuid in [v.uuid for v in s.VDIs]), None)
 
     def _searchForFlag(self, data, flag):
         regex = """[\"]*%s[\"]*: (?P<flagValue>[\w\"]+)""" % flag
@@ -59,7 +59,7 @@ class ReadCachingController(object):
 
     def __xapiIsEnabled(self):
         xhost = self._host.xapiObject
-        vdis = list(itertools.chain(*[s.VDIs for s in xhost.SRs()]))
+        vdis = list(itertools.chain(*[s.VDIs for s in xhost.localSRs]))
         vdi = next((v for v in vdis if v.uuid == self.vdiuuid), None)
         if not vdi:
             raise RuntimeError("VDI with uuid %s could not be found in the list %s" % (self.vdiuuid, vdis))

@@ -538,7 +538,7 @@ class CUnitTestMechanism(_UnitTestMechanism):
         return self._runner.execguest("cd %s && ./%s https://%s root xenroot" % (self.__TEST_CODE_PATH, self.__currentTest, self._host.getIP()))
 
     def runTests(self):
-        localSrName = next(sr for sr in self._host.xapiObject.SRs() if sr.isLocal).name
+        localSrName = next(sr for sr in self._host.xapiObject.localSRs if sr.isLocal).name
         try:
             self.__results[self.__currentTest] = self.__runVmOps(localSrName)
             self.__results[self.__currentTest] = self.__runGetRecords()

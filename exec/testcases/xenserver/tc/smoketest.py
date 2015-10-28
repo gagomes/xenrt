@@ -137,15 +137,22 @@ class _TCSmokeTest(xenrt.TestCase):
         if self.guest and self.guest.getState() != "DOWN":
             self.guest.shutdown(force=True)
 
+    def checkGuestMemory(self, expected):
+        """Validate the in-guest memory is what we expect (within 2%)"""
+        guestMemory = self.guest.getGuestMemory()
+        difference = abs(expected - guestMemory)
+        diffpct = (float(difference) / float(expected)) * 100
+        if diffpct > 2:
+            raise xenrt.XRTFailure("Guest reports %uMB memory, expecting %uMB" % (guestMemory, self.postInstallMemory))
+
+
     def setMemory(self):
         self.guest.shutdown()
         self.guest.memset(self.postInstallMemory)
         self.guest.start()
 
         # Check the in-guest memory matches what we expect
-        guestMemory = self.guest.getGuestMemory()
-        if guestMemory != self.postInstallMemory:
-            raise xenrt.XRTFailure("Guest reports %uMB memory, expecting %uMB" % (guestMemory, self.postInstallMemory))
+        self.checkGuestMemory(self.postInstallMemory)
 
     def installOS(self):
 
@@ -170,9 +177,7 @@ class _TCSmokeTest(xenrt.TestCase):
         self.guest.check()
 
         # Check the in-guest memory matches what we expect
-        guestMemory = self.guest.getGuestMemory()
-        if guestMemory != self.memory:
-            raise xenrt.XRTFailure("Guest reports %uMB memory, expecting %uMB" % (guestMemory, self.memory))
+        self.checkGuestMemory(self.memory)
 
     def installDrivers(self):
         self.guest.installDrivers()

@@ -9,7 +9,7 @@
   </prepare>
 
   <testsequence>
-    <testcase id="xenserver.tc.thinlvhd.ThinProvisionVerificationHBA" tc="TC-27031" name="ThinProvisionHBA">
+    <testcase id="xenserver.tc.thinlvhd.ThinProvisionVerification" tc="TC-27031" name="ThinProvisionHBA">
       <arg>lvmohba</arg>
     </testcase>
   </testsequence>

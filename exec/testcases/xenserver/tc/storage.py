@@ -4486,9 +4486,9 @@ class TCVDICopyDeltas(xenrt.TestCase):
         # Create a disk on the guest which can be backed up
         
         vbdUUID = self.guest.createDisk(sizebytes = xenrt.GIGA, returnVBD=True, userdevice=1, sruuid=self.sr.uuid)
-        self.vbd = xenrt.lib.xenserver.objectFactory().getObject("vbd")(self.cli, "vbd", vbdUUID)
-        self.vdi = self.vbd.getObjectParam("vdi", "vdi-uuid")
-        self.device = self.vbd.getStringParam("device")
+        self.vbd = xenrt.lib.xenserver.VBD(self.cli, vbdUUID)
+        self.vdi = self.vbd.VDI
+        self.device = self.vbd.device
         self.guest.execguest("mkfs.ext3 /dev/%s" % self.device)
         self.guest.execguest("mkdir -p /test")
 
@@ -4496,15 +4496,15 @@ class TCVDICopyDeltas(xenrt.TestCase):
         return self.guest.execguest("md5sum /dev/%s" % device).split()[0]
 
     def vdiMd5Sum(self, vdi):
-        vbdUUID= self.cli.execute("vbd-create device=2 vdi-uuid=%s vm-uuid=%s" % (vdi.uuid, self.guest.getUUID())).strip()
-        vbd = xenrt.lib.xenserver.objectFactory().getObject("vbd")(self.cli, "vbd", vbdUUID)
-        vbd.op("plug")
+        vbdUUID = self.cli.execute("vbd-create device=2 vdi-uuid=%s vm-uuid=%s" % (vdi.uuid, self.guest.getUUID())).strip()
+        vbd =  xenrt.lib.xenserver.VBD(self.cli, vbdUUID)
+        vbd.plug()
         xenrt.sleep(5)
 
-        md5 = self.diskMd5Sum(vbd.getStringParam("device"))
+        md5 = self.diskMd5Sum(vbd.device)
         
-        vbd.op("unplug")
-        vbd.op("destroy")
+        vbd.unplug()
+        vbd.destroy()
         return md5
     
     def vdiCopy(self, vdi, baseVdi=None, intoVdi=None):
@@ -4514,7 +4514,7 @@ class TCVDICopyDeltas(xenrt.TestCase):
         else:
             if self.COPY_INTO_EMPTY_VDI:
                 emptyVdiUuid = self.cli.execute("vdi-create sr-uuid=%s name-label=%s type=user virtual-size=%s" % (
-                            self.sr.uuid, vdi.getStringParam("name-label"), vdi.getStringParam("virtual-size"))).strip()
+                            self.sr.uuid, vdi.name, vdi.size)).strip()
                 params = "into-vdi-uuid=%s" % emptyVdiUuid
             else:
                 params = "sr-uuid=%s " % self.sr.uuid
@@ -4522,7 +4522,7 @@ class TCVDICopyDeltas(xenrt.TestCase):
         if baseVdi:
             params += " base-vdi-uuid=%s" % baseVdi.uuid
             
-        return vdi.op("copy", params, returnObject="vdi")
+        return vdi.copy(params)
 
     def vhdSize(self, vdi):
         return int(self.host.execdom0("ls -l /var/run/sr-mount/%s/%s.vhd | awk '{print $5}'" % (self.sr.uuid, vdi.uuid)).strip())
@@ -5077,7 +5077,7 @@ class TCCIFSLifecycle(xenrt.TestCase):
         self.host = self.getDefaultHost()
         srtype = "cifs"
 
-        xsr = next((s for s in self.host.asXapiObject().SR() if s.srType() == srtype), None)
+        xsr = next((s for s in self.host.xapiObject.localSRs if s.srType == srtype), None)
         self.sr = xenrt.lib.xenserver.SMBStorageRepository.fromExistingSR(self.host, xsr.uuid)
 
     def run(self, arglist):

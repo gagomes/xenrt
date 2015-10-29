@@ -1,11 +1,7 @@
-<xenrt>
+ <xenrt>
     <variables>
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
   </variables>
-  <scheduler>
-    <resources>memory&gt;=20G/disk1&gt;=140G</resources>
-    <param>MACHINES_REQUIRED=2</param>
-  </scheduler>
   <prepare>
     <pool id="0">
       <host id="0">
@@ -28,11 +24,8 @@
       </host>
     </pool>
   </prepare>  
-  
   <testsequence>
-    <!-- This Sequence Disabls Soft Reboot on VM-->
-    <!-- reference test-cases to be included in the sequence here: -->
-    <!-- The dotted name here reflects the directory structure inside xenrt.git/exec/ -->
+    <!-- This Sequence Disables Soft Reboot on VM and reboots VM's-->
     <testcase id="xenserver.tc.guest.VmRebootedOnce" tc="TC-27029" >
     <arg>VM_on_master</arg>        
     <arg>VM_on_slave</arg>

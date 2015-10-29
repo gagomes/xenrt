@@ -154,7 +154,7 @@ class TCMachineCheck(xenrt.TestCase):
         if arglist:
             tests = map(lambda t: t.split("/", 1), arglist)
         else:
-            tests = [("Console", "Serial"), ("Power", "IPMI"), ("Power", "PDU"), ("Network", "Ports"), ("Network", "DHCP"), ("FC", "HBA")]
+            tests = [("Console", "Serial"), ("Power", "IPMI"), ("Power", "PDU"), ("Network", "DHCP"), ("Network", "Ports"), ("FC", "HBA")]
 
         for t in tests:
             self.runSubcase("test%s%s" % (t[0],t[1]), (), t[0], t[1])
@@ -208,7 +208,8 @@ class TCMachineCheck(xenrt.TestCase):
         return xenrt.util.normaliseMAC(mac)
 
     def _checkNIC(self, dev):
-        return self.host.execdom0("cat /sys/class/net/%s/carrier" % (dev)).strip() == "1"
+        return self.host.execdom0("cat /sys/class/net/%s/carrier" % (dev)).strip() == "1" and \
+               self.host.execdom0("cat /sys/class/net/%s/duplex" % (dev)).strip() != "unknown" # Handle some SFP+ direct attach cables which report carrier regardless
 
     def _checkNICLink(self, dev):
         speed = int(self.host.execdom0("cat /sys/class/net/%s/speed" % (dev)).strip())

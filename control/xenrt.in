@@ -1810,6 +1810,8 @@ class XenRTSUpdate(XenRTCommand):
         value = args[2]
         if key == "flags":
             value = value.split(",")
+        elif key == "maxjobs":
+            value = int(value)
         elif key == "sharedresources":
             value = dict([y for y in [x.split("=",1) for x in value.split("/")]])
         details = {key: value}

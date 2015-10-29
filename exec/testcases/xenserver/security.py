@@ -279,14 +279,18 @@ kernel="/root/mini-os-xsa.gz"
 extra="mode=general"
 """ % self.name
         
-    def prepare(self, arglist=None):
-        _TCXSA.prepare(self, arglist)
-        self.name = xenrt.randomGuestName()
-        
+    
+    def downloadKernel(self):
         url = "http://hg.uk.xensource.com/closed/xen-hypercall-fuzzer.hg/raw-file/tip/misc/mini-os-xsa%d.gz" % (self.VULN)
         
         self.host.execdom0('cd /root && wget "%s"' % url)
         self.host.execdom0('mv /root/%s /root/mini-os-xsa.gz' % (os.path.basename(url)))
+    
+    def prepare(self, arglist=None):
+        _TCXSA.prepare(self, arglist)
+        self.name = xenrt.randomGuestName()
+        
+        self.downloadKernel()
         
         if isinstance(self.host, xenrt.lib.xenserver.ClearwaterHost):
             self.host.execdom0("echo '%s' > /root/minios.cfg" % self.getCfg())
@@ -705,3 +709,20 @@ class TCXSA138(_TCXSA):
 
     def postRun(self):
         self.host.execdom0("cp -f {0}.backup {0}".format(self.hvmloaderPath))
+
+class TCXSA148(TCXSA24):
+    VULN = 148
+ 
+    def downloadKernel(self):
+        file = xenrt.TEC().getFile("/usr/groups/xenrt/xsa_test_files/test-pv64-xsa-148")
+        sftp = self.host.sftpClient()
+        sftp.copyTo(file, "/root/mini-os-xsa.gz")
+        sftp.close()
+        
+    def run(self, arglist=None):
+        TCXSA24.run(self, arglist)
+        
+        logs = self.host.execdom0("tail -n 20 %s/console.*.log" % self.host.guestconsolelogs)
+        
+        if not "Test result: SUCCESS" in logs:
+            raise xenrt.XRTFailure("XSA-148 not reported as fixed.")

@@ -287,13 +287,14 @@ class TCParallelWriting(xenrt.TestCase):
                 final = self.getPhysicalUtil()
                 log("Final physical utilisation: %d" % final)
                 expected = prev + (self.vdicount * self.vdisize)
-                if final < expected:
-                    if final < expected:
-                        raise xenrt.XRTFailure("After writing SR utilisation has not increased as expected." \
-                            "Expected: >= %d Found: %d" % (expected, final))
-                    else:
-                        warning("After writing, SR utilisation has not increased as expected." \
-                            "Expected: >= %d Found: %d" % (expected, final))
+                log("Expected Utilisation: %d" % expected)
+
+                # utilisation may not increse up to host pool size. (1 GiB per host per SR)
+                margin = xenrt.GIGA
+                if self.pool:
+                    margin *= len(self.pool.getHosts())
+                if final < expected - margin:
+                    raise xenrt.XRTFailure("After writing SR utilisation has not increased as expected.")
 
                 self.verifyWrittenData()
 

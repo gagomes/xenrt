@@ -230,7 +230,7 @@ def start_job(job):
     trace("Using branch '%s'\n" % (branch))
 
     try:
-        execCmd("cd %s && git reset --hard" % (_rootdir), errorException=False)
+        execCmd("cd %s && git reset --hard && git clean -d -f" % (_rootdir), errorException=False)
         execCmd("cd %s && git checkout -f %s && git reset --hard" % (_rootdir, _stablebranch))
         execCmd("cd %s && git pull --ff-only" % (_rootdir), errorException=otherBranch)
 
@@ -323,6 +323,9 @@ def start_job(job):
 
 # Main prog
 if __name__ == '__main__':
+    if os.path.exists("%s/halted" % _vardir):
+        print "Site is halted"
+        sys.exit(1)
     optlist, arglist = getopt.getopt(sys.argv[1:], 's:dD:x:A:Sl:')
     for argpair in optlist:
         (flag, value) = argpair

@@ -9,7 +9,7 @@
   </prepare>
 
   <testsequence>
-    <testcase id="xenserver.tc.thinlvhd.ThinProvisionVerificationISCSI" tc="TC-27031" name="ThinProvisionISCSI">
+    <testcase id="xenserver.tc.thinlvhd.ThinProvisionVerification" tc="TC-27031" name="ThinProvisionISCSI">
       <arg>lvmoiscsi</arg>
     </testcase>
   </testsequence>

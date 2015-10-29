@@ -131,10 +131,10 @@ class DotNetAgentTestCases(xenrt.TestCase):
         assertions.assertFalse(pinged,"Server was pinged when it shouldn't be")
 
     def _revertVMs(self):
-        self.win1.revert(self.win1.asXapiObject().snapshot()[0].uuid)
+        self.win1.revert(self.win1.xapiObject.snapshot()[0].uuid)
         if self.win2:
-            self.win2.revert(self.win2.asXapiObject().snapshot()[0].uuid)
-        self.getGuest("server").revert(self.getGuest("server").asXapiObject().snapshot()[0].uuid)
+            self.win2.revert(self.win2.xapiObject.snapshot()[0].uuid)
+        self.getGuest("server").revert(self.getGuest("server").xapiObject.snapshot()[0].uuid)
         self.getGuest("server").start()
         #self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")).revert(self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")).asXapiObject().snapshot()[0].uuid)
         #self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")).start()

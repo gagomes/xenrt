@@ -173,7 +173,7 @@ class LinuxOS(OS):
     
     @classmethod
     def detect(cls, parent, detectionState):
-        obj = cls("testlin", parent, detectionState['password'])
+        obj = cls("testlin", parent, detectionState.password)
         try:
             sock = socket.socket()
             sock.settimeout(10)
@@ -183,4 +183,4 @@ class LinuxOS(OS):
         except Exception, e:
             raise OSNotDetected("OS appears not to have SSH: %s" % str(e))
         else:
-            detectionState['password'] = obj.password
+            detectionState.password = obj.password

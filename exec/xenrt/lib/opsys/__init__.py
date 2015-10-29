@@ -69,8 +69,8 @@ class OS(object):
             base.runDetect(parent, detectionState)
         # Assuming the base class check was successful, check this class
         # If we've previosly checked this class, don't do it again
-        if str(cls) in detectionState['checked']:
-            if detectionState['checked'][str(cls)]:
+        if str(cls) in detectionState.checked.keys():
+            if detectionState.checked[str(cls)]:
                 # This has previously passed the test of a non-leaf OS class, so return None
                 return None
             else:
@@ -82,10 +82,10 @@ class OS(object):
             except OSNotDetected, e:
                 xenrt.TEC().logverbose("OS is not %s - %s" % (str(cls), e.msg))
                 # If we can't detect this OS, raise an exception to terminate the hierarchy
-                detectionState['checked'][str(cls)] = False
+                detectionState.checked[str(cls)] = False
                 raise
             else:
-                detectionState['checked'][str(cls)] = True
+                detectionState.checked[str(cls)] = True
                 return ret
         
 
@@ -117,15 +117,20 @@ def osFactory(distro, parent, password=None):
                 return o(distro, parent, password)
         raise xenrt.XRTError("No class found for distro %s" % distro)
 
+class DetectionState(object):
+    def __init__(self, password):
+        self.checked = {}
+        self.password = password
+
 def osFromExisting(parent, password=None):
-    detectionState = {"checked": {}, "password": password}
+    detectionState = DetectionState(password)
     for o in oslist:
         try:
             ret = o.runDetect(parent, detectionState)
         except OSNotDetected:
             continue
         else:
-            xenrt.xrtAssert(ret)
+            xenrt.xrtAssert(ret, "No object returned for detected OS")
             return ret
     raise xenrt.XRTError("Could not determine OS")
 

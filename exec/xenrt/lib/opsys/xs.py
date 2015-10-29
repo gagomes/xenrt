@@ -28,7 +28,7 @@ class XSDom0(LinuxOS):
 
     @classmethod
     def detect(cls, parent, detectionState):
-        obj=cls("XSDom0", parent, detectionState['password'])
+        obj=cls("XSDom0", parent, detectionState.password)
         if obj.execSSH("test -e /etc/xensource-inventory", retval="code") == 0:
             return cls("XSDom0", parent, obj.password)
         raise OSNotDetected("OS is not XenServer")

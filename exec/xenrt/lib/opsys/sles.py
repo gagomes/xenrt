@@ -163,7 +163,7 @@ class SLESBasedLinux(LinuxOS):
 
     @classmethod
     def detect(cls, parent, detectionState):
-        obj=cls("testsuse", parent, detectionState['password'])
+        obj=cls("testsuse", parent, detectionState.password)
         if not obj.execSSH("test -e /etc/SuSE-release", retval="code") == 0:
             raise OSNotDetected("OS is not SuSE based")
 
@@ -186,7 +186,7 @@ class SLESLinux(SLESBasedLinux):
 
     @classmethod
     def detect(cls, parent, detectionState):
-        obj=cls("testsuse", parent, detectionState['password'])
+        obj=cls("testsuse", parent, detectionState.password)
         release = obj.execSSH("cat /etc/SuSE-release")
 
         releaseMatch = re.search("VERSION = (\d+)", release)

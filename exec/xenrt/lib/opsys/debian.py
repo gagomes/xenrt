@@ -176,7 +176,7 @@ class DebianBasedLinux(LinuxOS):
 
     @classmethod
     def detect(cls, parent, detectionState):
-        obj=cls("testdeb", parent, detectionState['password'])
+        obj=cls("testdeb", parent, detectionState.password)
         if not obj.execSSH("test -e /etc/debian_version", retval="code") == 0:
             raise OSNotDetected("OS is not debian")
 
@@ -207,7 +207,7 @@ class DebianLinux(DebianBasedLinux):
 
     @classmethod
     def detect(cls, parent, detectionState):
-        obj=cls("testdeb", parent, detectionState['password'])
+        obj=cls("testdeb", parent, detectionState.password)
         isUbuntu = obj.execSSH("grep Ubuntu /etc/lsb-release", retval="code") == 0
         if isUbuntu:
             raise OSNotDetected("OS is Ubuntu")
@@ -243,7 +243,7 @@ class UbuntuLinux(DebianBasedLinux):
 
     @classmethod
     def detect(cls, parent, detectionState):
-        obj=cls("testdeb", parent, detectionState['password'])
+        obj=cls("testdeb", parent, detectionState.password)
         isUbuntu = obj.execSSH("grep Ubuntu /etc/lsb-release", retval="code") == 0
         if not isUbuntu:
             raise OSNotDetected("OS is not Ubuntu")

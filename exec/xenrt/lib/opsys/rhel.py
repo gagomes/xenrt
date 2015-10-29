@@ -172,7 +172,7 @@ class RHELBasedLinux(LinuxOS):
 
     @classmethod
     def detect(cls, parent, detectionState):
-        obj=cls("testrhel", parent, detectionState['password'])
+        obj=cls("testrhel", parent, detectionState.password)
         if obj.execSSH("test -e /etc/xensource-inventory", retval="code") == 0:
             raise OSNotDetected("OS is XenServer")
         if not obj.execSSH("test -e /etc/redhat-release", retval="code") == 0:
@@ -198,7 +198,7 @@ class RHELLinux(RHELBasedLinux):
     
     @classmethod
     def detect(cls, parent, detectionState):
-        obj=cls("testrhel", parent, detectionState['password'])
+        obj=cls("testrhel", parent, detectionState.password)
         if obj.execSSH("test -e /etc/centos-release", retval="code") == 0:
             raise OSNotDetected("OS is CentOS")
         if obj.execSSH("test -e /etc/oracle-release", retval="code") == 0:
@@ -238,7 +238,7 @@ class CentOSLinux(RHELBasedLinux):
 
     @classmethod
     def detect(cls, parent, detectionState):
-        obj=cls("testcentos", parent, detectionState['password'])
+        obj=cls("testcentos", parent, detectionState.password)
         if obj.execSSH("test -e /etc/centos-release", retval="code") != 0:
             raise OSNotDetected("OS is not CentOS")
         distro = obj.execSSH("cat /etc/centos-release | "
@@ -278,7 +278,7 @@ class OELLinux(RHELBasedLinux):
 
     @classmethod
     def detect(cls, parent, detectionState):
-        obj=cls("testoel", parent, detectionState['password'])
+        obj=cls("testoel", parent, detectionState.password)
         if obj.execSSH("test -e /etc/oracle-release", retval="code") != 0:
             raise OSNotDetected("OS is not Oracle Linux")
         distro = obj.execSSH("cat /etc/oracle-release | "

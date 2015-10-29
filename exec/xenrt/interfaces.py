@@ -83,30 +83,36 @@ class Toolstack(Interface):
 
 class OSParent(Interface):
 
-    name = Attribute("Name of the OS")
+    _osParent_name = Attribute("Name of the OS")
 
-    hypervisorType = Attribute("Hypervisor (or native) on which the OS is running")
+    _osParent_hypervisorType = Attribute("Hypervisor (or native) on which the OS is running")
 
-    def getIP(trafficType, timeout, level):
+    def _osParent_getIP(trafficType, timeout, level):
         """Get the IP for the OS"""
 
-    def getPort(trafficType):
+    def _osParent_getPort(trafficType):
         """Get the port for the traffic type"""
 
-    def setIP(ip):
+    def _osParent_setIP(ip):
         """Set the IP for the OS"""
 
-    def startOS():
+    def _osParent_start():
         """Start the OS container (VM/host)"""
 
-    def ejectIso():
+    def _osParent_stop():
+        """Stop the OS container (VM/host)"""
+
+    def _osParent_ejectIso():
         """Eject the ISO from the OS container"""
 
-    def setIso(isoName, isoRepo):
+    def _osParent_setIso(isoName, isoRepo):
         """Set the ISO to the specified iso"""
 
-    def pollOSPowerState(state, timeout, level, pollperiod):
+    def _osParent_pollPowerState(state, timeout, level, pollperiod):
         """Poll for a change in power state"""
+
+    def _osParent_getPowerState():
+        """Get the current power state"""
 
 class OS(Interface):
 

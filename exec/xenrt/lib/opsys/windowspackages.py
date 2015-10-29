@@ -91,7 +91,7 @@ Add-WindowsFeature as-net-framework"""
                                      returndata=False, returnerror=True,
                                      timeout=1200, powershell=True)
         elif self._os.distro.startswith('win8') or self._os.distro.startswith('ws12'):
-            self._os.parent.setInstanceIso('%s.iso' % (self._os.distro), xenrt.IsoRepository.Windows)
+            self._os.parent._osParent_setIso('%s.iso' % (self._os.distro), xenrt.IsoRepository.Windows)
             self._os.cmdExec("dism.exe /online /enable-feature /featurename:NetFX3 /All /Source:D:\sources\sxs /LimitAccess",timeout=3600)
         else:
             self._os.unpackTarball("%s/dotnet35.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\", patient=True)

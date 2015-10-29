@@ -1,4 +1,4 @@
-from xenrt.lib.opsys import LinuxOS, registerOS, OSDetectionError
+from xenrt.lib.opsys import LinuxOS, registerOS, OSNotDetected
 
 __all__=["XSDom0"]
 
@@ -31,6 +31,6 @@ class XSDom0(LinuxOS):
         obj=cls("XSDom0", parent, detectionState['password'])
         if obj.execSSH("test -e /etc/xensource-inventory", retval="code") == 0:
             return cls("XSDom0", parent, obj.password)
-        raise OSDetectionError("OS is not XenServer")
+        raise OSNotDetected("OS is not XenServer")
 
 registerOS(XSDom0)

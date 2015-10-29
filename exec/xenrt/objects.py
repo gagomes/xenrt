@@ -224,6 +224,34 @@ class GenericPlace(object):
     def createScaleXtremeEnvironment(self):
         raise xenrt.XRTError("Unimplemented")
 
+    def execdom0(self,
+                 command,
+                 username=None,
+                 retval="string",
+                 level=xenrt.RC_FAIL,
+                 timeout=300,
+                 idempotent=False,
+                 newlineok=False,
+                 nolog=False,
+                 outfile=None,
+                 useThread=False,
+                 password=None):
+        raise xenrt.XRTError("Unimplemented")
+
+    def execguest(self,
+                  command,
+                  username=None,
+                  retval="string",
+                  level=xenrt.RC_FAIL,
+                  timeout=300,
+                  idempotent=False,
+                  newlineok=False,
+                  getreply=True,
+                  nolog=False,
+                  outfile=None,
+                  password=None):
+        raise xenrt.XRTError("Unimplemented")
+
     def getBasicArch(self):
         if self.arch == "x86-64":
             barch = self.arch
@@ -2362,6 +2390,31 @@ Add-WindowsFeature as-net-framework"""
         # CA-114127 - sleep to stop this interfering with .net installation later??
         xenrt.sleep(120)
 
+    def installAutoIt(self, withAutoItX=False):
+        """
+        Install AutoIt3 interpreter and compiler into a Windows XML-RPC guest.
+        The path to the autoit interpreter is returned.
+        """
+        is_x64 = self.xmlrpcGetArch() == "amd64"
+        autoit = "c:\\Program Files" + (is_x64 and " (x86)" or "") + \
+                 "\\AutoIt3\\AutoIt3" + (is_x64 and "_x64" or "") + ".exe"
+        if self.xmlrpcGlobPattern(autoit):
+            xenrt.TEC().logverbose("AutoIt already installed")
+        else:
+            tempdir = self.xmlrpcTempDir()
+            self.xmlrpcUnpackTarball("%s/autoit.tgz" %
+                                     (xenrt.TEC().lookup("TEST_TARBALL_BASE")),
+                                     tempdir)
+            self.xmlrpcExec(tempdir + "\\autoit\\autoit-v3-setup.exe /S")
+            assert self.xmlrpcGlobPattern(autoit)
+        if withAutoItX:
+            self._xmlrpc().installAutoItX()
+        return autoit
+
+    def getAutoItX(self):
+        self.installAutoIt(withAutoItX=True)
+        return self._xmlrpc().autoitx
+
     def getPowershellVersion(self):
         version = 0.0
         try:
@@ -4457,25 +4510,25 @@ class GenericHost(GenericPlace):
     ##### Methods from OSParent #####
 
     @property
-    def name(self):
+    def _osParent_name(self):
         return self.getName()
 
     @property
-    def hypervisorType(self):
+    def _osParent_hypervisorType(self):
         # This refers to the Hypervisor type of the control domain, which for most purposes can assumed to be Native
         return xenrt.HypervisorType.native
 
-    def getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
+    def _osParent_getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
         if self.machine and self.use_ipv6:
             return self.machine.ipaddr6
         elif self.machine:
             return self.machine.ipaddr
         return None
 
-    def getPort(self, trafficType):
+    def _osParent_getPort(self, trafficType):
         return None
 
-    def setIP(self,ip):
+    def _osParent_setIP(self,ip):
         if self.machine:
             obj = IPy.IP(ip)
             if IPy.IP(ip).version() == 6:
@@ -4485,19 +4538,26 @@ class GenericHost(GenericPlace):
         else:
             raise xenrt.XRTError("No host Object Found")
 
-    def startOS(self):
+    def _osParent_start(self):
         self.machine.powerctl.on()
 
-    def ejectIso(self):
+    def _osParent_stop(self):
+        self.machine.powerctl.off()
+
+    def _osParent_ejectIso(self):
         # TODO implement this with Virtual Media
         raise xenrt.XRTError("Not implemented")
 
-    def setIso(self, isoName, isoRepo=None):
+    def _osParent_setIso(self, isoName, isoRepo=None):
         # TODO implement this with Virtual Media
         raise xenrt.XRTError("Not implemented")
 
-    def pollOSPowerState(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
+    def _osParent_pollPowerState(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
         """Poll for reaching the specified state"""
+        raise xenrt.XRTError("Not supported")
+
+    def _osParent_getPowerState(self):
+        """Get the current power state"""
         raise xenrt.XRTError("Not supported")
 
     def registerJobTest(self, jt):
@@ -4546,6 +4606,23 @@ class GenericHost(GenericPlace):
         """
         res = self.execdom0("grep -e'{0}' {1} || true".format(stringToFind, fileName))
         return len(res) > 0
+
+    def getIP(self):
+        if self.machine and self.use_ipv6:
+            return self.machine.ipaddr6
+        elif self.machine:
+            return self.machine.ipaddr
+        return None
+
+    def setIP(self,ip):
+        if self.machine:
+            obj = IPy.IP(ip)
+            if IPy.IP(ip).version() == 6:
+                self.machine.ipaddr6 = ip
+            else:
+                self.machine.ipaddr = ip
+        else:
+            raise xenrt.XRTError("No host Object Found")
 
     def getPXEIP(self):
         if self.machine:
@@ -6948,6 +7025,13 @@ class GenericGuest(GenericPlace):
     """Encapsulates a single guest VM."""
     implements(xenrt.interfaces.OSParent)
 
+    STATE_MAPPING = {
+        xenrt.PowerState.down: "DOWN",
+        xenrt.PowerState.up: "UP",
+        xenrt.PowerState.paused: "PAUSED",
+        xenrt.PowerState.suspended: "SUSPENDED"
+    }
+    
     def __init__(self, name, host=None, reservedIP=None):
         GenericPlace.__init__(self)
         self.host = host
@@ -7016,43 +7100,46 @@ class GenericGuest(GenericPlace):
         return ret
 
     ##### Methods from OSParent #####
-    # Name is an attribute, no need to define as a property
 
     @property
-    def hypervisorType(self):
+    def _osParent_name(self):
+        return self.name
+
+    @property
+    def _osParent_hypervisorType(self):
         return xenrt.HypervisorType.unknown
 
-    def getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
+    def _osParent_getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
         # TODO add arp sniffing capabilities here
         return self.mainip
 
-    def getPort(self, trafficType):
+    def _osParent_getPort(self, trafficType):
         return None
 
-    def setIP(self,ip):
+    def _osParent_setIP(self,ip):
         self.mainip = ip
 
-    def startOS(self):
+    def _osParent_start(self):
         self.lifecycleOperation("vm-start")
 
-    def ejectIso(self):
+    def _osParent_stop(self):
+        self.lifecycleOperation("vm-shutdown")
+
+    def _osParent_ejectIso(self):
         # TODO implement this with ISO SRs
         raise xenrt.XRTError("Not implemented")
 
-    def setIso(self, isoName, isoRepo=None):
+    def _osParent_setIso(self, isoName, isoRepo=None):
         # TODO implement this with ISO SRs
         raise xenrt.XRTError("Not implemented")
 
-    def pollOSPowerState(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
+    def _osParent_pollPowerState(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
         """Poll for reaching the specified state"""
-        stateMapping = {
-            xenrt.PowerState.down: "DOWN",
-            xenrt.PowerState.up: "UP",
-            xenrt.PowerState.paused: "PAUSED",
-            xenrt.PowerState.suspended: "SUSPENDED"
-        }
-        self.poll(stateMapping[state], timeout, level, pollperiod)
+        self.poll(self.STATE_MAPPING[state], timeout, level, pollperiod)
 
+    def _osParent_getPowerState(self):
+        """Get the current power state"""
+        return [x for x in self.STATE_MAPPING.keys() if self.STATE_MAPPING[x] == self.getState()][0]
 
     def setHost(self, host):
         if host and host.replaced:
@@ -7175,6 +7262,9 @@ class GenericGuest(GenericPlace):
 
     def setMemory(self, memory):
         self.memory = memory
+
+    def getIP(self):
+        return self.mainip
 
     def getName(self):
         return self.name

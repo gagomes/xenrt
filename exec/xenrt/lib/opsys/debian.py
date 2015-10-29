@@ -1,5 +1,5 @@
 import xenrt, os.path, os, shutil, IPy, re
-from xenrt.lib.opsys import LinuxOS, registerOS, OSDetectionError
+from xenrt.lib.opsys import LinuxOS, registerOS, OSNotDetected
 from xenrt.linuxanswerfiles import DebianPreseedFile
 from zope.interface import implements
 
@@ -66,7 +66,7 @@ class DebianBasedLinux(LinuxOS):
 
         # 32-bit Xen guests need to use a special installer kernel, 64-bit and non-Xen we
         # can just use the standard as PVops support works
-        if self.arch == "x86-32" and self.parent.hypervisorType == xenrt.HypervisorType.xen:
+        if self.arch == "x86-32" and self.parent._osParent_hypervisorType == xenrt.HypervisorType.xen:
             basePath = "%s/dists/%s/main/installer-%s/current/images/netboot/xen" % \
                        (self.installURL,
                         self.debianName,
@@ -83,7 +83,7 @@ class DebianBasedLinux(LinuxOS):
 
     def generateAnswerfile(self, webdir):
         """Generate an answerfile and put it in the provided webdir, returning any command line arguments needed to boot the OS"""
-        preseedfile = "preseed-%s.cfg" % (self.parent.name)
+        preseedfile = "preseed-%s.cfg" % (self.parent._osParent_name)
         filename = "%s/%s" % (xenrt.TEC().getLogdir(), preseedfile)
 
         # TODO: Use new signalling method so this works for hosts as well
@@ -102,7 +102,7 @@ class DebianBasedLinux(LinuxOS):
         return
 
     def generateIsoAnswerfile(self):
-        preseedfile = "preseed-%s.cfg" % (self.parent.name)
+        preseedfile = "preseed-%s.cfg" % (self.parent._osParent_name)
         filename = "%s/%s" % (xenrt.TEC().getLogdir(), preseedfile)
         ps = DebianPreseedFile(self.distro,
                                xenrt.getLinuxRepo(self.distro, self.arch, "HTTP"),
@@ -134,11 +134,11 @@ class DebianBasedLinux(LinuxOS):
     def waitForInstallCompleteAndFirstBoot(self):
         # Install is complete when the guest shuts down
         # TODO: Use the signalling mechanism instead
-        self.parent.pollOSPowerState(xenrt.PowerState.down, timeout=1800)
+        self._parent._osParent_pollPowerState(xenrt.PowerState.down, timeout=1800)
         if self.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
             self.cleanupIsoAnswerfile()
-            self.parent.ejectIso()
-        self.parent.startOS()
+            self.parent._osParent_ejectIso()
+        self.parent._osParent_start()
         self.waitForBoot(600)
 
     def waitForBoot(self, timeout):
@@ -178,7 +178,7 @@ class DebianBasedLinux(LinuxOS):
     def detect(cls, parent, detectionState):
         obj=cls("testdeb", parent, detectionState['password'])
         if not obj.execSSH("test -e /etc/debian_version", retval="code") == 0:
-            raise OSDetectionError("OS is not debian")
+            raise OSNotDetected("OS is not debian")
 
 class DebianLinux(DebianBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
@@ -210,14 +210,14 @@ class DebianLinux(DebianBasedLinux):
         obj=cls("testdeb", parent, detectionState['password'])
         isUbuntu = obj.execSSH("grep Ubuntu /etc/lsb-release", retval="code") == 0
         if isUbuntu:
-            raise OSDetectionError("OS is Ubuntu")
+            raise OSNotDetected("OS is Ubuntu")
         else:
             release = obj.execSSH("cat /etc/debian_version").strip()
             release = release.split(".")[0]
             if re.match("^debian\d+$", release):
                 return cls("debian%s0_%s" % (release, obj.getArch()), parent, obj.password)
             else:
-                raise OSDetectionError("Couldn't determine Debian version")
+                raise OSNotDetected("Couldn't determine Debian version")
 
 class UbuntuLinux(DebianBasedLinux):
     """ NOTE: Lucid is not supported on XS 6.2 for ISO install but should work for http install"""
@@ -246,13 +246,13 @@ class UbuntuLinux(DebianBasedLinux):
         obj=cls("testdeb", parent, detectionState['password'])
         isUbuntu = obj.execSSH("grep Ubuntu /etc/lsb-release", retval="code") == 0
         if not isUbuntu:
-            raise OSDetectionError("OS is not Ubuntu")
+            raise OSNotDetected("OS is not Ubuntu")
         else:
             release = obj.execSSH("cat /etc/lsb-release | grep DISTRIB_RELEASE | cut -d = -f 2 | tr -d .")
             if re.match("^ubuntu\d+$", release):
                 return cls("ubuntu%s0_%s" % (release, obj.getArch()), parent, obj.password)
             else:
-                raise OSDetectionError("Could not determine Ubuntu version")
+                raise OSNotDetected("Could not determine Ubuntu version")
 
 registerOS(DebianLinux)
 registerOS(UbuntuLinux)

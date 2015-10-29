@@ -3,7 +3,7 @@ import os.path
 import os
 import shutil
 import re
-from xenrt.lib.opsys import LinuxOS, registerOS, OSDetectionError
+from xenrt.lib.opsys import LinuxOS, registerOS, OSNotDetected
 from xenrt.linuxanswerfiles import RHELKickStartFile
 from zope.interface import implements
 
@@ -36,7 +36,7 @@ class RHELBasedLinux(LinuxOS):
     
     @property
     def _maindisk(self):
-        if self.parent.hypervisorType == xenrt.HypervisorType.xen:
+        if self.parent._osParent_hypervisorType == xenrt.HypervisorType.xen:
             return "xvda"
         else:
             return "sda"
@@ -65,7 +65,7 @@ class RHELBasedLinux(LinuxOS):
         """Generate an answerfile and put it in the provided webdir,
         returning any command line arguments needed to boot the OS"""
 
-        kickstartfile = "kickstart-%s.cfg" % (self.parent.name)
+        kickstartfile = "kickstart-%s.cfg" % (self.parent._osParent_name)
         filename = "%s/%s" % (xenrt.TEC().getLogdir(), kickstartfile)
 
         self.nfsdir = xenrt.NFSDirectory()
@@ -73,7 +73,7 @@ class RHELBasedLinux(LinuxOS):
                              self._maindisk,
                              self.nfsdir.getMountURL(""),
                              repository=self.installURL,
-                             installOn=self.parent.hypervisorType,
+                             installOn=self.parent._osParent_hypervisorType,
                              pxe=False,
                              arch=self.arch)
 
@@ -90,7 +90,7 @@ class RHELBasedLinux(LinuxOS):
         return ["graphical", "utf8", "ks=%s" % url]
 
     def generateIsoAnswerfile(self):
-        kickstartfile = "kickstart-%s.cfg" % (self.parent.name)
+        kickstartfile = "kickstart-%s.cfg" % (self.parent._osParent_name)
         filename = "%s/%s" % (xenrt.TEC().getLogdir(), kickstartfile)
 
         self.nfsdir = xenrt.NFSDirectory()
@@ -98,7 +98,7 @@ class RHELBasedLinux(LinuxOS):
                              self._maindisk,
                              self.nfsdir.getMountURL(""),
                              repository=self.installURL,
-                             installOn=self.parent.hypervisorType,
+                             installOn=self.parent._osParent_hypervisorType,
                              pxe=False,
                              arch=self.arch)
 
@@ -153,12 +153,12 @@ class RHELBasedLinux(LinuxOS):
         if self.distro.startswith("rhel7") or self.distro.startswith("centos7") or self.distro.startswith("oel7") or self.distro.startswith("fedora"):
             # This is likely to be a force stop, so we'll sleep to allow the disk to sync
             xenrt.sleep(60)
-        self.parent.stop()
-        self.parent.pollOSPowerState(xenrt.PowerState.down, timeout=1800)
+        self.parent._osParent_stop()
+        self.parent._osParent_pollPowerState(xenrt.PowerState.down, timeout=1800)
         if self.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
             self.cleanupIsoAnswerfile()
-            self.parent.ejectIso()
-        self.parent.startOS()
+            self.parent._osParent_ejectIso()
+        self.parent._osParent_start()
         self.waitForBoot(600)
 
     def waitForBoot(self, timeout):
@@ -174,9 +174,9 @@ class RHELBasedLinux(LinuxOS):
     def detect(cls, parent, detectionState):
         obj=cls("testrhel", parent, detectionState['password'])
         if obj.execSSH("test -e /etc/xensource-inventory", retval="code") == 0:
-            raise OSDetectionError("OS is XenServer")
+            raise OSNotDetected("OS is XenServer")
         if not obj.execSSH("test -e /etc/redhat-release", retval="code") == 0:
-            raise OSDetectionError("OS is not RedHat based")
+            raise OSNotDetected("OS is not RedHat based")
 
 class RHELLinux(RHELBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV,
@@ -200,9 +200,9 @@ class RHELLinux(RHELBasedLinux):
     def detect(cls, parent, detectionState):
         obj=cls("testrhel", parent, detectionState['password'])
         if obj.execSSH("test -e /etc/centos-release", retval="code") == 0:
-            raise OSDetectionError("OS is CentOS")
+            raise OSNotDetected("OS is CentOS")
         if obj.execSSH("test -e /etc/oracle-release", retval="code") == 0:
-            raise OSDetectionError("OS is Oracle Linux")
+            raise OSNotDetected("OS is Oracle Linux")
         distro = obj.execSSH("cat /etc/redhat-release | "
                     "sed 's/Red Hat Enterprise Linux Server release /rhel/' | "
                     "sed 's/Red Hat Enterprise Linux Client release /rheld/' | "
@@ -215,7 +215,7 @@ class RHELLinux(RHELBasedLinux):
         if re.match("^rhel[dw]?(\d+)$", distro):
             return cls("%s_%s" % (distro, obj.getArch()), parent, obj.password)
         else:
-            raise OSDetectionError("Could not determine RHEL version")
+            raise OSNotDetected("Could not determine RHEL version")
         
 
 class CentOSLinux(RHELBasedLinux):
@@ -240,7 +240,7 @@ class CentOSLinux(RHELBasedLinux):
     def detect(cls, parent, detectionState):
         obj=cls("testcentos", parent, detectionState['password'])
         if obj.execSSH("test -e /etc/centos-release", retval="code") != 0:
-            raise OSDetectionError("OS is not CentOS")
+            raise OSNotDetected("OS is not CentOS")
         distro = obj.execSSH("cat /etc/centos-release | "
                     "sed 's/CentOS release /centos/' | "
                     "sed 's/CentOS Linux release /centos/' | "
@@ -252,7 +252,7 @@ class CentOSLinux(RHELBasedLinux):
         if re.match("^centos(\d+)$", distro):
             return cls("%s_%s" % (distro, obj.getArch()), parent, obj.password)
         else:
-            raise OSDetectionError("Could not determine CentOS version")
+            raise OSNotDetected("Could not determine CentOS version")
 
 class OELLinux(RHELBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV,
@@ -280,7 +280,7 @@ class OELLinux(RHELBasedLinux):
     def detect(cls, parent, detectionState):
         obj=cls("testoel", parent, detectionState['password'])
         if obj.execSSH("test -e /etc/oracle-release", retval="code") != 0:
-            raise OSDetectionError("OS is not Oracle Linux")
+            raise OSNotDetected("OS is not Oracle Linux")
         distro = obj.execSSH("cat /etc/oracle-release | "
                     "sed 's/Oracle Linux Server release /oel/' | "
                     "awk '{print $1}'").strip()
@@ -291,7 +291,7 @@ class OELLinux(RHELBasedLinux):
         if re.match("^oel(\d+)$", distro):
             return cls("%s_%s" % (distro, obj.getArch()), parent, obj.password)
         else:
-            raise OSDetectionError("Could not determine Oracle Linux version")
+            raise OSNotDetected("Could not determine Oracle Linux version")
 
 registerOS(RHELLinux)
 registerOS(CentOSLinux)

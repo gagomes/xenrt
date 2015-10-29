@@ -4,7 +4,7 @@ from abc import abstractproperty
 
 oslist = []
 
-class OSDetectionError(Exception):
+class OSNotDetected(Exception):
     def __init__(self, msg):
         self.msg = msg
 
@@ -34,10 +34,10 @@ class OS(object):
         return
 
     def getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
-        return self.parent.getIP(trafficType, timeout, level)
+        return self.parent._osParent_getIP(trafficType, timeout, level)
 
     def getPort(self, trafficType):
-        return self.parent.getPort(trafficType) or self.tcpCommunicationPorts[trafficType]
+        return self.parent._osParent_getPort(trafficType) or self.tcpCommunicationPorts[trafficType]
 
     def populateFromExisting(self):
         pass
@@ -68,30 +68,31 @@ class OS(object):
         if hasattr(base, "runDetect"):
             base.runDetect(parent, detectionState)
         # Assuming the base class check was successful, check this class
-        clsName = "%s.%s" % (cls.__module__, cls.__name__)
         # If we've previosly checked this class, don't do it again
-        if clsName in detectionState['checked']:
-            if detectionState['checked'][clsName]:
+        if str(cls) in detectionState['checked']:
+            if detectionState['checked'][str(cls)]:
+                # This has previously passed the test of a non-leaf OS class, so return None
                 return None
             else:
-                raise OSDetectionError("%s check already failed" % clsName)
+                raise OSNotDetected("%s check already failed" % str(cls))
         else:
-            xenrt.TEC().logverbose("Checking %s" % clsName)
+            xenrt.TEC().logverbose("Checking %s" % str(cls))
             try:
                 ret = cls.detect(parent, detectionState)
-            except OSDetectionError, e:
-                xenrt.TEC().logverbose("OS is not %s - %s" % (clsName, e.msg))
+            except OSNotDetected, e:
+                xenrt.TEC().logverbose("OS is not %s - %s" % (str(cls), e.msg))
                 # If we can't detect this OS, raise an exception to terminate the hierarchy
-                detectionState['checked'][clsName] = False
+                detectionState['checked'][str(cls)] = False
                 raise
             else:
-                detectionState['checked'][clsName] = True
+                detectionState['checked'][str(cls)] = True
                 return ret
         
 
     @classmethod
     def detect(cls, parent, detectionState):
-        """Return tuple of boolean (is this OS detected) and password"""
+        """Return an instance of a leaf OS class if detected, or None for non-leaf OS classes if detectd.
+        Raise OSNotDetected if OS is not detected"""
         pass
 
     def assertHealthy(self, quick=False):
@@ -121,11 +122,11 @@ def osFromExisting(parent, password=None):
     for o in oslist:
         try:
             ret = o.runDetect(parent, detectionState)
-        except OSDetectionError:
+        except OSNotDetected:
             continue
         else:
-            if ret:
-                return ret
+            xenrt.xrtAssert(ret)
+            return ret
     raise xenrt.XRTError("Could not determine OS")
 
 __all__ = ["OS", "registerOS"]

@@ -1,5 +1,5 @@
 import xenrt, os.path, os, shutil, re
-from xenrt.lib.opsys import LinuxOS, registerOS, OSDetectionError
+from xenrt.lib.opsys import LinuxOS, registerOS, OSNotDetected
 from xenrt.linuxanswerfiles import SLESAutoyastFile
 from abc import ABCMeta, abstractproperty
 from zope.interface import implements
@@ -32,7 +32,7 @@ class SLESBasedLinux(LinuxOS):
     
     @property
     def _maindisk(self):
-        if self.parent.hypervisorType == xenrt.HypervisorType.xen:
+        if self.parent._osParent_hypervisorType == xenrt.HypervisorType.xen:
             return "xvda"
         else:
             return "sda"
@@ -60,7 +60,7 @@ class SLESBasedLinux(LinuxOS):
 
     def generateAnswerfile(self, webdir):
         """Generate an answerfile and put it in the provided webdir, returning any command line arguments needed to boot the OS"""
-        autoyastfile = "autoyast-%s.cfg" % (self.parent.name)
+        autoyastfile = "autoyast-%s.cfg" % (self.parent._osParent_name)
         filename = "%s/%s" % (xenrt.TEC().getLogdir(), autoyastfile)
         xenrt.TEC().logverbose("FILENAME %s"%filename)
         
@@ -68,7 +68,7 @@ class SLESBasedLinux(LinuxOS):
         ayf= SLESAutoyastFile(self.distro,
                              self.nfsdir.getMountURL(""),
                              self._maindisk,
-                             installOn=self.parent.hypervisorType,
+                             installOn=self.parent._osParent_hypervisorType,
                              pxe=False)
 #                             rebootAfterInstall = False)
 
@@ -84,14 +84,14 @@ class SLESBasedLinux(LinuxOS):
         return ["graphical", "utf8", "ks=%s" % url]
        
     def generateIsoAnswerfile(self):
-        autoyastfile = "autoyast-%s.cfg" % (self.parent.name)
+        autoyastfile = "autoyast-%s.cfg" % (self.parent._osParent_name)
         filename = "%s/%s" % (xenrt.TEC().getLogdir(), autoyastfile)
         xenrt.TEC().logverbose("FILENAME %s"%filename)
         self.nfsdir = xenrt.NFSDirectory()  
         ayf= SLESAutoyastFile(self.distro,
                              self.nfsdir.getMountURL(""),
                              self._maindisk,
-                             installOn=self.parent.hypervisorType,
+                             installOn=self.parent._osParent_hypervisorType,
                              pxe=False)
 #                             rebootAfterInstall = False)
 
@@ -143,13 +143,13 @@ class SLESBasedLinux(LinuxOS):
             xenrt.TEC().logverbose("Sleeping for 240secs before removing iso")
             xenrt.sleep(240)
         else:
-            self.parent.stop()
-            self.parent.pollOSPowerState(xenrt.PowerState.down, timeout=1800)
+            self.parent._osParent_stop()
+            self.parent._osParent_pollPowerState(xenrt.PowerState.down, timeout=1800)
         if self.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
             self.cleanupIsoAnswerfile()
-            self.parent.ejectIso()
+            self.parent._osParent_ejectIso()
         if not 'sles10' in self.distro:
-            self.parent.startOS()
+            self.parent._osParent_startOS()
             self.waitForBoot(600)
 
     def waitForBoot(self, timeout):
@@ -165,7 +165,7 @@ class SLESBasedLinux(LinuxOS):
     def detect(cls, parent, detectionState):
         obj=cls("testsuse", parent, detectionState['password'])
         if not obj.execSSH("test -e /etc/SuSE-release", retval="code") == 0:
-            raise OSDetectionError("OS is not SuSE based")
+            raise OSNotDetected("OS is not SuSE based")
 
 class SLESLinux(SLESBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
@@ -198,7 +198,7 @@ class SLESLinux(SLESBasedLinux):
             if patchMatch and patchMatch.group(1) != "0":
                 ret += patchMatch.group(1)
             return cls("%s_%s" % (ret, obj.getArch()), parent, obj.password)
-        raise OSDetectionError("Could not determine SLES version")
+        raise OSNotDetected("Could not determine SLES version")
 
 registerOS(SLESLinux)
 

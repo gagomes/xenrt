@@ -181,7 +181,7 @@ class TCCloudUpdate(xenrt.TestCase):
         return timeTaken
 
     def checkInstanceHealth(self, instance):
-        xenrt.TEC().logverbose('Check health for instance [VM-Name: %s] IP Addr: %s' % (instance.name, instance.getIP()))
+        xenrt.TEC().logverbose('Check health for instance [VM-Name: %s]' % (instance.name))
         instance.assertHealthy()
 
     def verifyCloud(self, hostUpdated, postFixString):

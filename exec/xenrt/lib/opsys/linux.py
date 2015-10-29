@@ -1,7 +1,7 @@
 import xenrt
 import string
 import socket
-from xenrt.lib.opsys import OS,OSDetectionError
+from xenrt.lib.opsys import OS,OSNotDetected
 
 
 class LinuxOS(OS):
@@ -82,7 +82,7 @@ class LinuxOS(OS):
                                      port=self.getPort(trafficType="SSH"))
 
     def populateFromExisting(self):
-        if self.parent.getPowerState() != xenrt.PowerState.up:
+        if self.parent._osParent_getPowerState() != xenrt.PowerState.up:
             self.password = xenrt.TEC().lookup("ROOT_PASSWORD")
         else:
             self.findPassword()
@@ -112,7 +112,7 @@ class LinuxOS(OS):
                             if i[0] != self.getIP(trafficType="SSH"):
                                 xenrt.TEC().logverbose("Setting my IP to %s"
                                                         % (i))
-                                self.parent.setIP(i)
+                                self.parent._osParent_setIP(i)
                             return
                         except:
                             pass
@@ -161,7 +161,7 @@ class LinuxOS(OS):
         return 256
 
     def assertHealthy(self, quick=False):
-        if self.parent.getPowerState() == xenrt.PowerState.up:
+        if self.parent._osParent_getPowerState() == xenrt.PowerState.up:
             # Wait for basic SSH access
             self.waitForSSH(timeout=180)
             if quick:
@@ -181,6 +181,6 @@ class LinuxOS(OS):
             sock.close()
             obj.execSSH("true")
         except Exception, e:
-            raise OSDetectionError("OS appears not to have SSH: %s" % str(e))
+            raise OSNotDetected("OS appears not to have SSH: %s" % str(e))
         else:
             detectionState['password'] = obj.password

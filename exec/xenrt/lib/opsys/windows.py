@@ -4,7 +4,7 @@ try:
     import winrm
 except:
     pass
-from xenrt.lib.opsys import OS, registerOS, OSDetectionError
+from xenrt.lib.opsys import OS, registerOS, OSNotDetected
 from zope.interface import implements
 from xenrt.lazylog import *
 
@@ -227,7 +227,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
    
     def getName(self):
         # Temporary function to ease migration from GenericPlace
-        return self.parent.name
+        return self.parent._osParent_name
 
     def checkHealth(self, unreachable=False, noreachcheck=False, desc=""):
         # Temporary function to ease migration from GenericPlace
@@ -1243,7 +1243,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
     # TODO Add JoinDomain and LeaveDomain in context of new object model - currently very tied to host
 
     def assertHealthy(self, quick=False):
-        if self.parent.getPowerState() == xenrt.PowerState.up:
+        if self.parent._osParent_getPowerState() == xenrt.PowerState.up:
             if quick:
                 self.waitForDaemon(30)
             else:
@@ -1362,6 +1362,6 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
         obj = cls.testInit(parent)
         if obj.isDaemonAlive():
             return cls("win", parent, obj.password)
-        raise OSDetectionError("OS is not running exec daemon") 
+        raise OSNotDetected("OS is not running exec daemon") 
 
 registerOS(WindowsOS)

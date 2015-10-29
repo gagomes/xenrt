@@ -109,13 +109,10 @@ def registerOS(os):
 
 
 def osFactory(distro, parent, password=None):
-    if not distro:
-        return osFromExisting(parent, password)
-    else:
-        for o in oslist:
-            if o.knownDistro(distro):
-                return o(distro, parent, password)
-        raise xenrt.XRTError("No class found for distro %s" % distro)
+    for o in oslist:
+        if o.knownDistro(distro):
+            return o(distro, parent, password)
+    raise xenrt.XRTError("No class found for distro %s" % distro)
 
 class DetectionState(object):
     def __init__(self, password):

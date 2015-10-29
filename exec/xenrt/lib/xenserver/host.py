@@ -1844,7 +1844,7 @@ done
     # - FileFormat: us resolution, useful for precise measurement of events in tests
     def changeSyslogFormat(self, new="TraditionalFileFormat"):
         orig="TraditionalFileFormat"
-        self.execdom0("sed -i 's/RSYSLOG_%s/RSYSLOG_%s' /etc/rsyslog.conf" % (orig, new) )
+        self.execdom0("sed -i 's/RSYSLOG_%s/RSYSLOG_%s/' /etc/rsyslog.conf" % (orig, new) )
         self.execdom0("service rsyslog restart")
 
     def swizzleSymlinksToUseNonDebugXen(self, pathprefix):

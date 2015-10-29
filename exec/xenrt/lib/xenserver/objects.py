@@ -340,5 +340,4 @@ class Snapshot(NamedXapiObject):
     @xenrt.irregularName
     @property
     def VM(self):
-        return self._op("list", "params=snapshot-of --minimal", VM._OBJECT_TYPE)
-
+        return VM(self.cli, self._op("list", "params=snapshot-of --minimal"))

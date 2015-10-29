@@ -85,7 +85,7 @@ class LockResource(_ResourceBase):
             params = json.loads(self.request.body)
             jsonschema.validate(params, self.DEFINITIONS['lockresource'])
         except Exception, e:
-            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+            raise XenRTAPIError(self, HTTPBadRequest, str(e).split("\n")[0])
         self.get_lock()
         ret = {}
         try: 
@@ -159,7 +159,7 @@ class ReleaseResource(_ResourceBase):
             params = json.loads(self.request.body)
             jsonschema.validate(params, self.DEFINITIONS['releaseresource'])
         except Exception, e:
-            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+            raise XenRTAPIError(self, HTTPBadRequest, str(e).split("\n")[0])
         self.get_lock()
         ret = ""
         try: 
@@ -222,7 +222,7 @@ class GetResource(XenRTAPIv2Page):
         rc = cur.fetchone()
         ret = {}
         if not rc:
-            raise XenRTAPIError(HTTPNotFound, reason="Resource %s not found" % self.request.matchdict['name'])
+            raise XenRTAPIError(self, HTTPNotFound, reason="Resource %s not found" % self.request.matchdict['name'])
         ret = {
             "name": rc[0].strip(),
             "site": rc[1].strip().split(",") if rc[1] else None,

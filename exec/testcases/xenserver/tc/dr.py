@@ -617,9 +617,16 @@ class DRUtils(object):
         assert self.sites.has_key(site_name)
         site = self.sites[site_name]
         host = site['pool_master']
-                
-        pbds = host.minimalList("pbd-list",args="sr-uuid=%s" % sr_uuid) 
-        
+
+        # PBD should be unplugged from slaves first and master last.
+        if host.pool:
+            pbds = []
+            for h in host.pool.slaves.values():
+                pbds += host.minimalList("pbd-list",args="sr-uuid=%s host-uuid=%s" % (sr_uuid, h.uuid))
+            pbds += host.minimalList("pbd-list",args="sr-uuid=%s host-uuid=%s" % (sr_uuid, host.uuid))
+        else:
+            pbds = host.minimalList("pbd-list",args="sr-uuid=%s" % sr_uuid)
+
         cli = host.getCLIInstance()
         for pbd in pbds:
             pbd = pbd.strip()

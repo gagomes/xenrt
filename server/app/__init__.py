@@ -48,25 +48,16 @@ class XenRTPage(Page):
         if "jwt" in self.request.GET:
             user = self.getUserFromJWT(self.request.GET['jwt'])
             if user:
-                print "Authenitcated %s with JWT" % user.userid
                 self.request.response.set_cookie("apikey", user.apiKey)
         if not user and "x-jwt" in lcheaders:
             user = self.getUserFromJWT(lcheaders['x-jwt'])
-            if user:
-                print "Authenitcated %s with JWT" % user.userid
         if not user and "apikey" in self.request.cookies and self.request.cookies['apikey'] != "invalid":
             user = self.getUserFromAPIKey(self.request.cookies['apikey'])
-            if user:
-                print "Authenitcated %s with API Key" % user.userid
             if not user:
                 self.request.response.set_cookie("apikey", "invalid")
         if not user and "x-api-key" in lcheaders:
             user = self.getUserFromAPIKey(lcheaders['x-api-key'])
-            if user:
-                print "Authenitcated %s with API Key" % user.userid
         if not user and "apikey" in self.request.GET:
-            if user:
-                print "Authenitcated %s with API Key" % user.userid
             user = self.getUserFromAPIKey(self.request.GET['apikey'])
         if not user:
             user = lcheaders.get("x-forwarded-user", "")
@@ -74,8 +65,6 @@ class XenRTPage(Page):
                 user = None
             else:
                 user = app.user.User(self, user.split("@")[0])
-            if user:
-                print "Authenitcated %s with offloaded authentication" % user.userid
         if not user:
             auth = app.httpauth.HTTPAuth(lcheaders.get("authorization"), self)
             userid = auth.getUser()

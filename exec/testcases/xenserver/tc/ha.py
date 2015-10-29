@@ -325,18 +325,21 @@ class TC7829(xenrt.TestCase):
             self.pool = self.getDefaultPool()
 
         if self.USE_ISCSI:
-            # Set up the iscsi guest
-            host = self.pool.master
-            guest = host.createGenericLinuxGuest(allowUpdateKernel=False)
-            self.getLogsFrom(guest)
-            iqn = guest.installLinuxISCSITarget()
-            guest.createISCSITargetLun(0, 1024)
+            srs = self.pool.master.getSRs(type="lvmoiscsi")
+            if len(srs) == 0:
+                # If ISCSI SR is not present, creating one now.
+                # Set up the iscsi guest
+                host = self.pool.master
+                guest = host.createGenericLinuxGuest(allowUpdateKernel=False)
+                self.getLogsFrom(guest)
+                iqn = guest.installLinuxISCSITarget()
+                guest.createISCSITargetLun(0, 1024)
 
-            # Set up the iSCSI SR
-            sr = xenrt.lib.xenserver.ISCSIStorageRepository(host,"test-iscsi")
-            lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" %
-                                          (iqn, guest.getIP()))
-            sr.create(lun,subtype="lvm",findSCSIID=True)
+                # Set up the iSCSI SR
+                sr = xenrt.lib.xenserver.ISCSIStorageRepository(host,"test-iscsi")
+                lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" %
+                                              (iqn, guest.getIP()))
+                sr.create(lun,subtype="lvm",findSCSIID=True)
 
     def run(self, arglist=None):
         # Enable HA

@@ -8,11 +8,11 @@ import json
 
 __all__ = ["XenRTAPIError", "XenRTAPIv2Page", "RegisterAPI"]
 
-def XenRTAPIError(errtype, reason, canForce=None):
+def XenRTAPIError(page, errtype, reason, canForce=None):
     ret = {"reason": reason}
     if canForce != None:
         ret['can_force'] = canForce
-    return errtype(body=json.dumps(ret, encoding="latin-1"), content_type="application/json")
+    return errtype(body=json.dumps(ret, encoding="latin-1"), content_type="application/json", headers = self.page.responseHeaders)
 
 class ApiRegistration(object):
     def __init__(self):
@@ -118,7 +118,7 @@ class XenRTAPIv2Page(XenRTPage):
         try:
             return int(self.request.matchdict[paramName])
         except ValueError:
-            raise XenRTAPIError(HTTPBadRequest, "Invalid %s in URL" % paramName)
+            raise XenRTAPIError(self, HTTPBadRequest, "Invalid %s in URL" % paramName)
 
     def getMultiParam(self, paramName, delimiter=","):
         params = self.request.params.getall(paramName)

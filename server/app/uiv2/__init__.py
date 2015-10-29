@@ -4,6 +4,7 @@ import config
 
 class XenRTUIPage(XenRTPage):
     MENU = True
+    REQUIRE_AUTH_IF_ENABLED = True
 
     def loggedInAs(self):
         if self.getUser():

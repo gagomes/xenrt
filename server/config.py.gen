@@ -83,6 +83,10 @@ for cf in cfs:
                                     cfg['schedule_log_dir'] = data
                                 elif name == "MASTER_SERVER":
                                     cfg['master_server'] = data
+                                elif name == "KERBEROS_HOSTNAME":
+                                    cfg['kerberos_hostname'] = data
+                                elif name == "BASIC_AUTH_REALM":
+                                    cfg['basic_auth_realm'] = data
 
 cfg['results'] = "%s/results" % basedir
 cfg['sharedir'] = "@sharedir@"

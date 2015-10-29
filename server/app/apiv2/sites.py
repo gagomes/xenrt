@@ -70,7 +70,7 @@ class _SiteBase(_MachineBase):
                     continue
 
         if exceptionIfEmpty and not ret:
-            raise XenRTAPIError(HTTPNotFound, "Site not found")
+            raise XenRTAPIError(self, HTTPNotFound, "Site not found")
 
         return ret
 
@@ -245,7 +245,7 @@ class UpdateSite(_SiteBase):
             j = json.loads(self.request.body)
             jsonschema.validate(j, self.DEFINITIONS['updatesite'])
         except Exception, e:
-            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+            raise XenRTAPIError(self, HTTPBadRequest, str(e).split("\n")[0])
 
         self.updateSite(self.request.matchdict['name'], j)
         return {}
@@ -325,7 +325,7 @@ class NewSite(UpdateSite):
             j = json.loads(self.request.body)
             jsonschema.validate(j, self.DEFINITIONS['newsite'])
         except Exception, e:
-            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+            raise XenRTAPIError(self, HTTPBadRequest, str(e).split("\n")[0])
 
         self.createSite(j)
         return {}

@@ -93,7 +93,7 @@ class _AclBase(XenRTAPIv2Page):
 
         if len(aclids) == 0:
             if exceptionIfEmpty:
-                raise XenRTAPIError(HTTPNotFound, "ACL not found")
+                raise XenRTAPIError(self, HTTPNotFound, "ACL not found")
 
             return {}
 
@@ -129,7 +129,7 @@ class _AclBase(XenRTAPIv2Page):
         if entry['type'] == "default":
             entry['userid'] = ""
         elif not self.validateAndCache(entry['type'], entry['userid']):
-            raise XenRTAPIError(HTTPNotAcceptable, "Could not find %s '%s' in AD" % (entry['type'], entry['userid']))
+            raise XenRTAPIError(self, HTTPNotAcceptable, "Could not find %s '%s' in AD" % (entry['type'], entry['userid']))
 
         fields = ["aclid", "prio", "type", "userid", "preemptableuse"]
         values = [aclid, entry['prio'], entry['type'], entry['userid'], entry.get('preemptableuse', False)]
@@ -170,7 +170,7 @@ class _AclBase(XenRTAPIv2Page):
         rc = cur.fetchone()
         count = rc[0]
         if count > 0:
-            raise XenRTAPIError(HTTPPreconditionFailed, "ACL in use by %d machines" % count)
+            raise XenRTAPIError(self, HTTPPreconditionFailed, "ACL in use by %d machines" % count)
         cur.execute("DELETE FROM tblaclentries WHERE aclid=%s", [aclid])
         cur.execute("DELETE FROM tblacls WHERE aclid=%s", [aclid])
         db.commit()
@@ -183,10 +183,10 @@ class _AclBase(XenRTAPIv2Page):
         cur.execute("SELECT owner FROM tblacls WHERE aclid=%s", [aclid])
         rc = cur.fetchone()
         if not rc:
-            raise XenRTAPIError(HTTPNotFound, "ACL not found")
+            raise XenRTAPIError(self, HTTPNotFound, "ACL not found")
         owner = rc[0].strip()
         if owner != user.userid and not user.admin:
-            raise XenRTAPIError(HTTPForbidden, "You are not the owner of this ACL")
+            raise XenRTAPIError(self, HTTPForbidden, "You are not the owner of this ACL")
 
 class ListAcls(_AclBase):
     PATH = "/acls"
@@ -333,7 +333,7 @@ class NewAcl(_AclBase):
             j = json.loads(self.request.body)
             jsonschema.validate(j, self.DEFINITIONS['newacl'])
         except Exception, e:
-            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+            raise XenRTAPIError(self, HTTPBadRequest, str(e).split("\n")[0])
         return self.newAcl(name=j.get("name"),
                            parent=j.get("parent"),
                            owner=self.getUser().userid,
@@ -394,7 +394,7 @@ class UpdateAcl(_AclBase):
             j = json.loads(self.request.body)
             jsonschema.validate(j, self.DEFINITIONS['updateacl'])
         except Exception, e:
-            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+            raise XenRTAPIError(self, HTTPBadRequest, str(e).split("\n")[0])
         return self.updateAcl(aclid, name=j.get("name"), parent=j.get("parent"), entries=j.get("entries"))
 
 class RemoveAcl(_AclBase):

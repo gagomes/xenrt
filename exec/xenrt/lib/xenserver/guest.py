@@ -6261,9 +6261,9 @@ default:
         elif self.distro.startswith("centos"): # CentOS7
             return xenrt.lib.xenserver.docker.CentOSDocker(self.getHost(), self, controller)
         elif self.distro.startswith("ubuntu"): #  Ubuntu 14.04
-            return xenrt.lib.xenserver.docker.UbuntuDocker(self.getHost(), self, controller)
+            return xenrt.lib.xenserver.docker.DebianBasedDocker(self.getHost(), self, controller)
         elif self.distro.startswith("debian"): #  Debian Jessie 8.0
-            return xenrt.lib.xenserver.docker.DebianDocker(self.getHost(), self, controller)
+            return xenrt.lib.xenserver.docker.DebianBasedDocker(self.getHost(), self, controller)
         else:
             raise xenrt.XRTFailure("Docker installation unimplemented on distro %s" % self.distro)
 

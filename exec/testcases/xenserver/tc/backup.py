@@ -33,7 +33,7 @@ class TC8226(xenrt.TestCase):
         self.pool2 = self.getPool("RESOURCE_POOL_1")
         
         if self.BACKUP_SR == "iscsi":
-            self.sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.pool1.master, "iSCSI")
+            self.sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.pool1.master, "iSCSI", thin_prov=(self.tcsku=="thin"))
             self.sr.create(subtype="lvm")
         else:
             nfs = xenrt.ExternalNFSShare().getMount()

@@ -1,0 +1,28 @@
+<xenrt>
+
+  <!-- TC-8226 Smoketest of metadata backup and restore (aka Portable SRs) -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    <SR_ISCSI_MINSIZE>50</SR_ISCSI_MINSIZE>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0"/>
+      <host id="1"/>
+    </pool>
+    <pool id="1" master="RESOURCE_HOST_2">
+      <host id="2" noisos="true"/>
+      <host id="3"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC-8227">
+      <testcase id="xenserver.tc.backup.TC8226" sku="thin" />
+    </serial>
+  </testsequence>
+
+</xenrt>

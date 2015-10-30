@@ -3,7 +3,7 @@ from xenrt.lib.scalextreme.sxapi import SXAPI
 
 __all__ = ["SXProcess"]
 
-class SXProcess(object)
+class SXProcess(object):
     """An object to represent a Scalextreme Blueprint"""
 
     def __init__(self, processId, processVersion, templateDeploymentProfileId=None):

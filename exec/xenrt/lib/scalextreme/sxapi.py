@@ -54,9 +54,15 @@ class SXAPI(object):
             tries -= 1
             xenrt.TEC().logverbose("Running URI: %s" % uri)
             if authFilter:
-                r = requests.request(method, uri, auth=(self.apikey, self.credential), params=params, verify=False)
+                if method == "POST":
+                    r = requests.post(uri, auth=(self.apikey, self.credential), data=params, verify=False)
+                else:
+                    r = requests.request(method, uri, auth=(self.apikey, self.credential), params=params, verify=False)
             else:
-                r = requests.request(method, uri, params=params, verify=False)
+                if method == "POST":
+                    r = requests.post(uri, data=params, verify=False)
+                else:
+                    r = requests.request(method, uri, params=params, verify=False)
             xenrt.TEC().logverbose("%d: %s" % (r.status_code, r.text))
             if r.status_code == 200:
                 return json.loads(r.text)

@@ -106,7 +106,16 @@ class SXAgent(object):
             if (xenrt.util.timenow() - starttime) > 600:
                 raise xenrt.XRTError("Cannot find connector in node API after 10 minutes")
             xenrt.sleep(30)
-            nodes = self.apiHandler.execute(category="nodes")
+            nodes = []
+            offset = 0
+            while True:
+                newnodes = self.apiHandler.execute(category="nodes", params={'offset':offset})
+                nodes.extend(newnodes)                
+                if len(newnodes) < 100:
+                    # We get max 100 per request, so if we got less than 100 we know we've now run out of nodes
+                    break
+                offset += 100
+                xenrt.sleep(5) # This is to avoid spamming SX with requests
             for node in nodes:
                 for attr in node["nodeAttrList"]:
                     if attr["attributeName"] == "ip" and attr["attributeValue"] == self.agentIP:

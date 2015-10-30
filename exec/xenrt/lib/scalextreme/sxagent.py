@@ -102,19 +102,22 @@ class SXAgent(object):
         # Give some time to ScaleXtremem to get connected to this agent.
         xenrt.sleep(30)
 
-        nodes = self.apiHandler.execute(category="nodes")
+        # Try and find the nodeid (this may take some time)
+        starttime = xenrt.util.timenow()
         nodeid = None
-        for node in nodes:
-            for attr in node["nodeAttrList"]:
-                if attr["attributeName"] == "ip" and attr["attributeValue"] == self.agentIP:
-                    nodeid = node["nodeId"]
-                    break
-            else:
-                continue
-            break
+        while nodeid is None:
+            if (xenrt.util.timenow() - starttime) > 600:
+                raise xenrt.XRTError("Cannot find connector in node API after 10 minutes")
+            nodes = self.apiHandler.execute(category="nodes")
+            for node in nodes:
+                for attr in node["nodeAttrList"]:
+                    if attr["attributeName"] == "ip" and attr["attributeValue"] == self.agentIP:
+                        nodeid = node["nodeId"]
+                        break
+                else:
+                    continue
+                break
 
-        if nodeid == None:
-            raise xenrt.XRTError("Cannot find node of agent installed. Is it installed and running?")
         self.__nodeid = nodeid
 
     def setAsGateway(self):

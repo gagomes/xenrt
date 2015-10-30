@@ -99,15 +99,13 @@ class SXAgent(object):
             # installation will be verified in code below.
             pass
 
-        # Give some time to ScaleXtremem to get connected to this agent.
-        xenrt.sleep(30)
-
         # Try and find the nodeid (this may take some time)
         starttime = xenrt.util.timenow()
         nodeid = None
         while nodeid is None:
             if (xenrt.util.timenow() - starttime) > 600:
                 raise xenrt.XRTError("Cannot find connector in node API after 10 minutes")
+            xenrt.sleep(30)
             nodes = self.apiHandler.execute(category="nodes")
             for node in nodes:
                 for attr in node["nodeAttrList"]:

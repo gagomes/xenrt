@@ -195,8 +195,7 @@ class VMAutoUpdateToggle(DotNetAgentTestCases):
         autoupdate.enable()
         self._shouldBePinged(trigger,server)
         self.adapter.releaseLicense(self.getDefaultPool())
-        if autoupdate.isLicensed():
-            raise xenrt.XRTFailure("autoupdate is licensed when it shouldn't be")
+        assertions.assertFalse(autoupdate.isLicensed(),"autoupdate is licensed when it shouldn't be")
         self._shouldNotBePinged(trigger,server)
 
 class VSSQuiescedSnapshot(DotNetAgentTestCases):
@@ -204,11 +203,9 @@ class VSSQuiescedSnapshot(DotNetAgentTestCases):
     def run(self, arglist):
         self.adapter.applyLicense(self.getDefaultPool())
         vss = self.agent.getLicensedFeature("VSS")
-        if not vss.isSnapshotPossible():
-            raise xenrt.XRTFailure("snapshot failed in licensed pool")
+        assertions.assertTrue(vss.isSnapshotPossible(),"snapshot failed in licensed pool")
         self.adapter.releaseLicense(self.getDefaultPool())
-        if vss.isSnapshotPossible():
-            raise xenrt.XRTFailure("snapshot succeeded in unlicensed pool")
+        assertions.assertFalse(vss.isSnapshotPossible(),"snapshot succeeded in unlicensed pool")
 
 class HTTPRedirect(DotNetAgentTestCases):
 
@@ -229,15 +226,11 @@ class AllHostsLicensed(DotNetAgentTestCases):
         self.adapter.applyLicense(self.getDefaultPool())
         vss = self.agent.getLicensedFeature("VSS")
         autoUpdate = self.agent.getLicensedFeature("AutoUpdate")
-        if not vss.isLicensed():
-            raise xenrt.XRTFailure("Xenstore indicates VSS is Not Licensed")
-        if not autoUpdate.isLicensed():
-            raise xenrt.XRTFailure("Xenstore indicates AutoUpdate is Not Licensed")
+        assertions.assertTrue(vss.isLicensed(),"Xenstore indicates VSS is Not Licensed")
+        assertions.assertTrue(autoUpdate.isLicensed(),"Xenstore indicates AutoUpdate is Not Licensed")
         self.adapter.releaseLicense(self.getHost("RESOURCE_HOST_1"))
-        if vss.isLicensed():
-            raise xenrt.XRTFailure("Xenstore indicates VSS is Licensed")
-        if autoUpdate.isLicensed():
-            raise xenrt.XRTFailure("Xenstore indicates AutoUpdate is Licensed")
+        assertions.assertFalse(vss.isLicensed(),"Xenstore indicates VSS is Licensed")
+        assertions.assertFalse(autoUpdate.isLicensed(),"Xenstore indicates AutoUpdate is Licensed")
 
 class ToggleAUHierarchy(DotNetAgentTestCases):
 
@@ -341,15 +334,13 @@ class ImportAndExport(DotNetAgentTestCases):
         self.adapter.importVM(self.win1,self.getHost("RESOURCE_HOST_1"),path)
         vss = self.agent.getLicensedFeature("VSS")
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
-        if vss.isLicensed() or autoupdate.isLicensed():
-            raise xenrt.XRTFailure("Auto Update features are licensed when they shouldn't be")
+        assertions.assertFalse(vss.isLicensed() or autoupdate.isLicensed(),"Agent features are licensed when they shouldn't be")
         path = self.adapter.exportVM(self.win1)
         self.adapter.applyLicense(self.getDefaultPool())
         self.adapter.importVM(self.win1,self.getHost("RESOURCE_HOST_0"),path)
         vss = self.agent.getLicensedFeature("VSS")
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
-        if not vss.isLicensed() or not autoupdate.isLicensed():
-            raise xenrt.XRTFailure("Auto Update features are not licensed when they should be")
+        assertions.assertTrue(vss.isLicensed() or autoupdate.isLicensed(),"Auto Update features are not licensed when they should be")
 
 class CheckDownloadedArch(DotNetAgentTestCases):
 
@@ -359,19 +350,16 @@ class CheckDownloadedArch(DotNetAgentTestCases):
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.enable()
         xenrt.sleep(60)
-        if not autoupdate.compareMSIArch():
-            raise xenrt.XRTFailure("Downloaded MSI is wrong architecture")
+        assertions.assertTrue(autoupdate.compareMSIArch(),"Downloaded MSI is wrong architecture")
 
 class NoVSSOnNonServer(DotNetAgentTestCases):
 
     def run(self, arglist):
         self.adapter.applyLicense(self.getDefaultPool())
         vss = self.agent.getLicensedFeature("VSS")
-        if vss.isSnapshotPossible():
-            raise xenrt.XRTFailure("VSS Snapshot Taken on Non Serverclass Windows")
+        assertions.assertFalse(vss.isSnapshotPossible(),"VSS Snapshot Taken on Non Serverclass Windows")
         self.adapter.releaseLicense(self.getDefaultPool())
-        if vss.isSnapshotPossible():
-            raise xenrt.XRTFailure("VSS Snapshot Taken on Non Serverclass Windows")
+        assertions.assertFalse(vss.isSnapshotPossible(), "VSS Snapshot Taken on Non Serverclass Windows")
 
 class AUByDefault(DotNetAgentTestCases):
 
@@ -382,10 +370,9 @@ class AUByDefault(DotNetAgentTestCases):
         version = self.agent.agentVersion()
         self.agent.restartAgent()
         xenrt.sleep(200)
-        if autoupdate.checkDownloadedMSI() == None:
-            xenrt.XRTFailure("Agent did not download MSI")
-        if version == self.agent.agentVersion():
-            xenrt.XRTFailure("Agent Did not install latest version")
+        xenrt.TEC().logverbose("----msi download: %s----"%autoupdate.checkDownloadedMSI())
+        assertions.assertNotNone(autoupdate.checkDownloadedMSI(),"Agent did not download MSI")
+        assertions.assertNotEquals(version,self.agent.agentVersion(),"Agent Did not install latest version")
 
 class AUNoDownload(DotNetAgentTestCases):
 
@@ -394,8 +381,7 @@ class AUNoDownload(DotNetAgentTestCases):
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         self.agent.restartAgent()
         xenrt.sleep(30)
-        if autoupdate.checkDownloadedMSI() != None:
-            xenrt.XRTFailure("Agent Downloaded MSI when it was the latest version")
+        assertions.assertNone(autoupdate.checkDownloadedMSI(),"Agent Downloaded MSI when it was the latest version")
 
 class NonCryptoMSI(DotNetAgentTestCases):
 
@@ -409,10 +395,8 @@ class NonCryptoMSI(DotNetAgentTestCases):
         autoupdate.setURL("http://%s:16000"%server.getIP())
         self.agent.restartAgent()
         xenrt.sleep(200)
-        if autoupdate.checkDownloadedMSI() == None:
-            raise xenrt.XRTFailure("msi has not downloaded")
-        if self.adapter.nonCryptoMSIInstalled(self.win1):
-            raise xenrt.XRTFailure("Non cryprographically signed msi installed")
+        assertions.assertNotNone(autoupdate.checkDownloadedMSI(),"msi has not downloaded")
+        assertions.assertFalse(self.adapter.nonCryptoMSIInstalled(self.win1),"Non cryprographically signed msi installed")
 
 class NoServerSurvive(DotNetAgentTestCases):
 
@@ -423,5 +407,4 @@ class NoServerSurvive(DotNetAgentTestCases):
         autoupdate.setURL("http://localhost:55555")
         self.agent.restartAgent()
         xenrt.sleep(60)
-        if self.agent.isAgentAlive() == False:
-            raise xenrt.XRTFailure("Agent Stopped")
+        assertions.assertTrue(isAgentAlive(), "Agent Stopped")

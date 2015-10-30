@@ -7,7 +7,7 @@ class SXProcess(object):
     """An object to represent a Scalextreme Blueprint"""
 
     def __init__(self, processId, processVersion, templateDeploymentProfileId=None):
-        super(SXDeploy, self).__init__()
+        super(SXProcess, self).__init__()
 
         self.__processId = processId
         self.__processVersion = processVersion

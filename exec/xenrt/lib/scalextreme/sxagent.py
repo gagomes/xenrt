@@ -109,7 +109,7 @@ class SXAgent(object):
             nodes = []
             offset = 0
             while True:
-                newnodes = self.apiHandler.execute(category="nodes", params={'offset':offset})
+                newnodes = self.apiHandler.execute(category="nodes", params={'offset':offset, 'status': 'online'})
                 nodes.extend(newnodes)                
                 if len(newnodes) < 100:
                     # We get max 100 per request, so if we got less than 100 we know we've now run out of nodes

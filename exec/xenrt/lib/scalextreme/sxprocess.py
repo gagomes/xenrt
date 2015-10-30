@@ -118,7 +118,7 @@ class SXProcess(object):
         # Save it
         if not profileName:
             profileName = "xenrt-%s-%s" % (xenrt.GEC().jobid(), xenrt.randomSuffix())
-        result = self.apiHandler.execute(category="deploymentprofile", method="POST", params={"processIdStr": self.processId, "processVersionStr": self.processVersion, "deploymentProfileName": profileName, profileDetailsStr: json.dumps(deploymentProfile['profileDetails'])})
+        result = self.apiHandler.execute(category="deploymentprofile", method="POST", params={"processIdStr": self.processId, "processVersionStr": self.processVersion, "deploymentProfileName": profileName, "profileDetailsStr": json.dumps(deploymentProfile['profileDetails'])})
         deploymentProfileId = result['deploymentProfileId']
         
         # Trigger the deployment using the profile

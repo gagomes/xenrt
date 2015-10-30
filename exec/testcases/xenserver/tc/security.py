@@ -655,7 +655,6 @@ class _AuthenticationBase(xenrt.TestCase):
         self.valid = []
 
         self.pool = None
-        self.host = None
         self.slaves = []
         self.others = []
         self.getHostTopology()
@@ -741,25 +740,31 @@ class _AuthenticationBase(xenrt.TestCase):
  
     def postRun(self):
         for user in self.users:
+            xenrt.TEC().logverbose("Removing Users")
             if not isinstance(user, xenrt.ActiveDirectoryServer.Local):
                 try: self.pool.deny(user)
                 except: pass
                 try: self.authserver.removeSubject(user.name)
                 except: pass
         for group in self.groups:
+            xenrt.TEC().logverbose("Removing pool")
             try: self.pool.deny(group)
             except: pass
             try: self.authserver.removeSubject(group.name)
             except: pass
-        try: self.pool.disableAuthentication(self.authserver)
+        try:
+            xenrt.TEC().logverbose("Disable pool authentication") 
+            self.pool.disableAuthentication(self.authserver)
         except: pass
         for slave in self.slaves:
+            xenrt.TEC().logverbose("Disable slve authentication")
             try: slave.disableAuthentication(self.authserver)
             except: pass
         for other in self.others:
+            xenrt.TEC().logverbose("disbale others")
             try: other.disableAuthentication(self.authserver)
             except: pass
-        try: self.host.forgetSR(self.isosr)
+        try: self.pool.master.forgetSR(self.isosr)
         except: pass
 
 class _PoolAuthentication(_AuthenticationBase):

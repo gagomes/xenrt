@@ -26,7 +26,7 @@ class SXAPI(object):
 
         def addifexist(L, var):
             if var:
-                L.append(var)
+                L.append(str(var))
 
         uri = [self.server, self.version]
         addifexist(uri, category)

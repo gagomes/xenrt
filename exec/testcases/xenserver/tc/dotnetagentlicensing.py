@@ -80,8 +80,8 @@ class DotNetAgentAdapter(object):
     def getNonCryptoMSIs(self, server):
         server.guest.execguest("wget '%s/citrixguestagent-Noncrypto.tgz'"%(xenrt.TEC().lookup("TEST_TARBALL_BASE")))
         server.guest.execguest("tar -xf citrixguestagent-Noncrypto.tgz")
-        server.guest.execguest("mv citrixguestagent-Noncrypto/citrixguestagentx64.msi citrixguestagentx64.msi")
-        server.guest.execguest("mv citrixguestagent-Noncrypto/citrixguestagentx86.msi citrixguestagentx86.msi")
+        server.guest.execguest("mv citrixguestagent-Noncrypto/managementagentx64.msi managementagentx64.msi")
+        server.guest.execguest("mv citrixguestagent-Noncrypto/managementagentx86.msi managementagentx86.msi")
 
     def setUpServer(self,guest,port):
         xenrt.TEC().logverbose("-----Setting up server-----")
@@ -370,7 +370,6 @@ class AUByDefault(DotNetAgentTestCases):
         version = self.agent.agentVersion()
         self.agent.restartAgent()
         xenrt.sleep(200)
-        xenrt.TEC().logverbose("----msi download: %s----"%autoupdate.checkDownloadedMSI())
         assertions.assertNotNone(autoupdate.checkDownloadedMSI(),"Agent did not download MSI")
         assertions.assertNotEquals(version,self.agent.agentVersion(),"Agent Did not install latest version")
 
@@ -407,4 +406,4 @@ class NoServerSurvive(DotNetAgentTestCases):
         autoupdate.setURL("http://localhost:55555")
         self.agent.restartAgent()
         xenrt.sleep(60)
-        assertions.assertTrue(isAgentAlive(), "Agent Stopped")
+        assertions.assertTrue(self.agent.isAgentAlive(), "Agent Stopped")

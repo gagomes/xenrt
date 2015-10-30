@@ -15,8 +15,8 @@
 
   <testsequence>
     <serial group="XenDummyTest">
-      <testcase id="ring0xen.TCRing0XenPV32Test" blocker="yes"/>
-      <testcase id="ring0xen.TCRing0XenPV64Test" blocker="yes"/>
+      <testcase id="xenserver.tc.ring0.ring0xen.TCRing0XenPV32Test" blocker="yes"/>
+      <testcase id="xenserver.tc.ring0.ring0xen.TCRing0XenPV64Test" blocker="yes"/>
     </serial>
   </testsequence>
 

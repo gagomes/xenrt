@@ -417,12 +417,10 @@ class StorageRepository(object):
         """
         pass
 
-    def physicalSizeMB(self):
-        """Returns the physical size of this SR in MB."""
-        return int(self.paramGet("physical-size"))/xenrt.MEGA
-
-    def release(self):
-        self.remove()
+    @property
+    def physicalSize(self):
+        """Returns the physical size of this SR."""
+        return int(self.paramGet("physical-size"))
 
     def messageCreate(self, name, body, priority=1):
         self.host.messageGeneralCreate("sr",

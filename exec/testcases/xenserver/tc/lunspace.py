@@ -54,7 +54,7 @@ class TC21547(xenrt.TestCase):
             self.lun.resize(newSizeBytes/xenrt.MEGA,False)
             self.fcSR.scan()
             step("After resizing the lun size is %s "%self.lun.size())
-            currentsize=self.fcSR.physicalSizeMB()
+            currentsize=self.fcSR.physicalSize/xenrt.MEGA
             expectednewsize = newSizeBytes/xenrt.MEGA - 12
             
             if currentsize == expectednewsize:

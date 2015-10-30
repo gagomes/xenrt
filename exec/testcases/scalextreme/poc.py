@@ -13,7 +13,7 @@ class SXDeployTest(xenrt.TestCase):
 
         # Find our providerId (TODO: we should store this in the registry)
         providerName = "xenrt-%d" % xenrt.GEC().jobid()
-        providerId = [x['provider_id'] for x in sxp.apiHandler.execute("providers") if x['provider_name'] == providerName][0]
+        providerId = [x['provider_id'] for x in sxp.apiHandler.execute(category="providers") if x['provider_name'] == providerName][0]
         
         sxp.deploy(providerId, host, template.getUUID())
 

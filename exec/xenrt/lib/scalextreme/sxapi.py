@@ -1,5 +1,6 @@
 import xenrt
 import requests
+import json
 
 __all__ = [ "SXAPI" ]
 
@@ -58,7 +59,7 @@ class SXAPI(object):
                 r = requests.request(method, uri, params=params, verify=False)
             xenrt.TEC().logverbose("%d: %s" % (r.status_code, r.text))
             if r.status_code == 200:
-                return eval(r.text)
+                return json.loads(r.text)
             if r.status_code == 400:
                 xenrt.TEC().logverbose(r.text)
                 raise xenrt.XRTError("Bad input parameter or error message: %s" % params)

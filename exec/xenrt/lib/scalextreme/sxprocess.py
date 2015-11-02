@@ -87,8 +87,8 @@ class SXProcess(object):
                         d['sr_ref'] = srRef
                 if params.has_key('copy_sr'):
                     params['copy_sr'] = srRef
-                prop['propertyValue'] = json.dumps(propValue)
-            item['attributeValue'] = json.dumps(v)
+                prop['propertyValue'] = json.dumps(propValue, ensure_ascii=False).encode('utf8')
+            item['attributeValue'] = json.dumps(v, ensure_ascii=False).encode('utf8')
 
         return deploymentProfile
 

@@ -1,7 +1,6 @@
 import xenrt, os.path, os, shutil, IPy
 from xenrt.lib.opsys import LinuxOS, registerOS
 from xenrt.linuxanswerfiles import DebianPreseedFile
-from abc import ABCMeta, abstractproperty
 from zope.interface import implements
 
 __all__ = ["DebianLinux", "UbuntuLinux"]
@@ -10,18 +9,15 @@ class DebianBasedLinux(LinuxOS):
 
     implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
     
-    __metaclass__ = ABCMeta
 
-    @abstractproperty
     def _mappings(self): 
         """A set of mappings for the distro"""
         pass
 
-    @staticmethod
     def testInit(parent): raise NotImplementedError()
 
-    def __init__(self, distro, parent):
-        super(DebianBasedLinux, self).__init__(distro, parent)
+    def __init__(self, distro, parent, password=None):
+        super(DebianBasedLinux, self).__init__(distro, parent, password)
 
         if distro.endswith("x86-32") or distro.endswith("x86-64"):
             self.distro = distro[:-7]
@@ -37,7 +33,6 @@ class DebianBasedLinux(LinuxOS):
     def canonicalDistroName(self):
         return "%s_%s" % (self.distro, self.arch)
 
-    @abstractproperty
     def isoName(self): pass
 
     @property
@@ -114,7 +109,7 @@ class DebianBasedLinux(LinuxOS):
                                filename,
                                arch=self.arch)
         ps.generate()
-        installIP = self.parent.getIP(trafficType="OUTBOUND", timeout=600)
+        installIP = self.getIP(trafficType="OUTBOUND", timeout=600)
         path = "%s/%s" % (xenrt.TEC().lookup("GUESTFILE_BASE_PATH"), installIP)
         self.cleanupdir = path
         try:
@@ -126,7 +121,7 @@ class DebianBasedLinux(LinuxOS):
         shutil.copyfile(filename, "%s/preseed" % (path))
 
     def waitForIsoAnswerfileAccess(self):
-        installIP = self.parent.getIP(trafficType="OUTBOUND", timeout=600)
+        installIP = self.getIP(trafficType="OUTBOUND", timeout=600)
         path = "%s/%s" % (xenrt.TEC().lookup("GUESTFILE_BASE_PATH"), installIP)
         filename = "%s/preseed.stamp" % path
         xenrt.waitForFile(filename, 1800)
@@ -139,16 +134,17 @@ class DebianBasedLinux(LinuxOS):
     def waitForInstallCompleteAndFirstBoot(self):
         # Install is complete when the guest shuts down
         # TODO: Use the signalling mechanism instead
-        self.parent.poll(xenrt.PowerState.down, timeout=1800)
+        self.parent.pollOSPowerState(xenrt.PowerState.down, timeout=1800)
         if self.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
             self.cleanupIsoAnswerfile()
             self.parent.ejectIso()
-        self.parent.start()
+        self.parent.startOS()
+        self.waitForBoot(600)
 
     def waitForBoot(self, timeout):
         # We consider boot of a Debian guest complete once it responds to SSH
         startTime = xenrt.util.timenow()
-        self.parent.getIP(trafficType="SSH", timeout=timeout)
+        self.getIP(trafficType="SSH", timeout=timeout)
         # Reduce the timeout by however long it took to get the IP
         timeout -= (xenrt.util.timenow() - startTime)
         # Now wait for an SSH response in the remaining time
@@ -178,6 +174,10 @@ class DebianBasedLinux(LinuxOS):
         # Check we haven't broken networking
         self.execSSH("true")
 
+    @classmethod
+    def osDetected(cls, parent, password):
+        obj=cls("testdeb", parent, password)
+        return (obj.execSSH("test -e /etc/debian_version", retval="code") == 0, password)
 
 class DebianLinux(DebianBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
@@ -204,6 +204,17 @@ class DebianLinux(DebianBasedLinux):
         elif self.distro == "debian80":
             return "deb8_%s_xenrtinst.iso" % self.arch
 
+    @classmethod
+    def osDetected(cls, parent, password):
+        obj=cls("testdeb", parent, password)
+        isUbuntu = obj.execSSH("grep Ubuntu /etc/lsb-release", retval="code") == 0
+        if isUbuntu:
+            return (False, password)
+        else:
+            
+            release = obj.execSSH("cat /etc/debian_version").strip()
+            release = release.split(".")[0]
+            return ("debian%s0_%s" % (release, obj.getArch()), password)
 
 class UbuntuLinux(DebianBasedLinux):
     """ NOTE: Lucid is not supported on XS 6.2 for ISO install but should work for http install"""
@@ -227,6 +238,15 @@ class UbuntuLinux(DebianBasedLinux):
     def isoName(self):
         return "%s_%s_xenrtinst.iso" % (self.distro, self.arch)
 
+    @classmethod
+    def osDetected(cls, parent, password):
+        obj=cls("testdeb", parent, password)
+        isUbuntu = obj.execSSH("grep Ubuntu /etc/lsb-release", retval="code") == 0
+        if not isUbuntu:
+            return (False, password)
+        else:
+            release = obj.execSSH("cat /etc/lsb-release | grep DISTRIB_RELEASE | cut -d = -f 2 | tr -d .")
+            return ("ubuntu%s0_%s" % (release, obj.getArch()), password)
 
 registerOS(DebianLinux)
 registerOS(UbuntuLinux)

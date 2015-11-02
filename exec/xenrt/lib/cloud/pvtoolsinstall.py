@@ -30,7 +30,7 @@ class WindowsXenServerPVToolsInstaller(PVToolsInstaller):
         self.instance.setIso("xs-tools.iso")
     
     def _installMsi(self):
-        self.instance.os.startCmd("D:\\installwizard.msi /passive /liwearcmuopvx c:\\tools_msi_install.log")
+        self.instance.os.cmdStart("D:\\installwizard.msi /passive /liwearcmuopvx c:\\tools_msi_install.log")
 
     def _pollForCompletion(self):
         deadline = xenrt.util.timenow() + 3600
@@ -211,7 +211,7 @@ class WindowsPreTampaXenServer(LegacyWindowsTampaXenServer):
 
         # Kill the autorun version
         self.instance.os.killAll("xensetup.exe")
-        self.instance.os.startCmd("d:\\xensetup.exe /S")
+        self.instance.os.cmdStart("d:\\xensetup.exe /S")
 
     def _pollForCompletion(self):
         # Wait until we see a reduction in uptime

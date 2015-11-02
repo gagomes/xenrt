@@ -51,7 +51,7 @@ class XLToolstack(object):
         else:
             hv.shutdownInstance(instance.name)
 
-        instance.poll(xenrt.PowerState.down)
+        instance.pollOSPowerState(xenrt.PowerState.down)
 
     def existingInstance(self, name):
         raise xenrt.XRTError("Not implemented")

@@ -57,7 +57,7 @@ class WindowsImagingComponent(WindowsPackage):
                              (xenrt.TEC().lookup("TEST_TARBALL_BASE")),
                              "c:\\")
         exe = self._os.getArch() == "amd64" and "wic_x64_enu.exe" or "wic_x86_enu.exe"
-        self._os.execCmd("c:\\wic\\%s /quiet /norestart" % exe,
+        self._os.cmdExec("c:\\wic\\%s /quiet /norestart" % exe,
                         timeout=3600, returnerror=False)
         
         # CA-114127 - sleep to stop this interfering with .net installation later??
@@ -86,16 +86,16 @@ Add-WindowsFeature as-net-framework"""
             self._os.writeFile(filename=filename, data=fileData)
             self._os.enablePowerShellUnrestricted()
 
-            rData = self._os.execCmd('%s' % (filename),
+            rData = self._os.cmdExec('%s' % (filename),
                                      desc='Install .Net 3.5',
                                      returndata=False, returnerror=True,
                                      timeout=1200, powershell=True)
         elif self._os.distro.startswith('win8') or self._os.distro.startswith('ws12'):
             self._os.parent.setInstanceIso('%s.iso' % (self._os.distro), xenrt.IsoRepository.Windows)
-            self._os.execCmd("dism.exe /online /enable-feature /featurename:NetFX3 /All /Source:D:\sources\sxs /LimitAccess",timeout=3600)
+            self._os.cmdExec("dism.exe /online /enable-feature /featurename:NetFX3 /All /Source:D:\sources\sxs /LimitAccess",timeout=3600)
         else:
             self._os.unpackTarball("%s/dotnet35.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\", patient=True)
-            self._os.execCmd("c:\\dotnet35\\dotnetfx35.exe /q /norestart", timeout=3600, returnerror=False)
+            self._os.cmdExec("c:\\dotnet35\\dotnetfx35.exe /q /norestart", timeout=3600, returnerror=False)
 
 RegisterWindowsPackage(DotNet35)
 
@@ -107,7 +107,7 @@ class DotNet4(WindowsPackage):
     def _installPackage(self):
         self._os.createDir("c:\\dotnet40logs")
         self._os.unpackTarball("%s/dotnet40.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\", patient=True)
-        self._os.execCmd("c:\\dotnet40\\dotnetfx40.exe /q /norestart /log c:\\dotnet40logs\\dotnet40log", timeout=3600, returnerror=False)
+        self._os.cmdExec("c:\\dotnet40\\dotnetfx40.exe /q /norestart /log c:\\dotnet40logs\\dotnet40log", timeout=3600, returnerror=False)
     
     def _packageInstalled(self):
         val = 0
@@ -127,7 +127,7 @@ class DotNet451(WindowsPackage):
     def _installPackage(self):
         self._os.createDir("c:\\dotnet451logs")
         self._os.unpackTarball("%s/dotnet451.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\", patient=True)
-        self._os.execCmd("c:\\dotnet451\\NDP451-KB2858728-x86-x64-AllOS-ENU.exe /q /norestart /log c:\\dotnet451logs\\dotnet451log", timeout=3600, returnerror=False)
+        self._os.cmdExec("c:\\dotnet451\\NDP451-KB2858728-x86-x64-AllOS-ENU.exe /q /norestart /log c:\\dotnet451logs\\dotnet451log", timeout=3600, returnerror=False)
     
     def _packageInstalled(self):
         val = 0
@@ -159,7 +159,7 @@ class DotNet2(WindowsPackage):
                                  (xenrt.TEC().lookup("TEST_TARBALL_BASE")),
                                  "c:\\")
         exe = self._os._os.getArch() == "amd64" and "NetFx20SP2_x64.exe" or "NetFx20SP2_x86.exe"
-        self._os.execCmd("c:\\dotnet\\%s /q /norestart" % exe,
+        self._os.cmdExec("c:\\dotnet\\%s /q /norestart" % exe,
                         timeout=3600, returnerror=False)
 
 RegisterWindowsPackage(DotNet2)
@@ -176,22 +176,22 @@ class WindowsInstaller(WindowsPackage):
                                  "c:\\")
         if self._os.windowsVersion() == "6.0":
             if self._os.getArch() == "amd64":  
-                self._os.execCmd("c:\\wininstaller\\Windows6.0-KB942288-v2-x64.msu /quiet /norestart",
+                self._os.cmdExec("c:\\wininstaller\\Windows6.0-KB942288-v2-x64.msu /quiet /norestart",
                                  timeout=3600, returnerror=False)
             else:
-                self._os.execCmd("c:\\wininstaller\\Windows6.0-KB942288-v2-x86.msu /quiet /norestart",
+                self._os.cmdExec("c:\\wininstaller\\Windows6.0-KB942288-v2-x86.msu /quiet /norestart",
                                  timeout=3600, returnerror=False)
         elif self._os.windowsVersion() == "5.1":
             if self._os.getArch() == "amd64":
                 raise xenrt.XRTError("No 64-bit XP Windows Installer available")
-            self._os.execCmd("c:\\wininstaller\\WindowsXP-KB942288-v3-x86.exe /quiet /norestart",
+            self._os.cmdExec("c:\\wininstaller\\WindowsXP-KB942288-v3-x86.exe /quiet /norestart",
                             timeout=3600, returnerror=False)
         else:
             if self._os.getArch() == "amd64":  
-                self._os.execCmd("c:\\wininstaller\\WindowsServer2003-KB942288-v4-x64.exe /quiet /norestart",
+                self._os.cmdExec("c:\\wininstaller\\WindowsServer2003-KB942288-v4-x64.exe /quiet /norestart",
                                  timeout=3600, returnerror=False)
             else:
-                self._os.execCmd("c:\\wininstaller\\WindowsServer2003-KB942288-v4-x86.exe /quiet /norestart",
+                self._os.cmdExec("c:\\wininstaller\\WindowsServer2003-KB942288-v4-x86.exe /quiet /norestart",
                                  timeout=3600, returnerror=False)
 
 RegisterWindowsPackage(WindowsInstaller)
@@ -238,7 +238,7 @@ class PowerShell20(WindowsPackage):
         
         t = self._os.tempDir()
         self._os.unpackTarball("%s/%s.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE"),self._packageName), t)
-        self._os.execCmd("%s\\%s\\%s /quiet /norestart" % (t, self._packageName,exe), returnerror=False, timeout=600)
+        self._os.cmdExec("%s\\%s\\%s /quiet /norestart" % (t, self._packageName,exe), returnerror=False, timeout=600)
         self._os.reboot()
         
 RegisterWindowsPackage(PowerShell20)
@@ -273,7 +273,7 @@ class PowerShell30(WindowsPackage):
         
         t = self._os.tempDir()
         self._os.unpackTarball("%s/%s.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE"),self._packageName), t)
-        self._os.execCmd("%s\\%s\\%s /quiet /norestart" % (t, self._packageName,exe), returnerror=False, timeout=600)
+        self._os.cmdExec("%s\\%s\\%s /quiet /norestart" % (t, self._packageName,exe), returnerror=False, timeout=600)
         self._os.reboot()
         
 RegisterWindowsPackage(PowerShell30)

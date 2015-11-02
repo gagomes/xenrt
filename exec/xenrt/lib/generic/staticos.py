@@ -20,23 +20,20 @@ class StaticOS(object):
     def hypervisorType(self):
         return None
 
-    def poll(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
+    def pollOSPowerState(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
         """Poll for reaching the specified state"""
         raise xenrt.XRTError("Not supported")
 
     def getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
         return self.mainip
 
-    def getIPAndPort(self, trafficType, timeout=600, level=xenrt.RC_ERROR):
-        return (self.mainip, self.os.tcpCommunicationPorts[trafficType])
-
     def getPort(self, trafficType):
-        return self.os.tcpCommunicationPorts[trafficType]
+        return None
 
     def setIP(self, ip):
         raise xenrt.XRTError("Not implemented")
 
-    def start(self, on=None, timeout=600):
+    def startOS(self):
         raise xenrt.XRTError("Not implemented")
 
     def setIso(self, isoName, isoRepo=None):

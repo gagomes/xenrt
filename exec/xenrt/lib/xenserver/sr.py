@@ -106,19 +106,19 @@ class StorageRepository(object):
         @return: an instance of the class with the SR metadata populated
         @rtype: StorageRepository or decendent
         """
-        xsr = next((sr for sr in host.asXapiObject().SR(False) if sr.uuid == sruuid), None)
+        xsr = next((sr for sr in host.xapiObject.SRs if sr.uuid == sruuid), None)
 
         if not xsr:
             raise ValueError("Could not find sruuid %s on host %s" %(sruuid, host))
 
-        instance = cls(host, xsr.name())
+        instance = cls(host, xsr.name)
         instance.uuid = xsr.uuid
-        instance.srtype = xsr.srType()
+        instance.srtype = xsr.srType
         instance.host = host
 
-        xpbd = next((p for p in xsr.PBD() if p.host() == host.asXapiObject()), None)
-        instance.dconf = xpbd.deviceConfig()
-        instance.content_type = xsr.contentType()
+        xpbd = next((p for p in xsr.PBDs if p.host == host.xapiObject), None)
+        instance.dconf = xpbd.deviceConfig
+        instance.content_type = xsr.contentType
         return instance
 
     @property

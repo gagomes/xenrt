@@ -2228,7 +2228,7 @@ class TCVerifyLackOfMobility(VGPUOwnedVMsTest):
     def __createSxmMap(self, vm):
         """Here be dragons"""
         #Need a dictionary of pairs where key = vdi uuid and value = sr.uuid for the VDIs to be moved
-        return dict([(vdi.uuid, vdi.SR().uuid) for vdi in vm.asXapiObject().VDI()])
+        return dict([(vdi.uuid, vdi.SR.uuid) for vdi in vm.xapiObject.VDIs])
 
     def __migrateRunningHost(self, host, vm, live = "false", sxm = False):
         if vm.getState() != "UP":

@@ -9,8 +9,8 @@
   </prepare>
 
   <testsequence>
-    <testcase id="xenserver.tc.thinlvhd.ThinProvisionVerification" tc="TC-27031" name="ThinProvision">
-      <arg>lvmoiscsi,lvmohba</arg>
+    <testcase id="xenserver.tc.thinlvhd.ThinProvisionVerification" tc="TC-27031" name="ThinProvisionHBA">
+      <arg>lvmohba</arg>
     </testcase>
   </testsequence>
 </xenrt>

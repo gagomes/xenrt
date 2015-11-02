@@ -81,7 +81,7 @@ class _JobBase(_MachineBase):
                     statuscond.append("j.jobstatus=%s")
                     params.append(s)
                 elif s != 'removed':
-                    raise XenRTAPIError(HTTPBadRequest, "Invalid job status requested")
+                    raise XenRTAPIError(self, HTTPBadRequest, "Invalid job status requested")
             if "removed" in status:
                 statuscond.append("j.removed='yes'")
             else:
@@ -129,7 +129,7 @@ class _JobBase(_MachineBase):
        
         if len(jobs.keys()) == 0:
             if exceptionIfEmpty:
-                raise XenRTAPIError(HTTPNotFound, "Job not found")
+                raise XenRTAPIError(self, HTTPNotFound, "Job not found")
             return jobs
 
         jobidlist = ", ".join(["%s"] * len(jobs.keys()))
@@ -516,7 +516,7 @@ class RemoveJobs(_JobBase):
             else:
                 j = {}
         except Exception, e:
-            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+            raise XenRTAPIError(self, HTTPBadRequest, str(e).split("\n")[0])
         for job in j['jobs']:
             self.removeJob(job, commit=False, returnJobInfo=False)
         self.getDB().commit()
@@ -562,7 +562,7 @@ class RemoveJob(_JobBase):
             else:
                 j = {}
         except Exception, e:
-            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+            raise XenRTAPIError(self, HTTPBadRequest, str(e).split("\n")[0])
         job = int(self.request.matchdict['id'])
         jobinfo = self.removeJob(job)
         if j.get('return_machines'):
@@ -775,7 +775,7 @@ class NewJob(_JobBase):
         
         if jobGroup:
             if not re.match("^SR\d+$", jobGroup['id']):
-                raise XenRTAPIError(HTTPBadRequest, "Job group must be of form SRnnnnn")
+                raise XenRTAPIError(self, HTTPBadRequest, "Job group must be of form SRnnnnn")
             cur.execute("INSERT INTO tblJobGroups (gid, jobid, description) VALUES " \
                         "(%s, %s, %s);", [jobGroup['id'], self.jobid, jobGroup['tag']])
             params['JOBGROUP'] = jobGroup['id']
@@ -819,7 +819,7 @@ class NewJob(_JobBase):
             j = json.loads(self.request.body)
             jsonschema.validate(j, self.DEFINITIONS['newjob'])
         except Exception, e:
-            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+            raise XenRTAPIError(self, HTTPBadRequest, str(e).split("\n")[0])
         return self.newJob(pools=j.get("pools"),
                            numberMachines=j.get("machines"),
                            specifiedMachines=j.get("specified_machines"),
@@ -912,7 +912,7 @@ class GetJobDeployment(_JobBase):
             r.raise_for_status()
             return r.json()
         except Exception, e:
-            raise XenRTAPIError(HTTPNotFound, str(e))
+            raise XenRTAPIError(self, HTTPNotFound, str(e))
 
 class UpdateJob(_JobBase):
     REQTYPE="POST"
@@ -956,7 +956,7 @@ class UpdateJob(_JobBase):
             j = json.loads(self.request.body)
             jsonschema.validate(j, self.DEFINITIONS['updatejob'])
         except Exception, e:
-            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+            raise XenRTAPIError(self, HTTPBadRequest, str(e).split("\n")[0])
         if j.get('params'):
             for p in j['params'].keys():
                 self.updateJobField(int(self.request.matchdict['id']), p, j['params'][p], commit=False)
@@ -1017,7 +1017,7 @@ class NewJobLogItem(_JobBase):
             j = json.loads(self.request.body)
             jsonschema.validate(j, self.DEFINITIONS['addjoblogitem'])
         except Exception, e:
-            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+            raise XenRTAPIError(self, HTTPBadRequest, str(e).split("\n")[0])
         db = self.getDB()
         cur = db.cursor()
         timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))

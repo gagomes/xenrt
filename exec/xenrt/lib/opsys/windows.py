@@ -1162,6 +1162,16 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
                 self.checkHealth()
             raise
 
+    def winRegExists(self, hive, key, name ,healthCheckOnFailure=True, suppressLogging=False):
+        """Check if registry key exists"""
+        try:
+            self.winRegLookup(hive, key, name ,healthCheckOnFailure, suppressLogging)
+        except Exception, e:
+            xenrt.TEC().logverbose("Registry key %s does not exist"% key)
+            return False
+        xenrt.TEC().logverbose("Registry key %s does exist"% key)
+        return True
+
     def winRegAdd(self, hive, key, name, vtype, value):
         """Add a value to the Windows registry"""
         xenrt.TEC().logverbose("Registry add on %s %s:%s %s=%s (%s)" %

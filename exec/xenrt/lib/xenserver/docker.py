@@ -12,7 +12,7 @@ from abc import ABCMeta, abstractmethod
 
 __all__ = ["ContainerState", "ContainerXapiOperation", "ContainerType",
            "XapiPluginDockerController", "LinuxDockerController", "OperationMethod",
-           "CoreOSDocker", "CentOSDocker", "UbuntuDocker"]
+           "CoreOSDocker", "CentOSDocker"]
 
 """
 Factory class for docker container.
@@ -591,9 +591,10 @@ class Docker(object):
         """Check for a working docker install"""
 
         xenrt.TEC().logverbose("checkDocker: Checking the installation of Docker on guest %s" % self.guest)
-    
-        guestCmdOut = self.guest.execguest("docker info").strip()
-        if "Storage Driver:" in guestCmdOut:
+
+        guestCmdOut = self.guest.execguest("docker run hello-world").strip() 
+
+        if "Hello from Docker" in guestCmdOut:
             xenrt.TEC().logverbose("Docker installation is running on guest %s" % self.guest)
         else: 
             raise xenrt.XRTError("Failed to find a running instance of Docker on guest %s" % self.guest)
@@ -725,52 +726,25 @@ class CentOSDocker(Docker):
     def installDocker(self):
 
         xenrt.TEC().logverbose("installDocker: Installation of docker environment on guest %s" % self.guest)
-        cmdOut = self.guest.execguest("yum install -y nmap-ncat docker")
-        if not "Complete" in cmdOut:
-            raise xenrt.XRTError("installDocker: Failed to install docker environment on guest %s" % self.guest)
+        self.guest.execguest("yum install -y nmap-ncat docker")
 
         # Make sure the docker is running.
         self.guest.execguest("systemctl enable docker")
         cmdOut = self.guest.execguest("service docker restart")
 
-        if not "Redirecting" in cmdOut:
-            raise xenrt.XRTError("installDocker: Failed to restart docker service on guest %s" % self.guest)
-
     def updateGuestSourceRpms(self):
 
         xenrt.TEC().logverbose("updateGuestSourceRpms: Updating source rpms before docker installation on %s" % self.guest)
-        #if not self.guest.updateYumConfig(self.guest.distro, self.guest.arch):
-        #    raise xenrt.XRTError("Failed to update XenRT yum repo for %s, %s" %
-        #                                        (self.guest.distro, self.guest.arch))
         self.guest.execguest("mv /etc/yum.repos.d/CentOS-Base.repo.orig /etc/yum.repos.d/CentOS-Base.repo")
 
-class UbuntuDocker(Docker):
-    """Represents a docker installed on ubuntu guest"""
-
-    def installDocker(self):
-
-        xenrt.TEC().logverbose("installDocker: Installation of docker environment on guest %s" % self.guest)
-        cmdOut = self.guest.execguest("apt-get -y --force-yes install nmap docker.io")
-
-        if not "docker.io start" in cmdOut:
-            raise xenrt.XRTError("installDocker: Failed to install docker environment on guest %s" % self.guest)
-
-    def updateGuestSourceRpms(self):
-
-        xenrt.TEC().logverbose("updateGuestSourceRpms: Update on Ubuntu %s is not required" % self.guest)
-
-class DebianDocker(Docker):
+class DebianBasedDocker(Docker): # Debain and Ubuntu.
     """Represents a docker installed on debian guest"""
 
     def installDocker(self):
 
         xenrt.TEC().logverbose("installDocker: Installation of docker environment on guest %s" % self.guest)
-        cmdOut = self.guest.execguest("apt-get -y --force-yes install nmap docker.io")
-
-        if not "Adding group" in cmdOut:
-            raise xenrt.XRTError("installDocker: Failed to install docker environment on guest %s" % self.guest)
+        self.guest.execguest("apt-get -y --force-yes install nmap docker.io")
 
     def updateGuestSourceRpms(self):
 
         xenrt.TEC().logverbose("updateGuestSourceRpms: Update on Debian %s is not required" % self.guest)
-

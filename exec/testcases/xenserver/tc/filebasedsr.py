@@ -13,7 +13,7 @@ class TCFileBasedSRProperty(xenrt.TestCase):
 
     def __getSRObj(self, rule):
 
-        xsr = next((sr for sr in self.host.asXapiObject().SR(False) if rule(sr)), None)
+        xsr = next((sr for sr in self.host.xapiObject.SRs if rule(sr)), None)
 
         if not xsr:
             raise xenrt.XRTError("Cannot find SR with given filter.")
@@ -30,7 +30,7 @@ class TCFileBasedSRProperty(xenrt.TestCase):
         """
         log("Finding SR of which name is %s" % name)
 
-        return self.__getSRObj(lambda sr: sr.name() == name)
+        return self.__getSRObj(lambda sr: sr.name == name)
 
     def getSRObjByUuid(self, uuid):
         """
@@ -56,21 +56,21 @@ class TCFileBasedSRProperty(xenrt.TestCase):
             self.xsr = self.getSRObjByUuid(self.host.getLocalSR())
 
         self.srPath = ""
-        srtype = self.xsr.srType()
+        srtype = self.xsr.srType
         if srtype == "ext":
             self.srPath = "/run/sr-mount/%s" % self.xsr.uuid
         elif srtype == "btrfs" or srtype == "smapiv3local":
-            pbds = self.xsr.PBD()
+            pbds = self.xsr.PBDs
             if len(pbds) != 1:
                 raise xenrt.XRTError("Expected 1 local storage. Found %d." % len(pbds))
-            dconf = pbds[0].deviceConfig()
+            dconf = pbds[0].deviceConfig
             if "uri" not in dconf:
                 raise xenrt.XRTError("PBD(%s) of BTRFS SR (%s) does not have uri in device config." % \
                     (pbds[0].uuid, self.xsr.uuid))
             self.srPath = "/run/sr-mount" + dconf["uri"][len("file://"):]
         elif srtype == "rawnfs" or srtype == "smapiv3shared":
-            pbds = self.xsr.PBD()
-            dconf = pbds[0].deviceConfig()
+            pbds = self.xsr.PBDs
+            dconf = pbds[0].deviceConfig
             if "uri" not in dconf:
                 raise xenrt.XRTError("PBD(%s) of RAWNFS SR (%s) does not have uri in device config." % \
                     (pbds[0].uuid, self.xsr.uuid))
@@ -128,7 +128,7 @@ class TCFileBasedSRProperty(xenrt.TestCase):
         rawPhysicalSize = int(dfoutput[1])
         rawPhysicalUtil = int(dfoutput[2])
         accumVirtualSize = 0
-        accumVirtualSize = sum([vdi.size() for vdi in self.xsr.VDI()])
+        accumVirtualSize = sum([vdi.size for vdi in self.xsr.VDIs])
         log("Current local status: physical size = %d, physical utilisation = %d, accumulated virtual size = %d" % \
             (rawPhysicalSize, rawPhysicalUtil, accumVirtualSize))
 
@@ -142,16 +142,16 @@ class TCFileBasedSRProperty(xenrt.TestCase):
         rawStatus = self.getRawProperties()
 
         log("Verify basic properties.")
-        physicalSize = self.xsr.getIntParam("physical-size")
+        physicalSize = self.xsr.physicalSize
         if rawStatus[0] != physicalSize:
             raise xenrt.XRTFailure("Physical Size mismatched. %s from df / %s in SR property." % (rawStatus[0], physicalSize))
 
-        virtualAlloc = self.xsr.getIntParam("virtual-allocation")
+        virtualAlloc = self.xsr.virtualAllocation
         if rawStatus[2] != virtualAlloc:
-            raise xenrt.XRTFailure("Vitual allocation mismatched. %d from %d VDIs / %s in SR property." % (rawStatus[2], len(self.xsr.VDI()), virtualAlloc))
+            raise xenrt.XRTFailure("Vitual allocation mismatched. %d from %d VDIs / %s in SR property." % (rawStatus[2], len(self.xsr.VDIs), virtualAlloc))
 
         if checkPU:
-            physicalUtil = self.xsr.getIntParam("physical-utilisation")
+            physicalUtil = self.xsr.physicalUtilisation
             if rawStatus[1] != physicalUtil:
                 raise xenrt.XRTFailure("Physical Utilisation mismatched. %d from df / %s in SR property." % (rawStatus[1], physicalUtil))
 
@@ -167,18 +167,18 @@ class TCFileBasedSRProperty(xenrt.TestCase):
         self.__verifyBasicProperties(False)
 
         log("Verify physical utilisation increased.")
-        physicalUtil = self.xsr.getIntParam("physical-utilisation")
+        physicalUtil = self.xsr.physicalUtilisation
         if physicalUtil - self.initialStatus[1] < 200 * xenrt.MEGA:
             raise xenrt.XRTFailure("Physical Utilisation has not increased as expected.")
 
         log("Verify vdi is used properly.")
-        vdiAlloc = self.getRawVDISize(self.guest.asXapiObject().VDI()[0].uuid)
+        vdiAlloc = self.getRawVDISize(self.guest.xapiObject.VDIs[0].uuid)
         if vdiAlloc < 200 * xenrt.MEGA:
             raise xenrt.XRTFailure("VDI used less than expected. Expected at least 200MiB but only %d is in use." % vdiAlloc)
 
     def verifyAfterVDICreated(self):
 
-        before = self.xsr.getIntParam("physical-utilisation")
+        before = self.xsr.physicalUtilisation
 
         log("Creating an 20GiB VDI")
         self.vdi = self.host.createVDI(20 * xenrt.GIGA, self.xsr.uuid)
@@ -186,7 +186,7 @@ class TCFileBasedSRProperty(xenrt.TestCase):
         self.__verifyBasicProperties(False)
 
         log("Verifying physical utilisation is increased less than 200 KiB")
-        physicalUtil = self.xsr.getIntParam("physical-utilisation")
+        physicalUtil = self.xsr.physicalUtilisation
         if physicalUtil - before > 200 * xenrt.KILO:
             raise xenrt.XRTFailure("Physical utilisazion is increased more than 200KiB after empty VDI is creaed.")
 
@@ -196,7 +196,7 @@ class TCFileBasedSRProperty(xenrt.TestCase):
 
     def verifyAfterVDIFilled(self):
 
-        before = self.xsr.getIntParam("physical-utilisation")
+        before = self.xsr.physicalUtilisation
 
         log("Attaching VDI to guest.")
         dev = self.guest.createDisk(vdiuuid=self.vdi, returnDevice=True)
@@ -207,7 +207,7 @@ class TCFileBasedSRProperty(xenrt.TestCase):
         self.__verifyBasicProperties(False)
 
         log("Verifying physical utilisation is increased about 1 GiB")
-        physicalUtil = self.xsr.getIntParam("physical-utilisation")
+        physicalUtil = self.xsr.physicalUtilisation
         if physicalUtil - before > xenrt.GIGA + 20 * xenrt.MEGA or physicalUtil - before < xenrt.GIGA - 20 * xenrt.MEGA:
             raise xenrt.XRTFailure("Physical utilisazion is different more than 20 MiB after 1 GiB writing.")
 

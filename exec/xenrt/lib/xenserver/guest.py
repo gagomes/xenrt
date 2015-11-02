@@ -102,6 +102,9 @@ class Guest(xenrt.GenericGuest):
         self.memory = None # Default to template memory.
         self.vcpus = None # Default to template vcpus.
 
+    def rebootAsync(self, force):
+        self.host.execdom0("xe vm-reboot uuid=%s force=%s >/dev/null 2>&1 </dev/null &" % (self.getUUID(), str(force).lower()))
+
     def _checkPVAddonsInstalled(self):
         """This is require by waitForAgent to check for host license from Dundee onwards """
         return False
@@ -122,9 +125,12 @@ class Guest(xenrt.GenericGuest):
     def getCLIInstance(self):
         return self.getHost().getCLIInstance()
 
-    def asXapiObject(self):
-        objType = xenrt.lib.xenserver.VM.OBJECT_TYPE
-        return xenrt.lib.xenserver.objectFactory().getObject(objType)(self.getCLIInstance(), objType, self.uuid)
+    @property
+    def xapiObject(self):
+        """Gets a XAPI VM object for this Guest
+        @return: A xenrt.lib.xenserver.VM object for this Guest
+        @rtype: xenrt.lib.xenserver.VM"""
+        return xenrt.lib.xenserver.VM(self.getCLIInstance(), self.uuid)
 
     def getAllowedOperations(self):
 
@@ -6255,9 +6261,9 @@ default:
         elif self.distro.startswith("centos"): # CentOS7
             return xenrt.lib.xenserver.docker.CentOSDocker(self.getHost(), self, controller)
         elif self.distro.startswith("ubuntu"): #  Ubuntu 14.04
-            return xenrt.lib.xenserver.docker.UbuntuDocker(self.getHost(), self, controller)
+            return xenrt.lib.xenserver.docker.DebianBasedDocker(self.getHost(), self, controller)
         elif self.distro.startswith("debian"): #  Debian Jessie 8.0
-            return xenrt.lib.xenserver.docker.DebianDocker(self.getHost(), self, controller)
+            return xenrt.lib.xenserver.docker.DebianBasedDocker(self.getHost(), self, controller)
         else:
             raise xenrt.XRTFailure("Docker installation unimplemented on distro %s" % self.distro)
 

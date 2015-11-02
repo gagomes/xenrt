@@ -168,7 +168,7 @@ class NewEvent(XenRTAPIv2Page):
             params = json.loads(self.request.body)
             jsonschema.validate(params, self.DEFINITIONS['event'])
         except Exception, e:
-            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+            raise XenRTAPIError(self, HTTPBadRequest, str(e).split("\n")[0])
         timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
         etype = params["event_type"]
         subject = params["subject"]
@@ -226,10 +226,10 @@ class GetEvents(XenRTAPIv2Page):
     def render(self):
         subject = self.getMultiParam("subject")
         if not subject:
-           raise XenRTAPIError(HTTPBadRequest, "No subject specified") 
+           raise XenRTAPIError(self, HTTPBadRequest, "No subject specified") 
         etype = self.getMultiParam("type")
         if not etype:
-           raise XenRTAPIError(HTTPBadRequest, "No event type specified") 
+           raise XenRTAPIError(self, HTTPBadRequest, "No event type specified") 
         start = self.request.params.get('start')
         start = int(start) if start else None
         end = self.request.params.get('end')
@@ -328,7 +328,7 @@ class NewLogData(XenRTAPIv2Page):
             params = json.loads(self.request.body)
             jsonschema.validate(params, self.DEFINITIONS['logdata'])
         except Exception, e:
-            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+            raise XenRTAPIError(self, HTTPBadRequest, str(e).split("\n")[0])
         db = self.getDB()
         timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
         id = string.atoi(self.request.matchdict["id"])
@@ -361,7 +361,7 @@ class NewLogData(XenRTAPIv2Page):
                 cur.close()
                 db.rollback()
                 db.close()
-                raise XenRTAPIError(HTTPNotFound, "Could not find test in database")
+                raise XenRTAPIError(self, HTTPNotFound, "Could not find test in database")
             else:
                 detailid = int(rc[0])
         else:
@@ -450,7 +450,7 @@ class SetResult(XenRTAPIv2Page):
             params = json.loads(self.request.body)
             jsonschema.validate(params, self.DEFINITIONS['testresult'])
         except Exception, e:
-            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+            raise XenRTAPIError(self, HTTPBadRequest, str(e).split("\n")[0])
         db = self.getDB()
         timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
         id = string.atoi(self.request.matchdict["id"])
@@ -481,7 +481,7 @@ class SetResult(XenRTAPIv2Page):
         rc = cur.fetchone()
         if not rc:
             cur.close()
-            raise XenRTAPIError(HTTPNotFound, "Could not find test in database")
+            raise XenRTAPIError(self, HTTPNotFound, "Could not find test in database")
         else:
             detailid = int(rc[0])
             cur.execute(

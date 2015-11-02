@@ -13,7 +13,7 @@ class DotNetAgentAdapter(object):
         self.__licenseFactory = XenServerLicenseFactory()
         self.__v6 = licenseServer.getV6LicenseServer()
         self.__licensedEdition = xenrt.TEC().lookup("LICENSED_EDITION")
-        self._unlicensedEdition = xenrt.TEC().lookup("UNLICENSED_EDITION")
+        self.__unlicensedEdition = xenrt.TEC().lookup("UNLICENSED_EDITION")
 
 
     def applyLicense(self, hostOrPool, sku = None):
@@ -30,7 +30,7 @@ class DotNetAgentAdapter(object):
         hostOrPool.licenseApply(self.__v6, license)
 
     def releaseLicense(self, hostOrPool):
-        self.applyLicense(hostOrPool, self._unlicensedEdition)
+        self.applyLicense(hostOrPool, self.__unlicensedEdition)
 
     def checkLicenseState(self,hostOrPool):
         hostOrPool.checkLicenseState(self.__licensedEdition)
@@ -55,26 +55,24 @@ class DotNetAgentAdapter(object):
 
     def settingsCleanup(self, host):
         xenrt.TEC().logverbose("-----Cleanup settings-----")
-        try:
+        if host.xenstoreExists("/guest_agent_features/Guest_agent_auto_update/parameters/enabled"):
             host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_enabled"%host.getPool().getUUID())
-        except Exception, e:
-            xenrt.TEC().logverbose("%s"%e)
-        try:
+        if host.xenstoreExists("/guest_agent_features/Guest_agent_auto_update/parameters/update_url"):
             host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_url"%host.getPool().getUUID())
-        except Exception, e:
-            xenrt.TEC().logverbose("%s"%e)
 
     def nonCryptoMSIInstalled(self,guest):
         os = guest.getInstance().os
         arch = os.getArch()
-        try:
-            if "64" in arch:
+        if "64" in arch:
+            if os.winRegExists("HKLM","SOFTWARE\\Wow6432Node\\Citrix\\XenTools","UncryptographicallySignedMSI",healthCheckOnFailure=False):
                 key = os.winRegLookup("HKLM","SOFTWARE\\Wow6432Node\\Citrix\\XenTools","UncryptographicallySignedMSI",healthCheckOnFailure=False)
-            else:
+
+        if "86" in arch:
+            if os.winRegExists("HKLM","SOFTWARE\\Citrix\\XenTools","UncryptographicallySignedMSI",healthCheckOnFailure=False):
                 key = os.winRegLookup("HKLM","SOFTWARE\\Citrix\\XenTools","UncryptographicallySignedMSI",healthCheckOnFailure=False)
-            if key:
-                return True
-        except:
+        if key:
+            return True
+        else:
             return False
 
     def getNonCryptoMSIs(self, server):
@@ -136,8 +134,6 @@ class DotNetAgentTestCases(xenrt.TestCase):
             self.win2.revert(self.win2.xapiObject.snapshot()[0].uuid)
         self.getGuest("server").revert(self.getGuest("server").xapiObject.snapshot()[0].uuid)
         self.getGuest("server").start()
-        #self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")).revert(self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")).asXapiObject().snapshot()[0].uuid)
-        #self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")).start()
 
     def postRun(self):
         self.adapter.cleanupLicense(self.getDefaultPool())
@@ -240,79 +236,62 @@ class ToggleAUHierarchy(DotNetAgentTestCases):
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.disable()
-
-        keyPresent = autoupdate.checkKeyPresent()
-        updateIsActive = autoupdate.isActive()
-
-        xenrt.TEC().logverbose(type(autoupdate.actor))
-        xenrt.TEC().logverbose(dir(keyPresent))
-        xenrt.TEC().logverbose(type(keyPresent))
-        xenrt.TEC().logverbose(type(True))
-        xenrt.TEC().logverbose("*****%s : %s*****"%(keyPresent, True ))
-        if autoupdate.checkKeyPresent() and not autoupdate.isActive():
-            pass
-        else:
-            raise xenrt.XRTFailure("Xapi does not indicate that AutoUpdate is disabled")
+        assertions.assertFalse(autoupdate.checkKeyPresent() and not autoupdate.isActive(),"Xapi does not indicate that AutoUpdate is disabled")
         autoupdate.setUserVMUser()
-        if autoupdate.checkKeyPresent():
-            raise xenrt.XRTFailure("DisableAutoUpdate reg key is present")
+        assertions.assertFalse(autoupdate.checkKeyPresent(),"DisableAutoUpdate reg key is present")
         self._shouldNotBePinged(trigger,server)
         autoupdate.enable()
         self._shouldBePinged(trigger,server)
         autoupdate.setUserPoolAdmin()
         autoupdate.disable()
-        if autoupdate.checkKeyPresent() and not autoupdate.isActive():
-            pass
-        else:
-            raise xenrt.XRTFailure("Xapi does not indicate that AutoUpdate is disabled")
+        assertions.assertFalse(autoupdate.checkKeyPresent() and not autoupdate.isActive(),"Xapi does not indicate that AutoUpdate is disabled")
         autoupdate.setUserVMUser()
-        if autoupdate.checkKeyPresent() and autoupdate.isActive():
-            pass
-        else:
-            raise xenrt.XRTFailure("registry does not indicate that AutoUpdate is enabled")
-        self._shouldBePinged(trigger,server)
+        assertions.assertFalse(autoupdate.checkKeyPresent(),"registry does not indicate that AutoUpdate is enabled")
+        self._shouldNotBePinged(trigger,server)
 
 class URLHierarchy(DotNetAgentTestCases):
 
+    def __defaultServerPinged(self,shouldbe):
+        self.agent.restartAgent()
+        xenrt.sleep(30)
+        if shouldbe:
+            assertions.assertNotNone(self.autoupdate.checkDownloadedMSI(),"MSI did not download from default url")
+        else:
+            assertions.assertNone(self.autoupdate.checkDownloadedMSI(), "MSI was downloaded when it shouldnt be")
+        self.adapter.filesCleanup(self.win1)
+
+    def __poolServerPinged(self):
+        self.autoupdate.enable()
+        self.autoupdate.setURL("http://%s:16000"% self.serverForPool.getIP())
+        self._shouldBePinged(self.trigger,self.serverForPool)
+        self._shouldNotBePinged(self.trigger,self.serverForVM)
+        self.__defaultServerPinged(False)
+
+    def __VMServerPinged(Self):
+        self.autoupdate.setUserVMUser()
+        self.autoupdate.enable()
+        self.autoupdate.setURL("http://%s:16001"% self.serverForPool.getIP())
+        self._shouldNotBePinged(self.trigger,self.serverForPool)
+        self._shouldBePinged(self.trigger,self.serverForVM)
+        self.__defaultServerPinged(False)
+
+    def __defaultURLVMServerPinged(self):
+        self.autoupdate.setUserPoolAdmin()
+        self.autoupdate.defaultURL()
+        self._shouldNotBePinged(self.trigger,self.serverForPool)
+        self._shouldBePinged(self.trigger,self.serverForVM)
+        self.__defaultServerPinged(False)
+
     def run(self, arglist):
-        trigger = AgentTrigger(self.agent)
+        self.trigger = AgentTrigger(self.agent)
         self.adapter.applyLicense(self.getDefaultPool())
-        autoupdate = self.agent.getLicensedFeature("AutoUpdate")
-        serverForPool = self.adapter.setUpServer(self.getGuest("server"),"16000")
-        serverForVM = self.adapter.setUpServer(self.getGuest("server"),"16001")
-        self.agent.restartAgent()
-        xenrt.sleep(30)
-        if autoupdate.checkDownloadedMSI() == None:
-            raise xenrt.XRTFailure("MSI did not download from default url")
-        self.adapter.filesCleanup(self.win1)
-        autoupdate.enable()
-        autoupdate.setURL("http://%s:16000"% serverForPool.getIP())
-        self._shouldBePinged(trigger,serverForPool)
-        self._shouldNotBePinged(trigger,serverForVM)
-        self.agent.restartAgent()
-        xenrt.sleep(30)
-        if autoupdate.checkDownloadedMSI() != None:
-            raise xenrt.XRTFailure("MSI was downloaded when it shouldnt be")
-        self.adapter.filesCleanup(self.win1)
-        autoupdate.setUserVMUser()
-        autoupdate.enable()
-        autoupdate.setURL("http://%s:16001"% serverForPool.getIP())
-        self._shouldNotBePinged(trigger,serverForPool)
-        self._shouldBePinged(trigger,serverForVM)
-        self.agent.restartAgent()
-        xenrt.sleep(30)
-        if autoupdate.checkDownloadedMSI() != None:
-            raise xenrt.XRTFailure("MSI was downloaded when it shouldnt be")
-        self.adapter.filesCleanup(self.win1)
-        autoupdate.setUserPoolAdmin()
-        autoupdate.defaultURL()
-        self._shouldNotBePinged(trigger,serverForPool)
-        self._shouldBePinged(trigger,serverForVM)
-        self.agent.restartAgent()
-        xenrt.sleep(30)
-        if autoupdate.checkDownloadedMSI() != None:
-            raise xenrt.XRTFailure("MSI was downloaded when it shouldnt be")
-        self.adapter.filesCleanup(self.win1)
+        self.autoupdate = self.agent.getLicensedFeature("AutoUpdate")
+        self.serverForPool = self.adapter.setUpServer(self.getGuest("server"),"16000")
+        self.serverForVM = self.adapter.setUpServer(self.getGuest("server"),"16001")
+        self.__defaultServerPinged(True)
+        self.__poolServerPinged()
+        self.__VMServerPinged()
+        self.__defaultURLVMServerPinged()
 
 class ImportAndExport(DotNetAgentTestCases):
 
@@ -368,6 +347,7 @@ class AUByDefault(DotNetAgentTestCases):
         self.adapter.lowerDotNetAgentVersion(self.win1)
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         version = self.agent.agentVersion()
+        self.adapter.lowerDotNetAgentVersion()
         self.agent.restartAgent()
         xenrt.sleep(200)
         assertions.assertNotNone(autoupdate.checkDownloadedMSI(),"Agent did not download MSI")

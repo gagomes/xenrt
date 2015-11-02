@@ -17,3 +17,19 @@ class SXDeployTest(xenrt.TestCase):
         
         sxp.deploy(providerId, host, template.getUUID(), template.password)
 
+class XDPoc(xenrt.TestCase):
+
+    def run(self, arglist):
+
+        # Find the Windows template
+        template = self.getGuest("Windows Server 2012 R2")
+        host = temlate.getHost()
+        sxp = SXProcess("57995", "2", "2957")
+
+        # Find our providerId (TODO: we should store this in the registry)
+        providerName = "xenrt-%d" % xenrt.GEC().jobid()
+        providerId = [x['providerId'] for x in sxp.apiHandler.execute(category="providers") if x['providerName'] == providerName][0]
+
+        sxp.deploy(providerId, host, template.getUUID(), template.password)
+
+        # TODO: Check the correct VMs etc have been deployed

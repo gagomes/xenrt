@@ -54,7 +54,7 @@ class SXProcess(object):
            self.__api = SXAPI(self.apiKey, self.credential)
         return self.__api
 
-    def _mungeDeploymentProfile(self, deploymentProfile, providerId, templateRef, homeServerRef, networkRef, srRef):
+    def _mungeDeploymentProfile(self, deploymentProfile, providerId, templateRef, templatePw, homeServerRef, networkRef, srRef):
         """Munge the deploymentProfile to specify our details"""
 
         profileDetails = deploymentProfile['profileDetails']
@@ -88,14 +88,14 @@ class SXProcess(object):
                 if params.has_key('copy_sr'):
                     params['copy_sr'] = srRef
                 if params.has_key('agent'):
-                    params['agent']['password'] = xenrt.TEC().lookup("DEFAULT_PASSWORD") # TODO: Handle Windows VMs
+                    params['agent']['password'] = templatePw
+                propValue['ui'] = """<ul class="sx-col"><li><strong>XenRT Job Id:</strong><span>%s</span></li></ul>""" % xenrt.GEC().jobid()
                 prop['propertyValue'] = json.dumps(propValue)
-                prop['ui'] = """<ul class="sx-col"><li><strong>XenRT Job Id:</strong><span>%s</span></li></ul>""" % xenrt.GEC().jobid()
             item['attributeValue'] = json.dumps(v)
 
         return deploymentProfile
 
-    def deploy(self, providerId, host, template, profileName=None):
+    def deploy(self, providerId, host, template, templatePw, profileName=None):
         """Deploy the blueprint using the specified host and template"""
         # Get the OpaqueRef's we need
         xapi = host.getAPISession().xenapi
@@ -116,7 +116,7 @@ class SXProcess(object):
             deploymentProfile = self.apiHandler.execute(category="deploymentprofile", sid=str(self.templateDeploymentProfileId))
 
         # Munge it
-        deploymentProfile = self._mungeDeploymentProfile(deploymentProfile, providerId, templateRef, hostRef, networkRef, srRef)
+        deploymentProfile = self._mungeDeploymentProfile(deploymentProfile, providerId, templateRef, templatePw, hostRef, networkRef, srRef)
 
         # Save it
         if not profileName:
@@ -126,5 +126,22 @@ class SXProcess(object):
         
         # Trigger the deployment using the profile
         result = self.apiHandler.execute(category="deploymentprofile", sid=deploymentProfileId, command="deploy", method="POST", params={"processId": self.processId, "name": profileName})
-        xenrt.TEC().logverbose("Result: %s" % str(result))
+        processinstanceId = result['jobdetailid']
 
+        # Wait for the deployment to complete
+        statuses = set()
+        starttime = xenrt.util.timenow()
+        while True:
+            statusresult = self.apiHandler.execute(category="processinstance", sid=processinstanceId, command="processrundetails", method="GET")
+            # Wait until we have all status as either complete or failed
+            statuses = set(map(lambda s: s['status'], statusresult))
+            if statuses.issubset(set(["complete","failed"])):
+                break
+            if (xenrt.util.timenow() - startttime) > 7200:
+                raise xenrt.XRTFailure("Deployment timed out")
+            xenrt.sleep(15)
+
+        if "failed" in statuses:
+            raise xenrt.XRTFailure("One or more steps failed in deployment")
+
+        return result

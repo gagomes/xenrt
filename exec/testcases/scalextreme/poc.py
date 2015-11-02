@@ -9,7 +9,7 @@ class SXDeployTest(xenrt.TestCase):
         # Find the Debian template
         template = self.getGuest("Debian Wheezy 7.0")
         host = template.getHost()
-        sxp = SXProcess("57994", "1", "2947")
+        sxp = SXProcess("57994", "1", template.password, "2947")
 
         # Find our providerId (TODO: we should store this in the registry)
         providerName = "xenrt-%d" % xenrt.GEC().jobid()

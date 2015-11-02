@@ -38,9 +38,9 @@ class _ThinLVHDBase(xenrt.TestCase):
         """
 
         smconf = {}
-        if initialAlloc:
+        if initialAlloc is not None:
             smconf["initial_allocation"] = str(initialAlloc)
-        if quantumAlloc:
+        if quantumAlloc is not None:
             smconf["allocation_quantum"] = str(quantumAlloc)
 
         return smconf
@@ -59,7 +59,7 @@ class _ThinLVHDBase(xenrt.TestCase):
             host = self.getDefaultHost()
         cli = host.getCLIInstance()
 
-        if not obj:
+        if obj is None:
             obj = self.getDefaultSR()
 
         if not isinstance(obj, xenrt.lib.xenserver.StorageRepository):
@@ -109,9 +109,9 @@ class _ThinLVHDBase(xenrt.TestCase):
         @return: created SR object
         """
 
-        if not host:
+        if host is None:
             host = self.getDefaultHost()
-        if not name or len(name) == 0:
+        if name is None or len(name) == 0:
             name = srtype + "sr"
 
         smconf = self.__buildsmconfig(initialAlloc, quantumAlloc)
@@ -238,7 +238,7 @@ class _ThinLVHDBase(xenrt.TestCase):
             data = guest.xmlrpcExec("%s %s" % (xenrt.TEC().lookup("WINDOWS_WRITE"), targetDir), returndata=True)
 
         else:
-            if not targetDir:
+            if targetDir is None:
                 targetDir = guest.execguest("mktemp").strip()
 
             timeout = 900 + ((size / xenrt.GIGA) * 300) # 15 mins + 5 mins per GIGA
@@ -274,7 +274,7 @@ class _ThinLVHDBase(xenrt.TestCase):
         @return: size of VHD file in bytes.
         """
 
-        if not host:
+        if host is None:
             host = self.getDefaultHost()
         return host.getVDIPhysicalSizeAndType(vdiuuid)[0]
 
@@ -292,7 +292,7 @@ class _ThinLVHDBase(xenrt.TestCase):
         if xenrt.TEC().lookup("NO_XENVMD", False, boolean=True):
             return 0
 
-        if not sr:
+        if sr is None:
             host.lookupDefaultSR()
         if isinstance(sr, xenrt.lib.xenserver.StorageRepository):
             sruuid = sr.uuid
@@ -311,15 +311,15 @@ class _ThinLVHDBase(xenrt.TestCase):
         """
 
         initial = self.getInitialAllocation(vdi)
-        if initial == None:
+        if initial is None:
             initial = self.getInitialAllocation(sr)
-        if initial == None:
+        if initial is None:
             raise xenrt.XRTError("Neither VDI nor SR has initial_allocation in sm-config.")
 
         quantum = self.getAllocationQuantum(vdi)
-        if quantum == None:
+        if quantum is None:
             quantum = self.getAllocationQuantum(sr)
-        if quantum == None:
+        if quantum is None:
             raise xenrt.XRTError("Neither VDI nor SR has allocation_quantum in sm-config.")
 
         vdisize = self.getPhysicalVDISize(vdi)
@@ -410,7 +410,7 @@ class ThinProvisionVerification(_ThinLVHDBase):
         else:
             raise xenrt.XRTError("Unknown SR Type")
 
-    def prepare(self, arglist=None):
+    def prepare(self, arglist):
         self.host = self.getDefaultHost()
         self.srtypes=arglist[0].split(",")
 
@@ -657,7 +657,7 @@ class TCThinAllocation(_ThinLVHDBase):
         guest = args.get("guest", None)
         self.sizebytes= 2 * xenrt.GIGA
         self.host = self.getDefaultHost()
-        if not guest:
+        if guest is None:
             self.guest = self.host.createBasicGuest("generic-linux")
         else:
             self.guest = self.getGuest(guest)
@@ -1152,9 +1152,9 @@ class TCSRUpgrade(_ThinLVHDBase):
         args = []
         args.append("sr-uuid=%s" % (sruuid))
 
-        if not initialAlloc:
+        if initialAlloc is None:
             initialAlloc = self.DEFAULT_INITIAL
-        if not quantumAlloc:
+        if quantumAlloc is None:
             quantumAlloc = self.DEFAULT_QUANTUM
         args.append("initial-allocation=%s" % (initialAlloc))
         args.append("allocation-quantum=%s" % (quantumAlloc))

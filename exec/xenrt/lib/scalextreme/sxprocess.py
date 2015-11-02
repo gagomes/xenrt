@@ -87,6 +87,8 @@ class SXProcess(object):
                         d['sr_ref'] = srRef
                 if params.has_key('copy_sr'):
                     params['copy_sr'] = srRef
+                if params.has_key('agent'):
+                    params['agent']['password'] = xenrt.TEC().lookup("DEFAULT_PASSWORD") # TODO: Handle Windows VMs
                 prop['propertyValue'] = json.dumps(propValue)
                 prop['ui'] = """<ul class="sx-col"><li><strong>XenRT Job Id:</strong><span>%s</span></li></ul>""" % xenrt.GEC().jobid()
             item['attributeValue'] = json.dumps(v)

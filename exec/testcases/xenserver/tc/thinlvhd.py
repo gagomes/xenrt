@@ -22,7 +22,7 @@ class _ThinLVHDBase(xenrt.TestCase):
     VDI_MAX_MARGIN = 1.05
 
     def __init__(self):
-        #self.noxenvmd is True if XENVMD is in use, if False Sanlock is in use
+        #self.noxenvmd is True if Sanlock is in use, if False XENVMD is in use
         self.noxenvmd = xenrt.TEC().lookup("NO_XENVMD", False, boolean=True)
         super(_ThinLVHDBase, self).__init__()
 

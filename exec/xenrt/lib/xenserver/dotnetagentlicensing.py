@@ -169,42 +169,42 @@ class PoolAdmin(ActorImp):
 
 class VMUser(ActorImp):
 
-    self._HIVE_CONST = "HKLM"
-    self._KEY_CONST = "SOFTWARE\\Citrix\\XenTools"
-    self._AU_CONST = "DisableAutoUpdate"
-    self._URL_CONST = "update_url"
+    HIVE_CONST = "HKLM"
+    KEY_CONST = "SOFTWARE\\Citrix\\XenTools"
+    AU_CONST = "DisableAutoUpdate"
+    URL_CONST = "update_url"
 
     def __init__(self,guest,os):
         self.guest = guest
         self.os = os
 
     def isActive(self):
-            key = self.os.winRegLookup(self._HIVE_CONST,self._KEY_CONST,self.AU_CONST)
+            key = self.os.winRegLookup(HIVE_CONST,KEY_CONST,AU_CONST)
             return key != 1
 
     def enable(self):
         xenrt.TEC().logverbose("-----Enabling auto update via VM-----")
-        self.os.winRegAdd(self._HIVE_CONST,self._KEY_CONST,self._AU_CONST,"DWORD",0)
+        self.os.winRegAdd(HIVE_CONST,KEY_CONST,AU_CONST,"DWORD",0)
 
     def disable(self):
         xenrt.TEC().logverbose("-----Disabling auto update via VM-----")
-        self.os.winRegAdd(self._HIVE_CONST,self._KEY_CONST,self._AU_CONST,"DWORD",1)
+        self.os.winRegAdd(HIVE_CONST,KEY_CONST,AU_CONST,"DWORD",1)
 
     def remove(self):
         xenrt.TEC().logverbose("-----Removing VM registry DisableAutoUpdate key-----")
-        self.os.winRegDel(self._HIVE_CONST,self._KEY_CONST,self._AU_CONST)
+        self.os.winRegDel(HIVE_CONST,KEY_CONST,AU_CONST)
 
     def setURL(self,url):
         xenrt.TEC().logverbose("-----Setting VM URL to %s -----"%url)
-        self.os.winRegAdd(self._HIVE_CONST,self._KEY_CONST,self._URL_CONST,"SZ","%s"%url)
+        self.os.winRegAdd(HIVE_CONST,KEY_CONST,URL_CONST,"SZ","%s"%url)
 
     def defaultURL(self):
         xenrt.TEC().logverbose("-----Removing VM URL key-----")
-        self.os.winRegDel(self._HIVE_CONST,self._KEY_CONST,self._URL_CONST)
+        self.os.winRegDel(HIVE_CONST,KEY_CONST,URL_CONST)
 
     def checkKeyPresent(self):
-        if self.os.winRegExists(self._HIVE_CONST,self._KEY_CONST,self._AU_CONST,healthCheckOnFailure=False):
-            key = self.os.winRegLookup(self._HIVE_CONST,self._KEY_CONST,self._AU_CONST,healthCheckOnFailure=False)
+        if self.os.winRegExists(HIVE_CONST,KEY_CONST,AU_CONST,healthCheckOnFailure=False):
+            key = self.os.winRegLookup(HIVE_CONST,KEY_CONST,AU_CONST,healthCheckOnFailure=False)
             if key:
                 return True
         return False

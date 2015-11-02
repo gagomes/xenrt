@@ -228,17 +228,17 @@
       "MINMEMORY": "512"
     },
     "oel62": {
-      "MAXMEMORY": "16384",
+      "MAXMEMORY": "8192",
       "MAXMEMORY64": "131072",
       "MINMEMORY": "512"
     },
     "oel63": {
-      "MAXMEMORY": "16384",
+      "MAXMEMORY": "8192",
       "MAXMEMORY64": "131072",
       "MINMEMORY": "512"
     },
     "oel64": {
-      "MAXMEMORY": "16384",
+      "MAXMEMORY": "8192",
       "MAXMEMORY64": "131072",
       "MINMEMORY": "512"
     },

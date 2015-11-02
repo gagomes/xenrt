@@ -887,7 +887,7 @@ class TC20568(LunPerVDI):
             fcName = ("lvmoHBASR%d" % counter)
             fcSR = xenrt.lib.xenserver.FCStorageRepository(self.hosts[0], fcName, thin_prov=(self.tcsku=="thin"))
             self.lvmohbaSRObject.append(fcSR)
-            fcSR.create(lun.getId())
+            fcSR.create(lun)
             counter = counter + 1
 
         xenrt.TEC().logverbose("Time taken to create %d lvmoHBA SR on master %s is %s seconds." % 

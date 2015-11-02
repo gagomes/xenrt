@@ -135,7 +135,7 @@ class SXProcess(object):
             statusresult = self.apiHandler.execute(category="processinstance", sid=processinstanceId, command="processrundetails", method="GET")
             # Wait until we have all status as either complete or failed
             statuses = set(map(lambda s: s['status'], statusresult))
-            if statuses.issubset(set(["complete","failed"])):
+            if len(statuses) > 0 and statuses.issubset(set(["complete","failed"])):
                 break
             if (xenrt.util.timenow() - startttime) > 7200:
                 raise xenrt.XRTFailure("Deployment timed out")

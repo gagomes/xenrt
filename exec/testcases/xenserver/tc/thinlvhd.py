@@ -21,6 +21,11 @@ class _ThinLVHDBase(xenrt.TestCase):
     VDI_MIN_MARGIN = 0.95
     VDI_MAX_MARGIN = 1.05
 
+    def __init__(self):
+        #self.noxenvmd is True if XENVMD is in use, if False Sanlock is in use
+        self.noxenvmd = xenrt.TEC().lookup("NO_XENVMD", False, boolean=True)
+        super(_ThinLVHDBase, self).__init__()
+
     def prepare(self, arglist=[]):
         self.host = self.getDefaultHost()
         self.srs = self.getThinProvisioningSRs()
@@ -881,9 +886,10 @@ class TCThinLVHDSRProtection(_ThinLVHDBase):
         if not self.checkVdiWrite(self.guest, device, bytetowrite):
             raise xenrt.XRTFailure("Failed to fill host(%s) free space: %d" % (self.slave.uuid, beforedown))
 
-        step("Verify that writing over host free space is not allowed.")
-        if self.checkVdiWrite(self.guest, device, size = bytetowrite + 200 * xenrt.MEGA):
-            raise xenrt.XRTFailure("Host allows writing over host free space. host: %s, free space: %d" % (self.slave.uuid, initial))
+        if not self.noxenvmd:
+            step("Verify that writing over host free space is not allowed with XENVMD")
+            if self.checkVdiWrite(self.guest, device, size = bytetowrite + 200 * xenrt.MEGA):
+                raise xenrt.XRTFailure("Host allows writing over host free space. host: %s, free space: %d" % (self.slave.uuid, initial))
 
         step("Bringing the pool master Up again...")
         self.master.machine.powerctl.on()

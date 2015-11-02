@@ -228,9 +228,6 @@ class VBD(XapiObject):
     def destroy(self):
         self._op("destroy")
         
-    def copy(self, params):
-        return VDI(self.cli, self._op("copy", params))
-
 
 class XapiHost(NamedXapiObject):
     _OBJECT_TYPE = "host"
@@ -327,7 +324,11 @@ class VDI(NamedXapiObject):
     @property
     def size(self):
         return self._getIntParam("virtual-size")
-        
+
+    def copy(self, params):
+        return VDI(self.cli, self._op("copy", params))
+
+
 class Snapshot(NamedXapiObject):
     _OBJECT_TYPE = "snapshot"
 

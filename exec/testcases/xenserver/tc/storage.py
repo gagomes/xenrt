@@ -4503,7 +4503,7 @@ class TCVDICopyDeltas(xenrt.TestCase):
 
         md5 = self.diskMd5Sum(vbd.device)
         
-        vbd.unplug()
+        vbd.unPlug()
         vbd.destroy()
         return md5
     

@@ -36,15 +36,9 @@ class DotNetAgent(object):
         self.licensedFeatures = {'VSS':VSS(self.guest,self.os),'AutoUpdate':AutoUpdate(self.guest,self.os)}
 
     def restartAgent(self):
-        try:
+        if self.isAgentAlive():
             self.os.execCmd("net stop \"XenSvc\" ")
-        except:
-            pass
-        try:
-            self.os.execCmd("net start \"XenSvc\" ")
-        except:
-            pass
-
+        self.os.execCmd("net start \"XenSvc\" ")
 
     def agentVersion(self):
         major = self.os.winRegLookup("HKLM","SOFTWARE\\Citrix\\XenTools","MajorVersion",healthCheckOnFailure=False)
@@ -64,10 +58,7 @@ class DotNetAgent(object):
 
     def isAgentAlive(self):
         info = self.os.execCmd("sc query \"XenSvc\" | find \"RUNNING\"", returndata = True)
-        if "RUNNING" in info:
-            return True
-        else:
-            return False
+        return "RUNNING" in info
 
 class LicensedFeature(object):
     __metaclass__ = ABCMeta
@@ -174,49 +165,48 @@ class PoolAdmin(ActorImp):
 
     def checkKeyPresent(self):
         host = self.guest.host
-        dontakethepiss = host.xenstoreExists("/guest_agent_features/Guest_agent_auto_update/parameters/enabled")
-        xenrt.TEC().logverbose("----xenstore-exists: %s"%dontakethepiss)
-        xenrt.TEC().logverbose("%s" % host.execdom0("xenstore-ls -f"))
-        xenrt.TEC().logverbose(type(dontakethepiss))
-        return True #dontakethepiss
+        return host.xenstoreExists("/guest_agent_features/Guest_agent_auto_update/parameters/enabled")
 
 class VMUser(ActorImp):
+
+    self._HIVE_CONST = "HKLM"
+    self._KEY_CONST = "SOFTWARE\\Citrix\\XenTools"
+    self._AU_CONST = "DisableAutoUpdate"
+    self._URL_CONST = "update_url"
 
     def __init__(self,guest,os):
         self.guest = guest
         self.os = os
 
     def isActive(self):
-            key = self.os.winRegLookup("HKLM","SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate")
+            key = self.os.winRegLookup(self._HIVE_CONST,self._KEY_CONST,self.AU_CONST)
             return key != 1
 
     def enable(self):
         xenrt.TEC().logverbose("-----Enabling auto update via VM-----")
-        self.os.winRegAdd("HKLM","SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate","DWORD",0)
+        self.os.winRegAdd(self._HIVE_CONST,self._KEY_CONST,self._AU_CONST,"DWORD",0)
 
     def disable(self):
         xenrt.TEC().logverbose("-----Disabling auto update via VM-----")
-        self.os.winRegAdd("HKLM","SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate","DWORD",1)
+        self.os.winRegAdd(self._HIVE_CONST,self._KEY_CONST,self._AU_CONST,"DWORD",1)
 
     def remove(self):
         xenrt.TEC().logverbose("-----Removing VM registry DisableAutoUpdate key-----")
-        self.os.winRegDel("HKLM","SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate")
+        self.os.winRegDel(self._HIVE_CONST,self._KEY_CONST,self._AU_CONST)
 
     def setURL(self,url):
         xenrt.TEC().logverbose("-----Setting VM URL to %s -----"%url)
-        self.os.winRegAdd("HKLM","SOFTWARE\\Citrix\\XenTools","update_url","SZ","%s"%url)
+        self.os.winRegAdd(self._HIVE_CONST,self._KEY_CONST,self._URL_CONST,"SZ","%s"%url)
 
     def defaultURL(self):
         xenrt.TEC().logverbose("-----Removing VM URL key-----")
-        self.os.winRegDel("HKLM","SOFTWARE\\Citrix\\XenTools","update_url")
+        self.os.winRegDel(self._HIVE_CONST,self._KEY_CONST,self._URL_CONST)
 
     def checkKeyPresent(self):
-        try:
-            key = self.os.winRegLookup("HKLM","SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate",healthCheckOnFailure=False)
+        if self.os.winRegExists(self._HIVE_CONST,self._KEY_CONST,self._AU_CONST,healthCheckOnFailure=False):
+            key = self.os.winRegLookup(self._HIVE_CONST,self._KEY_CONST,self._AU_CONST,healthCheckOnFailure=False)
             if key:
                 return True
-        except:
-            pass
         return False
 
 class VSS(LicensedFeature):
@@ -268,10 +258,8 @@ class AutoUpdate(ActorAbstract):
 
     def compareMSIArch(self):
         msi = self.checkDownloadedMSI()
-        if msi != None:
-            if msi in self.os.getArch():
-                return True
-        return False
+        return msi in self.os.getArch()
+
 
     def isLicensed(self):
         host = self.guest.host

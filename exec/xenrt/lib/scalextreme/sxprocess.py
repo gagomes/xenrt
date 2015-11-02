@@ -88,6 +88,7 @@ class SXProcess(object):
                 if params.has_key('copy_sr'):
                     params['copy_sr'] = srRef
                 prop['propertyValue'] = json.dumps(propValue)
+                prop['ui'] = """<ul class="sx-col"><li><strong>XenRT Job Id:</strong><span>%s</span></li></ul>""" % xenrt.GEC().jobid()
             item['attributeValue'] = json.dumps(v)
 
         return deploymentProfile

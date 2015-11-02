@@ -5374,10 +5374,10 @@ class TCFCOEAfterUpgrade(FCOELifecycleBase):
     
     def run(self,arglist):
         
-        self.fcLun = self.host.lookup("SR_FCHBA", "LUN0")
-        self.fcSRScsiid = self.host.lookup(["FC", self.fcLun, "SCSIID"], None)
+        self.fcLun = xenrt.HBALun([self.host])
+        self.fcSRScsiid = self.fcLun.getID()
         self.fcSR = xenrt.lib.xenserver.FCOEStorageRepository(self.host, "FCOESR")
-        self.fcSR.create(self.fcSRScsiid)
+        self.fcSR.create(self.fcLun)
         self.host.addSR(self.fcSR, default=True)
         
         self.srs = self.host.getSRs(type = self.SRTYPE)
@@ -5391,12 +5391,10 @@ class TCFCOEBlacklist(xenrt.TestCase):
     
     def prepare(self,arglist=None):
         self.host = self.getDefaultHost()
-        fcoesr = self.host.lookup("SR_FC", "yes")
-        if fcoesr == "yes":
-            fcoesr = "LUN0"
-        self.scsiid = self.host.lookup(["FC", fcoesr, "SCSIID"], None)
+        lun = xenrt.HBALun([self.host])
+        self.scsiid = lun.getID()
         self.sr = xenrt.lib.xenserver.FCOEStorageRepository(self.host, "fcoe")
-        self.sr.create(self.scsiid,multipathing=True)
+        self.sr.create(lun,multipathing=True)
         
         
     def isNICFCOECapable(self,pif):

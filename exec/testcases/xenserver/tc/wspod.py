@@ -48,17 +48,17 @@ class TCStoragePCIPassthrough(xenrt.TestCase):
         self.guest.start()
 
         # Find a LUN to use
-        mylun = [self.host.lookup(["FC", x]) for x in self.host.lookup("FC").keys() if not self.host.lookup(["FC", x, "SHARED"], True, boolean=True)][0]
+        mylun = xenrt.HBALun([self.host])
        
         # Get the windows disk ID based on the LUN ID. This isn't foolproof if there are 2 targets, so may need improving in future.
         disks = json.loads(self.guest.xmlrpcExec(
-            "Get-WmiObject -Class win32_diskdrive | Where {$_.SCSILogicalUnit -eq %d} | Select Name | ConvertTo-Json -Compress" % int(mylun['LUNID']),
+            "Get-WmiObject -Class win32_diskdrive | Where {$_.SCSILogicalUnit -eq %d} | Select Name | ConvertTo-Json -Compress" % mylun.getLunID(),
             powershell=True,
             returndata=True).strip().splitlines()[-1])
 
         mydisk = [re.search("PHYSICALDRIVE(\d+)", x['Name']).group(1) for x in disks if not x['Name'].endswith("PHYSICALDRIVE0")][0]
 
-        if mylun.get('MPCLAIM'):
+        if mylun.getMPClaim():
             # Find out which MPIO disk we need to work on
             mpiodisk = [re.search("^MPIO Disk(\d+)", x).group(1) for x in self.guest.xmlrpcExec("mpclaim -s -d", returndata=True).splitlines() if " Disk %s " % mydisk in x][0]
             
@@ -74,7 +74,7 @@ class TCStoragePCIPassthrough(xenrt.TestCase):
                     valid = True
 
             # Build up the mpclaim command by replacing regular expressions with concrete paths.
-            cmd = mylun['MPCLAIM']
+            cmd = mylun.getMPClaim()
             subs = re.findall("\{PATH:.+?\}", cmd)
             for s in subs:
                 regex = re.match("\{PATH:(.*)\}", s).group(1)

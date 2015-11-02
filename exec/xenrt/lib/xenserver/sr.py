@@ -1304,32 +1304,33 @@ class HBAStorageRepository(StorageRepository):
     THIN_PROV_KEYWORD = "xlvhd"
 
     def create(self,
-               scsiid,
+               lun,
                physical_size="0",
                content_type="",
                multipathing=False,
                smconf={}):
         self.multipathing = multipathing
+        self.lun = lun
         if multipathing:
-            device = "/dev/mapper/%s" % (scsiid)
-            prepdevice = "/dev/disk/by-id/scsi-%s" % (scsiid)
+            device = "/dev/mapper/%s" % (lun.getID())
+            prepdevice = "/dev/disk/by-id/scsi-%s" % (lun.getID())
             self.host.enableMultipathing()
         else:
-            device = "/dev/disk/by-id/scsi-%s" % (scsiid)
+            device = "/dev/disk/by-id/scsi-%s" % (lun.getID())
             prepdevice = device
         try:
             blockdevice = self.host.execdom0("readlink -f %s" % prepdevice).strip()
             if len(blockdevice.split('/')) !=3:
-                raise xenrt.XRTFailure("The block device %s is not detected by the host." % scsiid)
+                raise xenrt.XRTFailure("The block device %s is not detected by the host." % lun.getID())
 
             self.host.execdom0("test -x /opt/xensource/bin/diskprep && /opt/xensource/bin/diskprep -f %s || dd if=/dev/zero of=%s bs=4096 count=10" % (blockdevice, blockdevice))
 
         except:
-            xenrt.TEC().warning("Error erasing disk on %s" % (scsiid))
+            xenrt.TEC().warning("Error erasing disk on %s" % (lun.getID()))
         
         dconf = {}
         dconf["device"] = device
-        dconf["SCSIid"] = scsiid
+        dconf["SCSIid"] = lun.getID()
         self._create("lvmohba",
                      dconf,
                      physical_size=physical_size,
@@ -1344,6 +1345,24 @@ class HBAStorageRepository(StorageRepository):
         if self.multipathing:
             slave.enableMultipathing()
 
+    def destroy(self, release=True):
+        StorageRepository.destroy(self)
+        if release:
+            self.lun.release()
+            self.lun = None
+
+    def forget(self, release=True):
+        StorageRepository.forget(self)
+        if release:
+            self.lun.release()
+            self.lun = None
+
+    def remove(self, release=True):
+        StorageRepository.remove(self)
+        if release:
+            self.lun.release()
+            self.lun = None
+
 class FCOEStorageRepository(StorageRepository):
     """Models a fiber channel or iSCSI via HBA SR"""
 
@@ -1351,31 +1370,32 @@ class FCOEStorageRepository(StorageRepository):
     SHARED = True
 
     def create(self,
-               scsiid,
+               lun,
                physical_size="0",
                content_type="",
                multipathing=False):
         self.multipathing = multipathing
+        self.lun = lun
         if multipathing:
-            device = "/dev/mapper/%s" % (scsiid)
-            prepdevice = "/dev/disk/by-id/scsi-%s" % (scsiid)
+            device = "/dev/mapper/%s" % (lun.getID())
+            prepdevice = "/dev/disk/by-id/scsi-%s" % (lun.getID())
             self.host.enableMultipathing()
         else:
-            device = "/dev/disk/by-id/scsi-%s" % (scsiid)
+            device = "/dev/disk/by-id/scsi-%s" % (lun.getID())
             prepdevice = device
         try:
             blockdevice = self.host.execdom0("readlink -f %s" % prepdevice).strip()
             if len(blockdevice.split('/')) !=3:
-                raise xenrt.XRTFailure("The block device %s is not detected by the host." % scsiid)
+                raise xenrt.XRTFailure("The block device %s is not detected by the host." % lun.getID())
 
             self.host.execdom0("test -x /opt/xensource/bin/diskprep && /opt/xensource/bin/diskprep -f %s || dd if=/dev/zero of=%s bs=4096 count=10" % (blockdevice, blockdevice))
 
         except:
-            xenrt.TEC().warning("Error erasing disk on %s" % (scsiid))
+            xenrt.TEC().warning("Error erasing disk on %s" % (lun.getID()))
         
         dconf = {}
         dconf["device"] = device
-        dconf["SCSIid"] = scsiid
+        dconf["SCSIid"] = lun.getID()
         self._create("lvmofcoe",
                      dconf,
                      physical_size=physical_size,
@@ -1388,7 +1408,12 @@ class FCOEStorageRepository(StorageRepository):
     def prepareSlave(self, master, slave, special=None):
         if self.multipathing:
             slave.enableMultipathing()
-            
+
+    def destroy(self):
+        StorageRepository.destroy(self)
+        self.lun.release()
+        self.lun = None
+
 class FCStorageRepository(HBAStorageRepository):
     pass
 

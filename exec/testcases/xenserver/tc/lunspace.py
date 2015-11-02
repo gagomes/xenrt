@@ -35,7 +35,7 @@ class TC21547(xenrt.TestCase):
         self.lun = self.netAppFiler.getLuns()[0]
         step("The lun is %s" %self.lun)
         self.fcSR = xenrt.lib.xenserver.FCStorageRepository(self.host,"lvmoHBASR", thin_prov=(self.tcsku=="thin"))
-        self.fcSR.create(self.lun.getId())
+        self.fcSR.create(self.lun)
         
     def run(self, arglist=[]):
 
@@ -250,7 +250,7 @@ class TrimFuncNetAppFC(NetappTrimSupportBase):
 
     def createSR(self):
         sr = xenrt.lib.xenserver.FCStorageRepository(self.host, self.SRNAME, thin_prov=self.THINPROVISION)
-        sr.create(self.lun.getId())
+        sr.create(self.lun)
         return sr
 
 class TrimFunctionalTestSSD(xenrt.TestCase):

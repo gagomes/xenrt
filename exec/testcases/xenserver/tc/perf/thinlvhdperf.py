@@ -73,18 +73,16 @@ class ThinLVHDPerfBase(testcases.xenserver.tc.perf.libperf.PerfTestCase):
             sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, "lvmoiscsi", thin_prov=self.thinprov)
             sr.create(lun, subtype="lvm", physical_size=size, findSCSIID=True, noiqnset=True)
         elif self.srtype=="lvmohba":
-            fcLun = self.host.lookup("SR_FCHBA", "LUN0")
-            fcSRScsiid = self.host.lookup(["FC", fcLun, "SCSIID"], None)
+            fcLun = xenrt.HBALun([self.host])
             sr = xenrt.lib.xenserver.FCStorageRepository(self.host,  "lvmohba", thin_prov=self.thinprov)
-            sr.create(fcSRScsiid)
+            sr.create(fcLun)
         elif self.srtype=="nfs":
             sr = xenrt.lib.xenserver.NFSStorageRepository(self.host, "nfssr")
             sr.create()
         elif self.srttype =="lvmofcoe":
-            fcLun = self.host.lookup("SR_FCHBA", "LUN0")
-            fcSRScsiid = self.host.lookup(["FC", fcLun, "SCSIID"], None)
+            fcLun = xenrt.HBALun([self.host])
             sr= xenrt.lib.xenserver.FCOEStorageRepository(self.host, "FCOESR")
-            sr.create(fcSRScsiid)
+            sr.create(fcLun)
         else:
             raise xenrt.XRTError("SR Type: %s not supported in the test" % self.srtype)
 

@@ -98,8 +98,8 @@ class WindowsOS(OS):
     def defaultMemory(self):
         return 2048    
 
-    def __init__(self, distro, parent, password=None):
-        super(WindowsOS, self).__init__(distro, parent, password)
+    def __init__(self, distro, parent):
+        super(self.__class__, self).__init__(distro, parent)
 
         self.distro = distro
         self.isoRepo = xenrt.IsoRepository.Windows
@@ -151,15 +151,22 @@ class WindowsOS(OS):
         
     def waitForInstallCompleteAndFirstBoot(self):
         xenrt.TEC().logverbose("Getting IP address")
-        self.getIP(trafficType="XML/RPC", timeout=10800)
+        self.parent.getIP(trafficType="XML/RPC", timeout=10800)
         xenrt.TEC().logverbose("Got IP, waiting for XML/RPC daemon")
         self.waitForDaemon(14400)
         self.updateDaemon()
         self.tailor()
 
     def tailor(self):
+        self.writeFile("c:\\onboot.cmd", "echo Booted > c:\\booted.stamp")
+        self.winRegAdd("HKLM",
+                       "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\"
+                       "Run",
+                       "Booted",
+                       "SZ",
+                       "c:\\onboot.cmd")
         try:
-            self.cmdExec("""(Get-WmiObject -class "Win32_TSGeneralSetting" -Namespace root\\cimv2\\terminalservices -ComputerName $env:ComputerName -Filter "TerminalName='RDP-tcp'").SetUserAuthenticationRequired(0)""", powershell=True)
+            self.execCmd("""(Get-WmiObject -class "Win32_TSGeneralSetting" -Namespace root\\cimv2\\terminalservices -ComputerName $env:ComputerName -Filter "TerminalName='RDP-tcp'").SetUserAuthenticationRequired(0)""", powershell=True)
         except:
             pass
         try:
@@ -170,9 +177,9 @@ class WindowsOS(OS):
     def enableWinRM(self):
         if self.fileExists("c:\\winrm.stamp"):
             return
-        self.cmdExec("NETSH FIREWALL SET ALLOWEDPROGRAM PROGRAM=c:\\Python27\\python.exe NAME=\"XMLRPCDaemon\" MODE=ENABLE PROFILE=ALL")
+        self.execCmd("NETSH FIREWALL SET ALLOWEDPROGRAM PROGRAM=c:\\Python27\\python.exe NAME=\"XMLRPCDaemon\" MODE=ENABLE PROFILE=ALL")
         self.ensurePackageInstalled("PowerShell 3.0")
-        self.cmdExec("""# Skip network location setting for pre-Vista operating systems
+        self.execCmd("""# Skip network location setting for pre-Vista operating systems
 if([environment]::OSVersion.version.Major -lt 6) { return }
 
 # Skip network location setting if local machine is joined to a domain.
@@ -184,29 +191,30 @@ $connections = $networkListManager.GetNetworkConnections()
 
 # Set network location to Private for all networks
 $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
-        self.cmdExec("""winrm quickconfig -quiet""")
-        self.cmdExec("""winrm set winrm/config/client/auth @{Basic="true"}""")
-        self.cmdExec("""winrm set winrm/config/service/auth @{Basic="true"}""")
-        self.cmdExec("""winrm set winrm/config/service @{AllowUnencrypted="true"}""")
+        self.execCmd("""winrm quickconfig -quiet""")
+        self.execCmd("""winrm set winrm/config/client/auth @{Basic="true"}""")
+        self.execCmd("""winrm set winrm/config/service/auth @{Basic="true"}""")
+        self.execCmd("""winrm set winrm/config/service @{AllowUnencrypted="true"}""")
         self.writeFile("c:\\winrm.stamp", "installed")
 
     def winRM(self):
-        return winrm.Session("http://%s:%d" % (self.getIP(trafficType="WinRM"), self.getPort(trafficType="WinRM")), auth=(self.username, self.password))
+        return winrm.Session("http://%s:%d" % (self.parent.getIP(trafficType="WinRM"), self.parent.getPort(trafficType="WinRM")), auth=(self.username, self.password))
         
     def waitForBoot(self, timeout):
         self.waitForDaemon(timeout)
 
-    def waitForDaemon(self, timeout, level=xenrt.RC_FAIL, desc="Daemon", sleeptime=15, reallyImpatient=False):
+    def waitForDaemon(self, timeout):
+        sleeptime = 15
         now = xenrt.util.timenow()
         deadline = now + timeout
         perrors = 0
         while True:
             xenrt.TEC().logverbose("Checking for exec daemon on %s" %
-                                   (self.getIP()))
+                                   (self.parent.getIP()))
             try:
-                if self._xmlrpc(impatient=True, reallyImpatient=reallyImpatient).isAlive():
+                if self._xmlrpc(impatient=True).isAlive():
                     xenrt.TEC().logverbose(" ... OK reply from %s" %
-                                           (self.getIP()))
+                                           (self.parent.getIP()))
                     return xenrt.RC_OK
             except socket.error, e:
                 xenrt.TEC().logverbose(" ... %s" % (str(e)))
@@ -220,20 +228,18 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
                                     "poll (%s)" % (str(e)))
             now = xenrt.util.timenow()
             if now > deadline:
-                if level == xenrt.RC_FAIL:
-                    self.checkHealth(unreachable=True)
-                raise xenrt.XRT("%s timed out" % desc, level)
+                raise xenrt.XRTFailure("Waiting for XML/RPC timed out")
             xenrt.sleep(sleeptime, log=False)
    
     def getName(self):
         # Temporary function to ease migration from GenericPlace
-        return self.parent.name
+        return self.parent.getIP()
 
     def checkHealth(self, unreachable=False, noreachcheck=False, desc=""):
         # Temporary function to ease migration from GenericPlace
         return
 
-    def _xmlrpc(self, impatient=False, patient=False, reallyImpatient=False, ipOverride=None):
+    def _xmlrpc(self, impatient=False, patient=False, reallyImpatient=False):
         if reallyImpatient:
             trans = MyReallyImpatientTrans()
         elif impatient:
@@ -242,20 +248,18 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             trans = MyPatientTrans()
         else:
             trans = MyTrans()
-        if ipOverride:
-            ip = ipOverride
-        else:
-            ip = IPy.IP(self.getIP(trafficType="XML/RPC"))
+            
+        ip = IPy.IP(self.parent.getIP(trafficType="XML/RPC"))
         url = ""
         if ip.version() == 6:
             url = 'http://[%s]:%d'
         else:
             url = 'http://%s:%d'
-        return xmlrpclib.ServerProxy(url % (self.getIP(trafficType="XML/RPC"), self.getPort(trafficType="XML/RPC")),
+        return xmlrpclib.ServerProxy(url % (self.parent.getIP(trafficType="XML/RPC"), self.parent.getPort(trafficType="XML/RPC")),
                                      transport=trans, 
                                      allow_none=True)
 
-    def cmdExec(self,
+    def execCmd(self,
                 command,
                 level=xenrt.RC_FAIL,
                 desc="Remote command",
@@ -272,7 +276,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
         maxPollPeriod = 16
 
         try:
-            log("Running on %s via %s: %s" % (self.getIP(),
+            log("Running on %s via %s: %s" % (self.parent.getIP(),
                 "WinRM[PS]" if (winrm and powershell) else "WinRM" if winrm else "Powershell" if powershell else "Daemon",
                 command.encode("utf-8")))
 
@@ -319,7 +323,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
                         deadline = started + timeout
                         if now > deadline:
                             xenrt.TEC().logverbose("Timed out polling for %s on %s"
-                                                   % (ref, self.getIP()))
+                                                   % (ref, self.parent.getIP()))
                             return xenrt.XRT("%s timed out" % (desc), level)
                     if currentPollPeriod < maxPollPeriod:
                         currentPollPeriod *= 2
@@ -331,7 +335,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
                     s.cleanup(ref)
                 except Exception, e:
                     xenrt.TEC().warning("Got exception while cleaning up after "
-                                        "cmdExec: %s" % (str(e)))
+                                        "execCmd: %s" % (str(e)))
 
             if data:
                 xenrt.TEC().log(data.encode("utf-8"))
@@ -355,10 +359,10 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
                 self.checkHealth()
             raise
 
-    def cmdStart(self, command):
+    def startCmd(self, command):
         """Asynchronously start a command"""
         xenrt.TEC().logverbose("Starting on %s via daemon: %s" %
-                               (self.getIP(), command.encode("utf-8")))
+                               (self.parent.getIP(), command.encode("utf-8")))
         try:
             ref = self._xmlrpc().runbatch(command.encode("utf-16").encode("uu"))
             xenrt.TEC().logverbose(" ... started")
@@ -367,10 +371,10 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             self.checkHealth()
             raise
         
-    def isDaemonAlive(self, ip=None):
+    def isDaemonAlive(self):
         """Return True if this place has a reachable XML-RPC test daemon"""
         try:
-            if self._xmlrpc(ipOverride=ip).isAlive():
+            if self._xmlrpc().isAlive():
                 return True
         except:
             pass
@@ -378,7 +382,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
 
     def updateDaemon(self):
         """Update the test execution daemon to the latest version"""
-        xenrt.TEC().logverbose("Updating XML-RPC daemon on %s" % (self.getIP()))
+        xenrt.TEC().logverbose("Updating XML-RPC daemon on %s" % (self.parent.getIP()))
         f = file("%s/utils/execdaemon.py" %
                  (xenrt.TEC().lookup("LOCAL_SCRIPTDIR")), "r")
         data = f.read()
@@ -399,26 +403,17 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
 
     def shutdown(self):
         """Use the test execution daemon to shutdown the guest"""
-        xenrt.TEC().logverbose("Shutting down %s" % (self.getIP()))
+        xenrt.TEC().logverbose("Shutting down %s" % (self.parent.getIP()))
         self._xmlrpc().shutdown()
-    
-    def initReboot(self):
-        self._xmlrpc().reboot()
-
+        
     def reboot(self):
         """Use the test execution daemon to reboot the guest"""
-        xenrt.TEC().logverbose("Rebooting %s" % (self.getIP()))
-        self.writeFile("c:\\onboot.cmd", "echo Booted > c:\\booted.stamp")
-        self.winRegAdd("HKLM",
-                       "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\"
-                       "Run",
-                       "Booted",
-                       "SZ",
-                       "c:\\onboot.cmd")
-        self.cmdExec("del c:\\booted.stamp")
+        xenrt.TEC().logverbose("Rebooting %s" % (self.parent.getIP()))
+        self.execCmd("del c:\\booted.stamp")
         deadline = xenrt.util.timenow() + 1800
 
-        self.initReboot() 
+        self._xmlrpc().reboot()
+        
         while True:
             try:
                 if self.fileExists("c:\\booted.stamp"):
@@ -430,7 +425,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             xenrt.sleep(15)
 
 
-    def cmdPoll(self, ref, retries=1):
+    def pollCmd(self, ref, retries=1):
         """Returns True if the command has completed."""
         try:
             while retries > 0:
@@ -449,7 +444,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             self.checkHealth()
             raise
 
-    def cmdGetPID(self, ref):
+    def getCmdPID(self, ref):
         """Returns the PID of the command"""
         try:
             return self._xmlrpc().getPID(ref)
@@ -458,7 +453,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
 
     def createDir(self, pathname):
-        xenrt.TEC().logverbose("CreateDir %s on %s" % (pathname, self.getIP()))
+        xenrt.TEC().logverbose("CreateDir %s on %s" % (pathname, self.parent.getIP()))
         try:
             self._xmlrpc().createDir(pathname)
         except Exception, e:
@@ -522,18 +517,18 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
     
     def getTime(self):
-        xenrt.TEC().logverbose("GetTime on %s" % (self.getIP()))
+        xenrt.TEC().logverbose("GetTime on %s" % (self.parent.getIP()))
         try:
             t = self._xmlrpc().getTime()
             xenrt.TEC().logverbose("GetTime on %s returned %s" %
-                                   (self.getIP(), str(t)))
+                                   (self.parent.getIP(), str(t)))
             return t
         except Exception, e:
             self.checkHealth()
             raise
     
     def getEnvVar(self, var):
-        xenrt.TEC().logverbose("GetEnvVar %s on %s" % (var, self.getIP()))
+        xenrt.TEC().logverbose("GetEnvVar %s on %s" % (var, self.parent.getIP()))
         try:
             return self._xmlrpc().getEnvVar(var)
         except Exception, e:
@@ -542,7 +537,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
  
     def unpackTarball(self, tarball, dest, patient=False):
         xenrt.TEC().logverbose("UnpackTarball %s to %s on %s" %
-                               (tarball, dest, self.getIP()))
+                               (tarball, dest, self.parent.getIP()))
         try:
             return self._xmlrpc(patient=patient).unpackTarball(tarball, dest)
         except Exception, e:
@@ -550,7 +545,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
     
     def tempDir(self, suffix="", prefix="", path=None, patient=False):
-        xenrt.TEC().logverbose("TempDir on %s" % (self.getIP()))
+        xenrt.TEC().logverbose("TempDir on %s" % (self.parent.getIP()))
         try:
             if path:
                 return self._xmlrpc(patient=patient).tempDir(suffix, prefix, path)
@@ -568,7 +563,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
 
     def killAll(self, name):
-        xenrt.TEC().logverbose("KillAll %s on %s" % (name, self.getIP()))
+        xenrt.TEC().logverbose("KillAll %s on %s" % (name, self.parent.getIP()))
         try:
             return self._xmlrpc().killall(name)
         except Exception, e:
@@ -576,7 +571,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
 
     def killProcess(self, pid):
-        xenrt.TEC().logverbose("Kill %s on %s" % (pid, self.getIP()))
+        xenrt.TEC().logverbose("Kill %s on %s" % (pid, self.parent.getIP()))
         try:
             return self._xmlrpc().kill(pid)
         except Exception, e:
@@ -584,7 +579,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
 
     def processList(self):
-        xenrt.TEC().logverbose("PS on %s" % (self.getIP()))
+        xenrt.TEC().logverbose("PS on %s" % (self.parent.getIP()))
         numberOfTimes = 5
         while True:
             try:
@@ -599,7 +594,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
                     raise
     
     def isBigDumpPresent(self, ignoreHealthCheck=False):
-        xenrt.TEC().logverbose("Bugdump on %s" % (self.getIP()))
+        xenrt.TEC().logverbose("Bugdump on %s" % (self.parent.getIP()))
         try:
             s = self._xmlrpc()
             if s.globpath("%s\\MEMORY.DMP" % s.getEnvVar("SystemRoot")):
@@ -612,7 +607,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
     
     def sha1Sum(self, filename, patient=False):
-        xenrt.TEC().logverbose("Sha1Sum on %s" % (self.getIP()))
+        xenrt.TEC().logverbose("Sha1Sum on %s" % (self.parent.getIP()))
         try:
             return self._xmlrpc(patient=patient).sha1Sum(filename)
         except Exception, e:
@@ -620,7 +615,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
 
     def sha1Sums(self, temp, list, patient=False):
-        xenrt.TEC().logverbose("Sha1Sums on %s" % (self.getIP()))
+        xenrt.TEC().logverbose("Sha1Sums on %s" % (self.parent.getIP()))
         try:
             return self._xmlrpc(patient=patient).sha1Sums(temp, list)
         except Exception, e:
@@ -628,7 +623,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
 
     def dirRights(self, dir, patient=False):
-        xenrt.TEC().logverbose("DirRights %s on %s" % (dir, self.getIP()))
+        xenrt.TEC().logverbose("DirRights %s on %s" % (dir, self.parent.getIP()))
         try:
             return self._xmlrpc(patient=patient).dirRights(dir)
         except Exception, e:
@@ -636,15 +631,15 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
 
     def delTree(self, dir, patient=False):
-        xenrt.TEC().logverbose("DelTree %s on %s" % (dir, self.getIP()))
+        xenrt.TEC().logverbose("DelTree %s on %s" % (dir, self.parent.getIP()))
         try:
             return self._xmlrpc(patient=patient).deltree(dir)
         except Exception, e:
             self.checkHealth()
             raise
 
-    def listMiniDumps(self, ignoreHealthCheck=False):
-        xenrt.TEC().logverbose("Minidumps on %s" % (self.getIP()))
+    def listMiniDumpss(self, ignoreHealthCheck=False):
+        xenrt.TEC().logverbose("Minidumps on %s" % (self.parent.getIP()))
         try:
             s = self._xmlrpc()
             return s.globpath("%s\\Minidump\\*" % s.getEnvVar("SystemRoot"))
@@ -656,7 +651,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
     def readFile(self, filename, patient=False, ignoreHealthCheck=False):
         try:
             xenrt.TEC().logverbose("Fetching file %s from %s via daemon" %
-                                   (filename, self.getIP()))
+                                   (filename, self.parent.getIP()))
             s = self._xmlrpc(patient=patient)
             return s.readFile(filename).data
         except Exception, e:
@@ -666,7 +661,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
 
     def getFile(self, remotefn, localfn, patient=False, ignoreHealthCheck=False):
         xenrt.TEC().logverbose("GetFile %s to %s on %s" %
-                               (remotefn, localfn, self.getIP()))
+                               (remotefn, localfn, self.parent.getIP()))
         try:
             data = self.readFile(remotefn, patient=patient, ignoreHealthCheck=ignoreHealthCheck)
             f = file(localfn, "w")
@@ -679,7 +674,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
 
     def getFile2(self, remotefn, localfn, patient=False):
         xenrt.TEC().logverbose("GetFile2 %s to %s on %s" %
-                               (remotefn, localfn, self.getIP()))
+                               (remotefn, localfn, self.parent.getIP()))
         try:
             s = self._xmlrpc(patient=patient)
             databz2 = s.readFileBZ2(remotefn).data
@@ -701,7 +696,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
     def fetchFile(self, url, remotefn):
         try:
             xenrt.TEC().logverbose("Fetching %s to %s on %s via daemon" %
-                                   (url,remotefn,self.getIP()))
+                                   (url,remotefn,self.parent.getIP()))
             s = self._xmlrpc()
             return s.fetchFile(url, remotefn)
         except Exception, e:
@@ -717,7 +712,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
 
     def windowsVersion(self):
-        xenrt.TEC().logverbose("WindowsVersion on %s" % (self.getIP()))
+        xenrt.TEC().logverbose("WindowsVersion on %s" % (self.parent.getIP()))
         try:
             v = self._xmlrpc().windowsVersion()
             xenrt.TEC().logverbose("WindowsVersion returned %s" % str(v))
@@ -727,18 +722,15 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
 
     def getArch(self):
-        xenrt.TEC().logverbose("GetArch on %s" % (self.getIP()))
+        xenrt.TEC().logverbose("GetArch on %s" % (self.parent.getIP()))
         try:
             return self._xmlrpc().getArch()
         except Exception, e:
             self.checkHealth()
             raise
-   
-    def getMemory(complete, unit):
-        return self._xmlrpc().getMemory(complete, unit)
-
+    
     def getCPUs(self):
-        xenrt.TEC().logverbose("GetCPUs on %s" % (self.getIP()))
+        xenrt.TEC().logverbose("GetCPUs on %s" % (self.parent.getIP()))
         patient = xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True) 
         try:
             return self._xmlrpc(patient=patient).getCPUs()
@@ -750,7 +742,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
         """ Get the number of CPU sockets (filled) on the remote system """
         if float(self.windowsVersion()) < 6.0:
             raise xenrt.XRTError("N/A for NT kernel < 6.0")
-        xenrt.TEC().logverbose("GetSockets on %s" % (self.getIP()))
+        xenrt.TEC().logverbose("GetSockets on %s" % (self.parent.getIP()))
         patient = xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True)
         try:
             return self._xmlrpc(patient=patient).getSockets()
@@ -762,7 +754,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
         """ Get the number of cores on each physical CPU on the remote system """
         if float(self.windowsVersion()) < 6.0:
             raise xenrt.XRTError("N/A for NT kernel < 6.0")
-        xenrt.TEC().logverbose("GetCPUCores on %s" % (self.getIP()))
+        xenrt.TEC().logverbose("GetCPUCores on %s" % (self.parent.getIP()))
         patient = xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True) 
         try:
             return self._xmlrpc(patient=patient).getCPUCores()
@@ -774,7 +766,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
         """ Get the number of logical CPUs on each physical CPU on the remote system """
         if float(self.windowsVersion()) < 6.0:
             raise xenrt.XRTError("N/A for NT kernel < 6.0")
-        xenrt.TEC().logverbose("GetCPUVCPUs on %s" % (self.getIP()))
+        xenrt.TEC().logverbose("GetCPUVCPUs on %s" % (self.parent.getIP()))
         patient = xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True) 
         try:
             return self._xmlrpc(patient=patient).getCPUVCPUs()
@@ -783,7 +775,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
     
     def partition(self, disk):
-        xenrt.TEC().logverbose("Partition %s on %s" % (disk, self.getIP()))
+        xenrt.TEC().logverbose("Partition %s on %s" % (disk, self.parent.getIP()))
         try:
             return self._xmlrpc().partition(disk)
         except Exception, e:
@@ -792,19 +784,15 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
 
     def deletePartition(self, letter):
         xenrt.TEC().logverbose("DeletePartition %s on %s" %
-                               (letter, self.getIP()))
+                               (letter, self.parent.getIP()))
         try:
             return self._xmlrpc().deletePartition(letter)
         except Exception, e:
             self.checkHealth()
             raise
    
-    def mapDrive(self, networkLocation, driveLetter):
-        self.cmdExec(r"net use %s: /Delete /y" % driveLetter, level=xenrt.RC_OK)
-        self.cmdExec(r"net use %s: %s"% (driveLetter, networkLocation))
-
     def assignDisk(self, disk):
-        xenrt.TEC().logverbose("Assign %s on %s" % (disk, self.getIP()))
+        xenrt.TEC().logverbose("Assign %s on %s" % (disk, self.parent.getIP()))
         try:
             return self._xmlrpc().assign(disk)
         except Exception, e:
@@ -812,40 +800,12 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
 
     def listDisks(self):
-        xenrt.TEC().logverbose("ListDisks on %s" % (self.getIP()))
+        xenrt.TEC().logverbose("ListDisks on %s" % (self.parent.getIP()))
         try:
             return self._xmlrpc().listDisks()
         except Exception, e:
             self.checkHealth()
             raise
-
-    def diskpartCommand(self, cmd):
-        self.writeFile("c:\\diskpartcmd.txt", cmd)
-        return self.cmdExec("diskpart /s c:\\diskpartcmd.txt", returndata=True)
-
-    def diskpartListDisks(self):
-        disksstr = self.diskpartCommand("list disk")
-        return re.findall("Disk\s+([0-9]*)\s+", disksstr)
-
-    def driveLettersOfDisk(self, diskid):
-        diskdetail = self.diskpartCommand("select disk %s\ndetail disk" % (diskid))
-        return re.findall("Volume [0-9]+\s+([A-Z])", diskdetail)
-
-    def deinitializeDisk(self, diskid):
-        self.diskpartCommand("select disk %s\nclean" % (diskid))
-
-    def initializeDisk(self, diskid, driveLetter='e'):
-        """ Initialize disk, create a single partition on it, activate it and
-        assign a drive letter.
-        """
-        xenrt.TEC().logverbose("Initialize disk %s (letter %s)" % (diskid, driveLetter))
-        return self.diskpartCommand("select disk %s\n"
-                             "attributes disk clear readonly\n"
-                             "convert mbr\n"              # initialize
-                             "create partition primary\n" # create partition
-                             "active\n"                   # activate partition
-                             "assign letter=%s"           # assign drive letter
-                             % (diskid, driveLetter))
 
     def markDiskOnline(self, diskid=None):
         """ mark disk online by diskid. The function will fail if the diskid is
@@ -853,7 +813,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
         the function will mark any offline disk as online.
         """
         xenrt.TEC().logverbose("Mark disk %s online" % (diskid or "all"))
-        data = self.cmdExec("echo list disk | diskpart",
+        data = self.execCmd("echo list disk | diskpart",
                                returndata=True)
         offline = re.findall("Disk\s+([0-9]+)\s+Offline", data)
         if diskid:
@@ -866,7 +826,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
                                  "select disk %s\n"
                                  "attributes disk clear readonly\n"
                                  "online disk noerr" % (o))
-            self.cmdExec("diskpart /s c:\\online.txt")
+            self.execCmd("diskpart /s c:\\online.txt")
     
         
     def formatDisk(self, letter, fstype="ntfs", timeout=1200, quick=False):
@@ -874,7 +834,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
               and "echo y | format %s: /fs:%s" \
               or "format %s: /fs:%s /y"
         cmd = quick and cmd + " /q" or cmd
-        self.cmdExec(cmd % (letter, fstype), timeout=timeout)
+        self.execCmd(cmd % (letter, fstype), timeout=timeout)
    
     def sendFile(self, localfilename, remotefilename, usehttp=None, ignoreHealthCheck=False):
         if usehttp == None:
@@ -893,7 +853,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
                     wdir.copyIn(localfilename)
                     xenrt.TEC().logverbose("Pulling %s into %s:%s" %
                                            (localfilename,
-                                            self.getIP(),
+                                            self.parent.getIP(),
                                             remotefilename))
                     s.fetchFile(wdir.getURL(os.path.basename(localfilename)),
                                 remotefilename)
@@ -906,7 +866,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
                 f.close()
                 xenrt.TEC().logverbose("Pushing %s to %s:%s" %
                                        (localfilename,
-                                        self.getIP(),
+                                        self.parent.getIP(),
                                         remotefilename))
                 s.createFile(remotefilename, xmlrpclib.Binary(data))
         except Exception, e:
@@ -917,7 +877,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
     def writeFile(self, filename, data):
         try:
             xenrt.TEC().logverbose("Writing file %s to %s via daemon" %
-                                   (filename, self.getIP()))
+                                   (filename, self.parent.getIP()))
             s = self._xmlrpc()
             s.createFile(filename, xmlrpclib.Binary(data))
         except Exception, e:
@@ -926,7 +886,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
 
     def sendTarball(self, localfilename, remotedirectory):
         xenrt.TEC().logverbose("SendTarball %s to %s on %s" %
-                               (localfilename, remotedirectory, self.getIP()))
+                               (localfilename, remotedirectory, self.parent.getIP()))
         try:
             s = self._xmlrpc()
             f = file(localfilename, 'r')
@@ -939,7 +899,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
 
     def pushTarball(self, data, directory):
         xenrt.TEC().logverbose("PushTarball to %s on %s" %
-                               (directory, self.getIP()))
+                               (directory, self.parent.getIP()))
         try:
             return self._xmlrpc().pushTarball(data, directory)
         except Exception, e:
@@ -948,7 +908,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
 
     def sendRecursive(self, localdirectory, remotedirectory):
         xenrt.TEC().logverbose("SendRecursive %s to %s on %s" %
-                               (localdirectory, remotedirectory, self.getIP()))
+                               (localdirectory, remotedirectory, self.parent.getIP()))
         try:
             f = xenrt.TEC().tempFile()
             xenrt.util.command("tar -zcf %s -C %s ." % (f, localdirectory))
@@ -960,7 +920,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
 
     def fetchRecursive(self, remotedirectory, localdirectory, ignoreHealthCheck=False):
         xenrt.TEC().logverbose("FetchRecursive %s to %s on %s" %
-                               (remotedirectory, localdirectory, self.getIP()))
+                               (remotedirectory, localdirectory, self.parent.getIP()))
         try:
             f = xenrt.TEC().tempFile()
             rf = self._xmlrpc().tempFile()
@@ -976,7 +936,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
 
     def extractTarball(self, filename, directory, patient=True):
         xenrt.TEC().logverbose("ExtractTarball %s to %s on %s" %
-                               (filename, directory, self.getIP()))
+                               (filename, directory, self.parent.getIP()))
         try:
             self._xmlrpc(patient=patient).extractTarball(filename, directory)
         except Exception, e:
@@ -984,7 +944,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
 
     def globPath(self, p):
-        xenrt.TEC().logverbose("GlobPath %s on %s" % (p, self.getIP()))
+        xenrt.TEC().logverbose("GlobPath %s on %s" % (p, self.parent.getIP()))
         try:
             return self._xmlrpc().globpath(p)
         except Exception, e:
@@ -992,7 +952,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
 
     def globPattern(self, pattern):
-        xenrt.TEC().logverbose("GlobPattern %s on %s" % (pattern, self.getIP()))
+        xenrt.TEC().logverbose("GlobPattern %s on %s" % (pattern, self.parent.getIP()))
         try:
             return self._xmlrpc().globPattern(pattern)
         except Exception, e:
@@ -1000,7 +960,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
 
     def fileExists(self, filename, patient=False, ignoreHealthCheck=False):
-        xenrt.TEC().logverbose("FileExists %s on %s" % (filename, self.getIP()))
+        xenrt.TEC().logverbose("FileExists %s on %s" % (filename, self.parent.getIP()))
         try:
             ret = self._xmlrpc(patient=patient).fileExists(filename)
             xenrt.TEC().logverbose("FileExists returned %s" % str(ret))
@@ -1011,7 +971,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
 
     def dirExists(self, filename, patient=False):
-        xenrt.TEC().logverbose("DirExists %s on %s" % (filename, self.getIP()))
+        xenrt.TEC().logverbose("DirExists %s on %s" % (filename, self.parent.getIP()))
         try:
             return self._xmlrpc(patient=patient).dirExists(filename)
         except Exception, e:
@@ -1019,7 +979,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
 
     def fileMTime(self, filename, patient=False):
-        xenrt.TEC().logverbose("FileMTime %s on %s" % (filename, self.getIP()))
+        xenrt.TEC().logverbose("FileMTime %s on %s" % (filename, self.parent.getIP()))
         try:
             return self._xmlrpc(patient=patient).fileMTime(filename)
         except Exception, e:
@@ -1027,7 +987,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
 
     def diskInfo(self):
-        xenrt.TEC().logverbose("DiskInfo on %s" % (self.getIP()))
+        xenrt.TEC().logverbose("DiskInfo on %s" % (self.parent.getIP()))
         try:
             return self._xmlrpc().diskInfo()
         except Exception, e:
@@ -1035,7 +995,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
     
     def doSysprep(self):
-        xenrt.TEC().logverbose("Sysprep on %s" % (self.getIP()))
+        xenrt.TEC().logverbose("Sysprep on %s" % (self.parent.getIP()))
         try:
             return self._xmlrpc().doSysprep()
         except Exception, e:
@@ -1043,7 +1003,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
 
     def getRootDisk(self):
-        xenrt.TEC().logverbose("GetRootDisk on %s" % (self.getIP()))
+        xenrt.TEC().logverbose("GetRootDisk on %s" % (self.parent.getIP()))
         try:
             return self._xmlrpc().getRootDisk()
         except Exception, e:
@@ -1051,7 +1011,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
     
     def createFile(self, filename, data):
-        xenrt.TEC().logverbose("CreateFile %s on %s" % (filename, self.getIP()))
+        xenrt.TEC().logverbose("CreateFile %s on %s" % (filename, self.parent.getIP()))
         try:
             return self._xmlrpc().createFile(filename, data)
         except Exception, e:
@@ -1059,7 +1019,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
         
     def removeFile(self, filename, patient=False, ignoreHealthCheck=False):
-        xenrt.TEC().logverbose("RemoveFile %s on %s" % (filename, self.getIP()))
+        xenrt.TEC().logverbose("RemoveFile %s on %s" % (filename, self.parent.getIP()))
         try:
             return self._xmlrpc(patient=patient).removeFile(filename)
         except Exception, e:
@@ -1069,7 +1029,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
 
     def createEmptyFile(self, filename, size):
         xenrt.TEC().logverbose("CreateEmptyFile %s on %s" %
-                               (filename, self.getIP()))
+                               (filename, self.parent.getIP()))
         try:
             return self._xmlrpc().createEmptyFile(filename, size)
         except Exception, e:
@@ -1077,7 +1037,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
     
     def addBootFlag(self, flag):
-        xenrt.TEC().logverbose("AddBootFlag %s on %s" % (flag, self.getIP()))
+        xenrt.TEC().logverbose("AddBootFlag %s on %s" % (flag, self.parent.getIP()))
         try:
             return self._xmlrpc().addBootFlag(flag)
         except Exception, e:
@@ -1085,7 +1045,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
 
     def appActivate(self, app):
-        xenrt.TEC().logverbose("AppActivate %s on %s" % (app, self.getIP()))
+        xenrt.TEC().logverbose("AppActivate %s on %s" % (app, self.parent.getIP()))
         try:
             return self._xmlrpc().appActivate(app)
         except Exception, e:
@@ -1093,7 +1053,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             raise
 
     def sendKeys(self, keys):
-        xenrt.TEC().logverbose("SendKeys %s on %s" % (keys, self.getIP()))
+        xenrt.TEC().logverbose("SendKeys %s on %s" % (keys, self.parent.getIP()))
         try:
             return self._xmlrpc().sendKeys(keys)
         except Exception, e:
@@ -1114,7 +1074,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
         command.append("-x %s" % (log))
         if clearlog:
             command.append("-c")
-        data = self.cmdExec(string.join(command),
+        data = self.execCmd(string.join(command),
                                returndata=True,
                                timeout=3600, ignoreHealthCheck=ignoreHealthCheck)
         return data
@@ -1134,16 +1094,6 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             f.write(data)
             f.close()
 
-    def winRegPresent(self, hive, key, name):
-        """ Check for the windows registry value"""
-        
-        try:
-            s = self._xmlrpc()
-            s.regLookup(hive, key, name)
-            return True
-        except Exception, e:
-            return False
-            
     def winRegLookup(self, hive, key, name, healthCheckOnFailure=True, suppressLogging=False):
         """Look up a Windows registry value."""
         
@@ -1175,7 +1125,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
     def winRegAdd(self, hive, key, name, vtype, value):
         """Add a value to the Windows registry"""
         xenrt.TEC().logverbose("Registry add on %s %s:%s %s=%s (%s)" %
-                               (self.getIP(), hive, key, name, value, vtype))
+                               (self.parent.getIP(), hive, key, name, value, vtype))
         try:
             s = self._xmlrpc()
             s.regSet(hive, key, name, vtype, value)
@@ -1186,7 +1136,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
     def winRegDel(self, hive, key, name, ignoreHealthCheck=False):
         """Remove a value from the Windows registry"""
         xenrt.TEC().logverbose("Registry delete on %s %s:%s %s" %
-                               (self.getIP(), hive, key, name))
+                               (self.parent.getIP(), hive, key, name))
         try:
             s = self._xmlrpc()
             s.regDelete(hive, key, name)
@@ -1213,14 +1163,14 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             user.password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
                                                 "ADMINISTRATOR_PASSWORD"],
                                                 "xensource")
-        self.cmdExec("cacls c:\\execdaemon.log /E /G %s:F" % (user.name))
-        self.cmdExec("cacls c:\\execdaemon.py /E /G %s:F" % (user.name))
+        self.execCmd("cacls c:\\execdaemon.log /E /G %s:F" % (user.name))
+        self.execCmd("cacls c:\\execdaemon.py /E /G %s:F" % (user.name))
         # Give everyone read-write permissions for the auto-logon keys.
         t = self.tempDir()
         self.writeFile("%s\\regperm.txt" % (t), 
                              "\\Registry\\Machine\\software\\microsoft\\windows nt\\"
                              "currentversion\\winlogon [1 5 9]")
-        self.cmdExec("regini %s\\regperm.txt" % (t))
+        self.execCmd("regini %s\\regperm.txt" % (t))
         self.delTree(t)
         self.winRegAdd("HKLM", 
                        "software\\microsoft\\windows nt\\currentversion\\winlogon",
@@ -1265,34 +1215,6 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
                 if word not in reread:
                     raise xenrt.XRTError("assertHealthy has failed")
 
-    def enableDHCP6(self):
-        self._xmlrpc().enableDHCP6()
-
-    def installAutoIt(self, withAutoItX=False):
-        """
-        Install AutoIt3 interpreter and compiler into a Windows XML-RPC guest.
-        The path to the autoit interpreter is returned.
-        """
-        is_x64 = self.getArch() == "amd64"
-        autoit = "c:\\Program Files" + (is_x64 and " (x86)" or "") + \
-                 "\\AutoIt3\\AutoIt3" + (is_x64 and "_x64" or "") + ".exe"
-        if self.globPattern(autoit):
-            xenrt.TEC().logverbose("AutoIt already installed")
-        else:
-            tempdir = self.tempDir()
-            self.unpackTarball("%s/autoit.tgz" %
-                                     (xenrt.TEC().lookup("TEST_TARBALL_BASE")),
-                                     tempdir)
-            self.cmdExec(tempdir + "\\autoit\\autoit-v3-setup.exe /S")
-            assert self.globPattern(autoit)
-        if withAutoItX:
-            self._xmlrpc().installAutoItX()
-        return autoit
-
-    def getAutoItX(self):
-        self.installAutoIt(withAutoItX=True)
-        return self._xmlrpc().autoitx
-
     def getPowershellVersion(self):
         version = 0.0
         try:
@@ -1327,7 +1249,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
         if data is not None:
             cmd = "%s %s" % (cmd, data)
 
-        response = self.cmdExec(cmd, returndata=True)
+        response = self.execCmd(cmd, returndata=True)
         # This will have some rows we need to strip off
         lines = response.splitlines()
         return "\n".join(lines[2:])
@@ -1350,7 +1272,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
 
         # TODO: Find a better way of doing this - for 32-bit we can use the win32api.GetTickCount(), but need an equivalent for
         # 64-bit systems.
-        stats = self.cmdExec("net statistics server", returndata=True)
+        stats = self.execCmd("net statistics server", returndata=True)
         m = re.search("Statistics since (.+)", stats)
         if not m:
             raise xenrt.XRTError("Unable to determine uptime")
@@ -1366,13 +1288,5 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
         else:
             start = time.mktime(startTime)
         return time.time() - start
-
-    @classmethod
-    def osDetected(cls, parent, password):
-        obj = cls.testInit(parent)
-        if obj.isDaemonAlive():
-            return ("win", password)
-        else:
-            return (False, password)
 
 registerOS(WindowsOS)

@@ -22,8 +22,6 @@ import xml.etree.ElementTree as ET
 from xenrt.lazylog import log, warning, step
 from xenrt.linuxanswerfiles import *
 
-from zope.interface import implements
-
 #Dummy import of _strptime module
 #This is done to import this module before the threads do this - which causes CA-137801 - because _strptime is not threadsafe
 time.strptime('2014-06-12','%Y-%m-%d')
@@ -162,7 +160,6 @@ class GenericPlace(object):
         self.host = None
         self.memory = None
         self.vcpus = None
-        self._os = None
 
     def populateSubclass(self, x):
         x.password = self.password
@@ -175,7 +172,6 @@ class GenericPlace(object):
         x.extraLogsToFetch = self.extraLogsToFetch
         x.logFetchExclude = self.logFetchExclude
         x.vifstem = self.vifstem
-        x._os = self._os
 
     def compareConfig(self, other):
         """Compare the configuration of this place to another place. This
@@ -188,122 +184,6 @@ class GenericPlace(object):
                                                     str(self.windows),
                                                     other.getName(),
                                                     str(other.windows)))
-
-    @property
-    def os(self):
-        if not self._os:
-            if self.distro:
-                if self.windows or not self.arch:
-                    osdistro = self.distro
-                else:
-                    osdistro = "%s_%s" % (self.distro, self.arch)
-
-                self._os = xenrt.lib.opsys.osFactory(osdistro, self, self.password)
-            else:
-                self._os = xenrt.lib.opsys.osFromExisting(self, self.password)
-                self.password = self._os.password
-                self.distro = self._os.distro
-        return self._os
-
-    def __getattr__(self, attr):
-        osMapping = {
-            'xmlrpcIsAlive': 'isDaemonAlive',
-            'waitForDaemon': 'waitForDaemon',
-            'waitforxmlrpc': 'waitForDaemon',
-            'xmlrpcUpdate': 'updateDaemon',
-            'xmlrpcShutdown': 'shutdown',
-            'xmlrpcReboot': 'initReboot',
-            'xmlrpcStart': 'cmdStart',
-            'xmlrpcPoll': 'cmdPoll',
-            'xmlrpcGetPID': 'cmdGetPID',
-            'xmlrpcCreateDir': 'createDir',
-            'xmlrpcReturnCode': 'cmdReturnCode',
-            'xmlrpcCleanup': 'cmdCleanup',
-            'xmlrpcLog': 'cmdLog',
-            'xmlrpcExec': 'cmdExec',
-            'xmlrpcWait': 'cmdWait',
-            'xmlrpcGetTime': 'getTime',
-            'xmlrpcGetEnvVar': 'getEnvVar',
-            'xmlrpcUnpackTarball': 'unpackTarball',
-            'xmlrpcTempDir': 'tempDir',
-            'xmlrpcCheckOtherDaemon': 'checkOtherDaemon',
-            'xmlrpcKillAll': 'killAll',
-            'xmlrpcKill': 'killProcess',
-            'xmlrpcPS': 'processList',
-            'xmlrpcBigdump': 'isBigDumpPresent',
-            'xmlrpcSha1Sum': 'sha1Sum',
-            'xmlrpcSha1Sums': 'sha1Sums',
-            'xmlrpcDirRights': 'dirRights',
-            'xmlrpcDelTree': 'delTree',
-            'xmlrpcMinidumps': 'listMiniDumps',
-            'xmlrpcReadFile': 'readFile',
-            'xmlrpcGetFile': 'getFile',
-            'xmlrpcGetFile2': 'getFile2',
-            'xmlrpcFetchFile': 'fetchFile',
-            'xmlrpcVersion': 'daemonVersion',
-            'xmlrpcWindowsVersion': 'windowsVersion',
-            'xmlrpcGetArch': 'getArch',
-            'xmlrpcGetCPUs': 'getCPUs',
-            'xmlrpcGetSockets': 'getSockets',
-            'xmlrpcGetCPUCores': 'getCPUCores',
-            'xmlrpcGetCPUVCPUs': 'getCPUVCPUs',
-            'xmlrpcPartition': 'partition',
-            'xmlrpcDeletePartition': 'deletePartition',
-            'xmlrpcMapDrive ': 'mapDrive ',
-            'xmlrpcAssign': 'assignDisk',
-            'xmlrpcListDisks': 'listDisks',
-            'xmlrpcDiskpartCommand': 'diskpartCommand',
-            'xmlrpcDiskpartListDisks': 'diskpartListDisks',
-            'xmlrpcDriveLettersOfDisk': 'driveLettersOfDisk',
-            'xmlrpcDeinitializeDisk': 'deinitializeDisk',
-            'xmlrpcInitializeDisk': 'initializeDisk',
-            'xmlrpcMarkDiskOnline': 'markDiskOnline',
-            'xmlrpcFormat': 'formatDisk',
-            'xmlrpcSendFile': 'sendFile',
-            'xmlrpcWriteFile': 'writeFile',
-            'xmlrpcSendTarball': 'sendTarball',
-            'xmlrpcPushTarball': 'pushTarball',
-            'xmlrpcSendRecursive': 'sendRecursive',
-            'xmlrpcFetchRecursive': 'fetchRecursive',
-            'xmlrpcExtractTarball': 'extractTarball',
-            'xmlrpcGlobpath': 'globpath',
-            'xmlrpcGlobPattern': 'globPattern',
-            'xmlrpcFileExists': 'fileExists',
-            'xmlrpcDirExists': 'dirExists',
-            'xmlrpcFileMTime': 'fileMTime',
-            'xmlrpcDiskInfo': 'diskInfo',
-            'xmlrpcDoSysprep': 'doSysprep',
-            'xmlrpcGetRootDisk': 'getRootDisk',
-            'xmlrpcCreateFile': 'createFile',
-            'xmlrpcRemoveFile': 'removeFile',
-            'xmlrpcCreateEmptyFile': 'createEmptyFile',
-            'xmlrpcAddBootFlag': 'addBootFlag',
-            'xmlrpcAppActivate': 'appActivate',
-            'xmlrpcSendKeys': 'sendKeys',
-            'getWindowsEventLog': 'getWindowsEventLog',
-            'getWindowsEventLogs': 'getWindowsEventLogs',
-            'winRegPresent ': 'winRegPresent ',
-            'winRegLookup': 'winRegLookup',
-            'winRegAdd': 'winRegAdd',
-            'winRegDel': 'winRegDel',
-            'disableReceiverMaxProto': 'disableReceiverMaxProto',
-            'getReceiverMaxProtocol': 'getReceiverMaxProtocol',
-            'configureAutoLogon': 'configureAutoLogon',
-            'getPowershellVersion': 'getPowershellVersion',
-            'execdom0': 'execSSH',
-            'execcmd': 'execSSH',
-            'execguest': 'execSSH',
-            'waitForSSH': 'waitForSSH',
-            'installAutoIt': 'installAutoIt',
-            'getAutoItX': 'getAutoItX',
-        }
-
-        if attr in osMapping.keys():
-            def wrapper(*args, **kwargs):
-                return getattr(self.os, osMapping[attr])(*args, **kwargs)
-            return wrapper
-
-        raise AttributeError(attr)
 
     def _clearObjectCache(self):
         """Remove cached object data."""
@@ -324,6 +204,34 @@ class GenericPlace(object):
     def createScaleXtremeEnvironment(self):
         raise xenrt.XRTError("Unimplemented")
 
+    def execdom0(self,
+                 command,
+                 username=None,
+                 retval="string",
+                 level=xenrt.RC_FAIL,
+                 timeout=300,
+                 idempotent=False,
+                 newlineok=False,
+                 nolog=False,
+                 outfile=None,
+                 useThread=False,
+                 password=None):
+        raise xenrt.XRTError("Unimplemented")
+
+    def execguest(self,
+                  command,
+                  username=None,
+                  retval="string",
+                  level=xenrt.RC_FAIL,
+                  timeout=300,
+                  idempotent=False,
+                  newlineok=False,
+                  getreply=True,
+                  nolog=False,
+                  outfile=None,
+                  password=None):
+        raise xenrt.XRTError("Unimplemented")
+
     def getBasicArch(self):
         if self.arch == "x86-64":
             barch = self.arch
@@ -340,7 +248,10 @@ class GenericPlace(object):
         try:
             xenrt.TEC().logverbose("getMemory on %s" % (self.getIP()))
             if self.windows:
-                rc = self.os.getMemory(bool(complete), unit)
+                if complete:
+                    rc = self._xmlrpc().getMemory(True,unit)
+                else:
+                    rc = self._xmlrpc().getMemory(False,unit)
             elif re.search("solaris", self.distro):
                 rc = int(self.execcmd("prtconf | grep Mem|awk '{if ($1 == \"Memory\") {print $3}}'"))
             else:
@@ -356,7 +267,7 @@ class GenericPlace(object):
     def getMyVCPUs(self):
         try:
             if self.windows:
-                return self.os.getCPUs()
+                return self._xmlrpc().getCPUs()
             elif re.search("solaris", self.distro):
                 return int(self.execcmd("prtconf|grep cpu|grep -cv cpus"))
             else:
@@ -546,6 +457,76 @@ class GenericPlace(object):
                     self.windows=True
                     return
 
+    def waitForSSH(self, timeout, level=xenrt.RC_FAIL, desc="Operation", username="root", cmd="true"):
+
+        if not self.getIP():
+            if level == xenrt.RC_FAIL:
+                self.checkHealth(unreachable=True)
+            return xenrt.XRT("%s: No IP address found" % (desc), level)
+
+        now = xenrt.util.timenow()
+        deadline = now + timeout
+        while 1:
+            if not self.password:
+                self.findPassword()
+            if xenrt.ssh.SSH(self.getIP(),
+                             cmd,
+                             password=self.password,
+                             level=xenrt.RC_OK,
+                             timeout=20,
+                             username=username,
+                             nowarn=True) == xenrt.RC_OK:
+                xenrt.TEC().logverbose(" ... OK reply from %s" %
+                                       (self.getIP()))
+                return xenrt.RC_OK
+            now = xenrt.util.timenow()
+            if now > deadline:
+                if level == xenrt.RC_FAIL:
+                    self.checkHealth(unreachable=True)
+                return xenrt.XRT("%s timed out" % (desc), level)
+            xenrt.sleep(15, log=False)
+
+    def waitforxmlrpc(self, timeout, level=xenrt.RC_FAIL, desc="Daemon", sleeptime=15, reallyImpatient=False):
+        now = xenrt.util.timenow()
+        deadline = now + timeout
+        perrors = 0
+        while True:
+            xenrt.TEC().logverbose("Checking for exec daemon on %s" %
+                                   (self.getIP()))
+            try:
+                if self._xmlrpc(impatient=True, reallyImpatient=reallyImpatient).isAlive():
+                    xenrt.TEC().logverbose(" ... OK reply from %s" %
+                                           (self.getIP()))
+                    return xenrt.RC_OK
+            except socket.error, e:
+                xenrt.TEC().logverbose(" ... %s" % (str(e)))
+            except socket.timeout, e:
+                xenrt.TEC().logverbose(" ... %s" % (str(e)))
+            except xmlrpclib.ProtocolError, e:
+                perrors = perrors + 1
+                if perrors >= 3:
+                    raise
+                xenrt.TEC().warning("XML-RPC daemon ProtocolError during "
+                                    "poll (%s)" % (str(e)))
+            now = xenrt.util.timenow()
+            if now > deadline:
+                if level == xenrt.RC_FAIL:
+                    self.checkHealth(unreachable=True)
+                return xenrt.XRT("%s timed out" % (desc), level)
+            xenrt.sleep(sleeptime, log=False)
+
+    def waitForDaemon(self, timeout, level=xenrt.RC_FAIL, desc="Daemon"):
+        return self.waitforxmlrpc(timeout, level=level, desc=desc)
+
+    def xmlrpcIsAlive(self, ip=None):
+        """Return True if this place has a reachable XML-RPC test daemon"""
+        try:
+            if self._xmlrpc(ipoverride=ip).isAlive():
+                return True
+        except:
+            pass
+        return False
+
     def checkHealth(self, unreachable=False, noreachcheck=False, desc=""):
         """Check the location is healthy."""
         pass
@@ -578,6 +559,955 @@ class GenericPlace(object):
             return False
         else:
             return self.xmlrpcIsAlive()
+
+    def _xmlrpc(self, impatient=False, patient=False, reallyImpatient=False, ipoverride=None):
+        if reallyImpatient:
+            trans = MyReallyImpatientTrans()
+        elif impatient:
+            trans = MyImpatientTrans()
+        elif patient:
+            trans = MyPatientTrans()
+        else:
+            trans = MyTrans()
+        if ipoverride:
+            ip = IPy.IP(ipoverride)
+        else:
+            ip = IPy.IP(self.getIP())
+        url = ""
+        if ip.version() == 6:
+            url = 'http://[%s]:8936'
+        else:
+            url = 'http://%s:8936'
+        return xmlrpclib.ServerProxy(url % (self.getIP()),
+                                     transport=trans,
+                                     allow_none=True)
+
+    def xmlrpcUpdate(self):
+        """Update the test execution daemon to the latest version"""
+        xenrt.TEC().logverbose("Updating XML-RPC daemon on %s" % (self.getIP()))
+        self.xmlrpcExec("attrib -r c:\\execdaemon.py")
+        f = file("%s/utils/execdaemon.py" %
+                 (xenrt.TEC().lookup("LOCAL_SCRIPTDIR")), "r")
+        data = f.read()
+        f.close()
+        try:
+            self._xmlrpc().stopDaemon(data)
+            try:
+                self._xmlrpc().isAlive()
+            except:
+                pass
+            if xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True):
+                xenrt.sleep(60)
+            else:
+                xenrt.sleep(30)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcShutdown(self):
+        """Use the test execution daemon to shutdown the guest"""
+        xenrt.TEC().logverbose("Shutting down %s" % (self.getIP()))
+        self._xmlrpc().shutdown()
+
+    def xmlrpcReboot(self):
+        """Use the test execution daemon to reboot the guest"""
+        xenrt.TEC().logverbose("Rebooting %s" % (self.getIP()))
+        self._xmlrpc().reboot()
+
+    def xmlrpcStart(self, command):
+        """Asynchronously start a command"""
+        xenrt.TEC().logverbose("Starting on %s via daemon: %s" %
+                               (self.getName(), command.encode("utf-8")))
+        trace = xenrt.TEC().lookup("TCPDUMP_XMLRPCSTART", False, boolean=True)
+        tracefile = None
+        tracepid = None
+        try:
+            try:
+                if trace:
+                    # Record a tcpdump trace of traffic between the controller
+                    # and the remote location for the duration of the
+                    # XML-RPC start command.
+                    try:
+                        logdir = xenrt.TEC().getLogdir()
+                        if logdir:
+                            tracefile = "%s/%s_%u.tcpdump" % (\
+                                logdir,
+                                self.getIP(),
+                                xenrt.util.timenow())
+                        if tracefile:
+                            # Start the tcpdump
+                            xenrt.TEC().logverbose(\
+                                "tcpdump of xmlrpcStart"
+                                "(\"%s\") on %s to file %s"
+                                % (command.encode("utf-8"),
+                                   self.getIP(),
+                                   os.path.basename(tracefile)))
+                            tracepid = xenrt.util.command(\
+                                "sudo /usr/sbin/tcpdump -i eth0 -s0 -w %s "
+                                "host %s >/dev/null 2>&1 </dev/null & echo $!"
+                                % (tracefile, self.getIP())).strip()
+                            xenrt.sleep(2)
+                    except:
+                        pass
+                ref = self._xmlrpc().runbatch(command.encode("utf-16").encode("uu"))
+                xenrt.TEC().logverbose(" ... started")
+                return ref
+            finally:
+                if tracepid:
+                    try:
+                        # Stop the tcpdump
+                        xenrt.util.command("sudo kill -TERM %s" % (tracepid))
+                    except:
+                        pass
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+
+    def xmlrpcPoll(self, ref, retries=1):
+        """Returns True if the command has completed."""
+        try:
+            while retries > 0:
+                try:
+                    retries = retries - 1
+                    st = self._xmlrpc().poll(ref)
+                    break
+                except Exception, e:
+                    if retries == 0:
+                        raise
+                    xenrt.sleep(15)
+            if st == "DONE":
+                return True
+            return False
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcGetPID(self, ref):
+        """Returns the PID of the command"""
+        try:
+            return self._xmlrpc().getPID(ref)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcCreateDir(self, pathname):
+        xenrt.TEC().logverbose("CreateDir %s on %s" % (pathname, self.getIP()))
+        try:
+            self._xmlrpc().createDir(pathname)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcReturnCode(self, ref):
+        """Returns the return code of the command."""
+        try:
+            return int(self._xmlrpc().returncode(ref))
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcCleanup(self, ref):
+        """Clean up the state for a command"""
+        try:
+            self._xmlrpc().cleanup(ref)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcLog(self, ref):
+        """Return the logfile text from a command."""
+        try:
+            return self._xmlrpc().log(ref).encode("utf-8")
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcExec(self, command, level=xenrt.RC_FAIL, desc="Remote command",
+                   returndata=False, returnerror=True, returnrc=False,
+                   timeout=300, ignoredata=False, powershell=False,ignoreHealthCheck=False):
+        """Execute a command and wait for completion."""
+        currentPollPeriod = 1
+        maxPollPeriod = 16
+
+        try:
+            xenrt.TEC().logverbose("Running on %s via daemon: %s" %
+                                   (self.getName(), command.encode("utf-8")))
+            started = xenrt.util.timenow()
+            s = self._xmlrpc()
+            if powershell:
+                ref = s.runpshell(command.encode("utf-16").encode("uu"))
+            else:
+                ref = s.runbatch(command.encode("utf-16").encode("uu"))
+            xenrt.sleep(currentPollPeriod, log=False)
+            errors = 0
+            if xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True):
+                maxerrors = 6
+            else:
+                maxerrors = 2
+            while True:
+                try:
+                    st = s.poll(ref)
+                    errors = 0
+                except socket.error, e:
+                    errors = errors + 1
+                    if errors > maxerrors:
+                        raise
+                    st = "ERROR"
+                if st == "DONE":
+                    break
+                if timeout:
+                    now = xenrt.util.timenow()
+                    deadline = started + timeout
+                    if now > deadline:
+                        xenrt.TEC().logverbose("Timed out polling for %s on %s"
+                                               % (ref, self.getIP()))
+                        return xenrt.XRT("%s timed out" % (desc), level)
+
+                if currentPollPeriod < maxPollPeriod:
+                    currentPollPeriod *= 2
+                    currentPollPeriod = min(currentPollPeriod, maxPollPeriod)
+
+                xenrt.sleep(currentPollPeriod, log=False)
+            if not ignoredata:
+                data = s.log(ref)
+                xenrt.TEC().log(data.encode("utf-8"))
+            else:
+                data = None
+            rc = s.returncode(ref)
+            try:
+                s.cleanup(ref)
+            except Exception, e:
+                xenrt.TEC().warning("Got exception while cleaning up after "
+                                    "xmlrpcExec: %s" % (str(e)))
+            if rc != 0 and returnerror:
+                return xenrt.XRT("%s returned error (%d)" % (desc, rc),
+                                 level,
+                                 data)
+            if returndata:
+                return data
+            if returnrc:
+                return rc
+            return 0
+        except xenrt.XRTException, e:
+            if not ignoreHealthCheck:
+                self.checkHealth()
+            raise
+        except Exception, e:
+            sys.stderr.write(str(e))
+            traceback.print_exc(file=sys.stderr)
+            if not ignoreHealthCheck:
+                self.checkHealth()
+            raise
+
+    def xmlrpcWait(self, ref, level=xenrt.RC_FAIL, desc="Remote command",
+                   returndata=False, timeout=None, cleanup=True):
+        """Wait for completion of a command started with xmlrpcStart."""
+        try:
+            started = xenrt.util.timenow()
+            s = self._xmlrpc()
+            while True:
+                st = s.poll(ref)
+                if st == "DONE":
+                    break
+                if timeout:
+                    now = xenrt.util.timenow()
+                    deadline = started + timeout
+                    if now > deadline:
+                        return xenrt.XRT("%s timed out" % (desc), level)
+                xenrt.sleep(15)
+            data = s.log(ref).encode("utf-8")
+            xenrt.TEC().log(data)
+            rc = s.returncode(ref)
+            if cleanup:
+                s.cleanup(ref)
+            if rc != 0:
+                return xenrt.XRT("%s returned error (%d)" % (desc, rc),
+                                 level,
+                                 data)
+            if returndata:
+                return data
+            return 0
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcGetTime(self):
+        xenrt.TEC().logverbose("GetTime on %s" % (self.getIP()))
+        try:
+            t = self._xmlrpc().getTime()
+            xenrt.TEC().logverbose("GetTime on %s returned %s" %
+                                   (self.getIP(), str(t)))
+            return t
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcGetEnvVar(self, var):
+        xenrt.TEC().logverbose("GetEnvVar %s on %s" % (var, self.getIP()))
+        try:
+            return self._xmlrpc().getEnvVar(var)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcUnpackTarball(self, tarball, dest, patient=False):
+        xenrt.TEC().logverbose("UnpackTarball %s to %s on %s" %
+                               (tarball, dest, self.getIP()))
+        try:
+            return self._xmlrpc(patient=patient).unpackTarball(tarball, dest)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcTempDir(self, suffix="", prefix="", path=None, patient=False):
+        xenrt.TEC().logverbose("TempDir on %s" % (self.getIP()))
+        try:
+            if path:
+                return self._xmlrpc(patient=patient).tempDir(suffix, prefix, path)
+            else:
+                return self._xmlrpc(patient=patient).tempDir(suffix, prefix)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcCheckOtherDaemon(self, ip):
+        try:
+            return self._xmlrpc().checkOtherDaemon(ip)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcKillAll(self, name):
+        xenrt.TEC().logverbose("KillAll %s on %s" % (name, self.getIP()))
+        try:
+            return self._xmlrpc().killall(name)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcKill(self, pid):
+        xenrt.TEC().logverbose("Kill %s on %s" % (pid, self.getIP()))
+        try:
+            return self._xmlrpc().kill(pid)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcPS(self):
+        xenrt.TEC().logverbose("PS on %s" % (self.getIP()))
+        numberOfTimes = 5
+        while True:
+            try:
+                return self._xmlrpc().ps()
+            except Exception, e:
+                if numberOfTimes > 0:
+                    xenrt.TEC().logverbose("ps() call to the guest failed. Trying again.")
+                    numberOfTimes -= 1
+                    xenrt.sleep(60)
+                else:
+                    self.checkHealth()
+                    raise
+
+    def xmlrpcBigdump(self, ignoreHealthCheck=False):
+        xenrt.TEC().logverbose("Bugdump on %s" % (self.getIP()))
+        try:
+            s = self._xmlrpc()
+            if s.globpath("%s\\MEMORY.DMP" % s.getEnvVar("SystemRoot")):
+                return True
+            else:
+                return False
+        except Exception, e:
+            if not ignoreHealthCheck:
+                self.checkHealth()
+            raise
+
+    def xmlrpcSha1Sum(self, filename, patient=False):
+        xenrt.TEC().logverbose("Sha1Sum on %s" % (self.getIP()))
+        try:
+            return self._xmlrpc(patient=patient).sha1Sum(filename)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcSha1Sums(self, temp, list, patient=False):
+        xenrt.TEC().logverbose("Sha1Sums on %s" % (self.getIP()))
+        try:
+            return self._xmlrpc(patient=patient).sha1Sums(temp, list)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcDirRights(self, dir, patient=False):
+        xenrt.TEC().logverbose("DirRights %s on %s" % (dir, self.getIP()))
+        try:
+            return self._xmlrpc(patient=patient).dirRights(dir)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcDelTree(self, dir, patient=False):
+        xenrt.TEC().logverbose("DelTree %s on %s" % (dir, self.getIP()))
+        try:
+            return self._xmlrpc(patient=patient).deltree(dir)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcMinidumps(self, ignoreHealthCheck=False):
+        xenrt.TEC().logverbose("Minidumps on %s" % (self.getIP()))
+        try:
+            s = self._xmlrpc()
+            return s.globpath("%s\\Minidump\\*" % s.getEnvVar("SystemRoot"))
+        except Exception, e:
+            if not ignoreHealthCheck:
+                self.checkHealth()
+            raise
+
+    def xmlrpcReadFile(self, filename, patient=False, ignoreHealthCheck=False):
+        try:
+            xenrt.TEC().logverbose("Fetching file %s from %s via daemon" %
+                                   (filename, self.getIP()))
+            s = self._xmlrpc(patient=patient)
+            return s.readFile(filename).data
+        except Exception, e:
+            if not ignoreHealthCheck:
+                self.checkHealth()
+            raise
+
+    def xmlrpcGetFile(self, remotefn, localfn, patient=False, ignoreHealthCheck=False):
+        xenrt.TEC().logverbose("GetFile %s to %s on %s" %
+                               (remotefn, localfn, self.getIP()))
+        try:
+            data = self.xmlrpcReadFile(remotefn, patient=patient, ignoreHealthCheck=ignoreHealthCheck)
+            f = file(localfn, "w")
+            f.write(data)
+            f.close()
+        except Exception, e:
+            if not ignoreHealthCheck:
+                self.checkHealth()
+            raise
+
+    def xmlrpcGetFile2(self, remotefn, localfn, patient=False):
+        xenrt.TEC().logverbose("GetFile2 %s to %s on %s" %
+                               (remotefn, localfn, self.getIP()))
+        try:
+            s = self._xmlrpc(patient=patient)
+            databz2 = s.readFileBZ2(remotefn).data
+            c = bz2.BZ2Decompressor()
+            f = file(localfn, "w")
+            start = 0
+            while True:
+                data = c.decompress(databz2[start:start+4096])
+                if len(data) > 0:
+                    f.write(data)
+                start = start + 4096
+                if start >= len(databz2):
+                    break
+            f.close()
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcFetchFile(self, url, remotefn):
+        try:
+            xenrt.TEC().logverbose("Fetching %s to %s on %s via daemon" %
+                                   (url,remotefn,self.getIP()))
+            s = self._xmlrpc()
+            return s.fetchFile(url, remotefn)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcVersion(self):
+        s = self._xmlrpc()
+        try:
+            return s.version()
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcWindowsVersion(self):
+        xenrt.TEC().logverbose("WindowsVersion on %s" % (self.getIP()))
+        try:
+            v = self._xmlrpc().windowsVersion()
+            xenrt.TEC().logverbose("WindowsVersion returned %s" % str(v))
+            return v
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcGetArch(self):
+        xenrt.TEC().logverbose("GetArch on %s" % (self.getIP()))
+        try:
+            return self._xmlrpc().getArch()
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcGetCPUs(self):
+        xenrt.TEC().logverbose("GetCPUs on %s" % (self.getIP()))
+        patient = xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True)
+        try:
+            return self._xmlrpc(patient=patient).getCPUs()
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcGetSockets(self):
+        """ Get the number of CPU sockets (filled) on the remote system """
+        if float(self.xmlrpcWindowsVersion()) < 6.0:
+            raise xenrt.XRTError("N/A for NT kernel < 6.0")
+        xenrt.TEC().logverbose("GetSockets on %s" % (self.getIP()))
+        patient = xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True)
+        try:
+            return self._xmlrpc(patient=patient).getSockets()
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcGetCPUCores(self):
+        """ Get the number of cores on each physical CPU on the remote system """
+        if float(self.xmlrpcWindowsVersion()) < 6.0:
+            raise xenrt.XRTError("N/A for NT kernel < 6.0")
+        xenrt.TEC().logverbose("GetCPUCores on %s" % (self.getIP()))
+        patient = xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True)
+        try:
+            return self._xmlrpc(patient=patient).getCPUCores()
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcGetCPUVCPUs(self):
+        """ Get the number of logical CPUs on each physical CPU on the remote system """
+        if float(self.xmlrpcWindowsVersion()) < 6.0:
+            raise xenrt.XRTError("N/A for NT kernel < 6.0")
+        xenrt.TEC().logverbose("GetCPUVCPUs on %s" % (self.getIP()))
+        patient = xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True)
+        try:
+            return self._xmlrpc(patient=patient).getCPUVCPUs()
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcPartition(self, disk):
+        xenrt.TEC().logverbose("Partition %s on %s" % (disk, self.getIP()))
+        try:
+            return self._xmlrpc().partition(disk)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcDeletePartition(self, letter):
+        xenrt.TEC().logverbose("DeletePartition %s on %s" %
+                               (letter, self.getIP()))
+        try:
+            return self._xmlrpc().deletePartition(letter)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcMapDrive(self, networkLocation, driveLetter):
+        self.xmlrpcExec(r"net use %s: /Delete /y" % driveLetter, level=xenrt.RC_OK)
+        self.xmlrpcExec(r"net use %s: %s"% (driveLetter, networkLocation))
+
+    def xmlrpcAssign(self, disk):
+        xenrt.TEC().logverbose("Assign %s on %s" % (disk, self.getIP()))
+        try:
+            return self._xmlrpc().assign(disk)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcListDisks(self):
+        xenrt.TEC().logverbose("ListDisks on %s" % (self.getIP()))
+        try:
+            return self._xmlrpc().listDisks()
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcDiskpartCommand(self, cmd):
+        self.xmlrpcWriteFile("c:\\diskpartcmd.txt", cmd)
+        return self.xmlrpcExec("diskpart /s c:\\diskpartcmd.txt", returndata=True)
+
+    def xmlrpcDiskpartListDisks(self):
+        disksstr = self.xmlrpcDiskpartCommand("list disk")
+        return re.findall("Disk\s+([0-9]*)\s+", disksstr)
+
+    def xmlrpcDriveLettersOfDisk(self, diskid):
+        diskdetail = self.xmlrpcDiskpartCommand("select disk %s\ndetail disk" % (diskid))
+        return re.findall("Volume [0-9]+\s+([A-Z])", diskdetail)
+
+    def xmlrpcDeinitializeDisk(self, diskid):
+        self.xmlrpcDiskpartCommand("select disk %s\nclean" % (diskid))
+
+    def xmlrpcInitializeDisk(self, diskid, driveLetter='e'):
+        """ Initialize disk, create a single partition on it, activate it and
+        assign a drive letter.
+        """
+        xenrt.TEC().logverbose("Initialize disk %s (letter %s)" % (diskid, driveLetter))
+        return self.xmlrpcDiskpartCommand("select disk %s\n"
+                             "attributes disk clear readonly\n"
+                             "convert mbr\n"              # initialize
+                             "create partition primary\n" # create partition
+                             "active\n"                   # activate partition
+                             "assign letter=%s"           # assign drive letter
+                             % (diskid, driveLetter))
+
+    def xmlrpcMarkDiskOnline(self, diskid=None):
+        """ mark disk online by diskid. The function will fail if the diskid is
+        invalid or the disk is already online . When diskid == None (default),
+        the function will mark any offline disk as online.
+        """
+        xenrt.TEC().logverbose("Mark disk %s online" % (diskid or "all"))
+        data = self.xmlrpcExec("echo list disk | diskpart",
+                               returndata=True)
+        offline = re.findall("Disk\s+([0-9]+)\s+Offline", data)
+        if diskid:
+            if diskid in offline:
+                offline = [ diskid ]
+            else:
+                raise xenrt.XRTError("disk %d is already online" % diskid)
+        for o in offline:
+            return self.xmlrpcDiskpartCommand("select disk %s\n"
+                                 "attributes disk clear readonly\n"
+                                 "online disk noerr" % (o))
+
+    def xmlrpcFormat(self, letter, fstype="ntfs", timeout=1200, quick=False):
+        cmd = self.xmlrpcWindowsVersion() == "5.0" \
+              and "echo y | format %s: /fs:%s" \
+              or "format %s: /fs:%s /y"
+        cmd = quick and cmd + " /q" or cmd
+        self.xmlrpcExec(cmd % (letter, fstype), timeout=timeout)
+
+    def xmlrpcSendFile(self, localfilename, remotefilename, usehttp=None, ignoreHealthCheck=False):
+        if usehttp == None:
+            # If the file is larger than 4MB default to using HTTP fetch,
+            # otherwise default to XML-RPC push
+            if os.stat(localfilename).st_size > 4194304:
+                usehttp = True
+            else:
+                usehttp = False
+        try:
+            s = self._xmlrpc()
+            if usehttp:
+                # Pull the file into the guest
+                wdir = xenrt.resources.WebDirectory()
+                try:
+                    wdir.copyIn(localfilename)
+                    xenrt.TEC().logverbose("Pulling %s into %s:%s" %
+                                           (localfilename,
+                                            self.getIP(),
+                                            remotefilename))
+                    s.fetchFile(wdir.getURL(os.path.basename(localfilename)),
+                                remotefilename)
+                finally:
+                    wdir.remove()
+            else:
+                # Push the file to the guest
+                f = file(localfilename, 'r')
+                data = f.read()
+                f.close()
+                xenrt.TEC().logverbose("Pushing %s to %s:%s" %
+                                       (localfilename,
+                                        self.getIP(),
+                                        remotefilename))
+                s.createFile(remotefilename, xmlrpclib.Binary(data))
+        except Exception, e:
+            if not ignoreHealthCheck:
+                self.checkHealth()
+            raise
+
+    def xmlrpcWriteFile(self, filename, data):
+        try:
+            xenrt.TEC().logverbose("Writing file %s to %s via daemon" %
+                                   (filename, self.getIP()))
+            s = self._xmlrpc()
+            s.createFile(filename, xmlrpclib.Binary(data))
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcSendTarball(self, localfilename, remotedirectory):
+        xenrt.TEC().logverbose("SendTarball %s to %s on %s" %
+                               (localfilename, remotedirectory, self.getIP()))
+        try:
+            s = self._xmlrpc()
+            f = file(localfilename, 'r')
+            data = f.read()
+            f.close()
+            s.pushTarball(xmlrpclib.Binary(data), remotedirectory)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcPushTarball(self, data, directory):
+        xenrt.TEC().logverbose("PushTarball to %s on %s" %
+                               (directory, self.getIP()))
+        try:
+            return self._xmlrpc().pushTarball(data, directory)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcSendRecursive(self, localdirectory, remotedirectory):
+        xenrt.TEC().logverbose("SendRecursive %s to %s on %s" %
+                               (localdirectory, remotedirectory, self.getIP()))
+        try:
+            f = xenrt.TEC().tempFile()
+            xenrt.util.command("tar -zcf %s -C %s ." % (f, localdirectory))
+            self.xmlrpcSendTarball(f, remotedirectory)
+            os.unlink(f)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcFetchRecursive(self, remotedirectory, localdirectory, ignoreHealthCheck=False):
+        xenrt.TEC().logverbose("FetchRecursive %s to %s on %s" %
+                               (remotedirectory, localdirectory, self.getIP()))
+        try:
+            f = xenrt.TEC().tempFile()
+            rf = self._xmlrpc().tempFile()
+            self._xmlrpc().createTarball(rf, remotedirectory)
+            self.xmlrpcGetFile(rf, f, ignoreHealthCheck=ignoreHealthCheck)
+            xenrt.util.command("tar -xf %s -C \"%s\"" % (f, localdirectory))
+            self.xmlrpcRemoveFile(rf, ignoreHealthCheck=ignoreHealthCheck)
+            os.unlink(f)
+        except Exception, e:
+            if not ignoreHealthCheck:
+                self.checkHealth()
+            raise
+
+    def xmlrpcExtractTarball(self, filename, directory, patient=True):
+        xenrt.TEC().logverbose("ExtractTarball %s to %s on %s" %
+                               (filename, directory, self.getIP()))
+        try:
+            self._xmlrpc(patient=patient).extractTarball(filename, directory)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcGlobpath(self, p):
+        xenrt.TEC().logverbose("GlobPath %s on %s" % (p, self.getIP()))
+        try:
+            return self._xmlrpc().globpath(p)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcGlobPattern(self, pattern):
+        xenrt.TEC().logverbose("GlobPattern %s on %s" % (pattern, self.getIP()))
+        try:
+            return self._xmlrpc().globPattern(pattern)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcFileExists(self, filename, patient=False, ignoreHealthCheck=False):
+        xenrt.TEC().logverbose("FileExists %s on %s" % (filename, self.getIP()))
+        counter = 0
+        while(counter<3):
+            try:
+                ret = self._xmlrpc(patient=patient).fileExists(filename)
+                xenrt.TEC().logverbose("FileExists returned %s" % str(ret))
+                return ret
+            except Exception, e:
+                if counter == 3:
+                    ignoreHealthCheck
+                    self.checkHealth()
+                    raise
+                else:
+                    xenrt.sleep(30)
+                    counter = counter + 1
+ 
+
+    def xmlrpcDirExists(self, filename, patient=False):
+        xenrt.TEC().logverbose("DirExists %s on %s" % (filename, self.getIP()))
+        try:
+            return self._xmlrpc(patient=patient).dirExists(filename)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcFileMTime(self, filename, patient=False):
+        xenrt.TEC().logverbose("FileMTime %s on %s" % (filename, self.getIP()))
+        try:
+            return self._xmlrpc(patient=patient).fileMTime(filename)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcDiskInfo(self):
+        xenrt.TEC().logverbose("DiskInfo on %s" % (self.getIP()))
+        try:
+            return self._xmlrpc().diskInfo()
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcDoSysprep(self):
+        xenrt.TEC().logverbose("Sysprep on %s" % (self.getIP()))
+        try:
+            return self._xmlrpc().doSysprep()
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcGetRootDisk(self):
+        xenrt.TEC().logverbose("GetRootDisk on %s" % (self.getIP()))
+        try:
+            return self._xmlrpc().getRootDisk()
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcCreateFile(self, filename, data):
+        xenrt.TEC().logverbose("CreateFile %s on %s" % (filename, self.getIP()))
+        try:
+            return self._xmlrpc().createFile(filename, data)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcRemoveFile(self, filename, patient=False, ignoreHealthCheck=False):
+        xenrt.TEC().logverbose("RemoveFile %s on %s" % (filename, self.getIP()))
+        try:
+            return self._xmlrpc(patient=patient).removeFile(filename)
+        except Exception, e:
+            if not ignoreHealthCheck:
+                self.checkHealth()
+            raise
+
+    def xmlrpcCreateEmptyFile(self, filename, size):
+        xenrt.TEC().logverbose("CreateEmptyFile %s on %s" %
+                               (filename, self.getIP()))
+        try:
+            return self._xmlrpc().createEmptyFile(filename, size)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcAddBootFlag(self, flag):
+        xenrt.TEC().logverbose("AddBootFlag %s on %s" % (flag, self.getIP()))
+        try:
+            return self._xmlrpc().addBootFlag(flag)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcAppActivate(self, app):
+        xenrt.TEC().logverbose("AppActivate %s on %s" % (app, self.getIP()))
+        try:
+            return self._xmlrpc().appActivate(app)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def xmlrpcSendKeys(self, keys):
+        xenrt.TEC().logverbose("SendKeys %s on %s" % (keys, self.getIP()))
+        try:
+            return self._xmlrpc().sendKeys(keys)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def getWindowsEventLog(self, log, clearlog=False, ignoreHealthCheck=False):
+        """Return a string containing a CSV dump of the specified Windows
+        event log."""
+        if not self.xmlrpcFileExists("c:\\psloglist.exe", ignoreHealthCheck=ignoreHealthCheck):
+            self.xmlrpcSendFile("%s/distutils/psloglist.exe" %
+                                (xenrt.TEC().lookup("LOCAL_SCRIPTDIR")),
+                                "c:\\psloglist.exe", ignoreHealthCheck=ignoreHealthCheck)
+        command = []
+        command.append("c:\\psloglist.exe")
+        command.append("/accepteula")
+        command.append("-s")
+        command.append("-x %s" % (log))
+        if clearlog:
+            command.append("-c")
+        data = self.xmlrpcExec(string.join(command),
+                               returndata=True,
+                               timeout=3600, ignoreHealthCheck=ignoreHealthCheck)
+        return data
+
+    def getWindowsEventLogs(self, logdir, ignoreHealthCheck=False):
+        """Fetch all useful Windows event logs to CSV files in the specified
+        directory."""
+        clearlog = xenrt.TEC().lookup("CLEAR_EVENT_LOGS_ON_FETCH",
+                                      False,
+                                      boolean=True)
+        for log in ("system", "application", "security"):
+            if self.logFetchExclude and log in self.logFetchExclude:
+                continue
+            data = self.getWindowsEventLog(log, clearlog=clearlog, ignoreHealthCheck=ignoreHealthCheck)
+            f = file("%s/%s.csv" % (logdir, log), "w")
+            f.write(data)
+            f.close()
+
+    def winRegPresent(self, hive, key, name):
+        """ Check for the windows registry value"""
+        
+        try:
+            s = self._xmlrpc()
+            s.regLookup(hive, key, name)
+            return True
+        except Exception, e:
+            return False
+            
+    def winRegLookup(self, hive, key, name, healthCheckOnFailure=True, suppressLogging=False):
+        """Look up a Windows registry value."""
+
+        if not suppressLogging:
+            xenrt.TEC().logverbose("Registry lookup: %s %s %s" % (hive, key, name))
+        try:
+            s = self._xmlrpc()
+            val = s.regLookup(hive, key, name)
+            if not suppressLogging:
+                xenrt.TEC().logverbose("Registry lookup returned: " + str(val))
+            return val
+        except Exception, e:
+            if not suppressLogging:
+                xenrt.TEC().logverbose("Registry key not found: " + str(e))
+            if healthCheckOnFailure:
+                self.checkHealth()
+            raise
+
+    def winRegAdd(self, hive, key, name, vtype, value):
+        """Add a value to the Windows registry"""
+        xenrt.TEC().logverbose("Registry add on %s %s:%s %s=%s (%s)" %
+                               (self.getIP(), hive, key, name, value, vtype))
+        try:
+            s = self._xmlrpc()
+            s.regSet(hive, key, name, vtype, value)
+        except Exception, e:
+            self.checkHealth()
+            raise
+
+    def winRegDel(self, hive, key, name, ignoreHealthCheck=False):
+        """Remove a value from the Windows registry"""
+        xenrt.TEC().logverbose("Registry delete on %s %s:%s %s" %
+                               (self.getIP(), hive, key, name))
+        try:
+            s = self._xmlrpc()
+            s.regDelete(hive, key, name)
+        except Exception, e:
+            if not ignoreHealthCheck:
+                self.checkHealth()
+            raise
+
+    def disableReceiverMaxProto(self):
+
+        try:
+            self.winRegDel("HKLM", "SYSTEM\\CurrentControlSet\\services\\xenvif\\Parameters", "ReceiverMaximumProtocol")
+        except:
+            xenrt.TEC().logverbose("winRegDel fails post Clearwater")
+
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\services\\xenvif\\Parameters", "ReceiverMaximumProtocol", "DWORD", 0)
+
+    def getReceiverMaxProtocol(self):
+
+        return self.winRegLookup('HKLM', 'SYSTEM\\CurrentControlSet\\services\\xenvif\\Parameters', 'ReceiverMaximumProtocol')
 
     def joinDomain(self, adserver, computerName=None, adminUserName="Administrator", adminPassword=None):
         # works with ws2008 and ws2012
@@ -1439,6 +2369,31 @@ Add-WindowsFeature as-net-framework"""
 
         # CA-114127 - sleep to stop this interfering with .net installation later??
         xenrt.sleep(120)
+
+    def installAutoIt(self, withAutoItX=False):
+        """
+        Install AutoIt3 interpreter and compiler into a Windows XML-RPC guest.
+        The path to the autoit interpreter is returned.
+        """
+        is_x64 = self.xmlrpcGetArch() == "amd64"
+        autoit = "c:\\Program Files" + (is_x64 and " (x86)" or "") + \
+                 "\\AutoIt3\\AutoIt3" + (is_x64 and "_x64" or "") + ".exe"
+        if self.xmlrpcGlobPattern(autoit):
+            xenrt.TEC().logverbose("AutoIt already installed")
+        else:
+            tempdir = self.xmlrpcTempDir()
+            self.xmlrpcUnpackTarball("%s/autoit.tgz" %
+                                     (xenrt.TEC().lookup("TEST_TARBALL_BASE")),
+                                     tempdir)
+            self.xmlrpcExec(tempdir + "\\autoit\\autoit-v3-setup.exe /S")
+            assert self.xmlrpcGlobPattern(autoit)
+        if withAutoItX:
+            self._xmlrpc().installAutoItX()
+        return autoit
+
+    def getAutoItX(self):
+        self.installAutoIt(withAutoItX=True)
+        return self._xmlrpc().autoitx
 
     def getPowershellVersion(self):
         version = 0.0
@@ -3461,7 +4416,6 @@ class RunOnLocation(GenericPlace):
         return self.address
 
 class GenericHost(GenericPlace):
-    implements(xenrt.interfaces.OSParent)
 
     # Domain states
     STATE_UNKNOWN  = 0
@@ -3497,6 +4451,7 @@ class GenericHost(GenericPlace):
         self.ipv6_mode = None
         self.controller = None
         self.containerHost = None
+        self.os = None
         self.jobTests = []
 
         xenrt.TEC().logverbose("Creating %s instance." % (self.__class__.__name__))
@@ -3532,51 +4487,18 @@ class GenericHost(GenericPlace):
             ret['access']['password'] = self.password
         return ret
 
-    ##### Methods from OSParent #####
-
-    @property
-    def name(self):
-        return self.getName()
-
-    @property
-    def hypervisorType(self):
-        # This refers to the Hypervisor type of the control domain, which for most purposes can assumed to be Native
-        return xenrt.HypervisorType.native
-
-    def getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
-        if self.machine and self.use_ipv6:
-            return self.machine.ipaddr6
-        elif self.machine:
-            return self.machine.ipaddr
-        return None
-
-    def getPort(self, trafficType):
-        return None
-
-    def setIP(self,ip):
-        if self.machine:
-            obj = IPy.IP(ip)
-            if IPy.IP(ip).version() == 6:
-                self.machine.ipaddr6 = ip
+    def getOS(self):
+        if not self.os:
+            if self.windows or not self.arch:
+                osdistro = self.distro
             else:
-                self.machine.ipaddr = ip
-        else:
-            raise xenrt.XRTError("No host Object Found")
+                osdistro = "%s_%s" % (self.distro, self.arch)
 
-    def startOS(self):
-        self.machine.powerctl.on()
-
-    def ejectIso(self):
-        # TODO implement this with Virtual Media
-        raise xenrt.XRTError("Not implemented")
-
-    def setIso(self, isoName, isoRepo=None):
-        # TODO implement this with Virtual Media
-        raise xenrt.XRTError("Not implemented")
-
-    def pollOSPowerState(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
-        """Poll for reaching the specified state"""
-        raise xenrt.XRTError("Not supported")
+            wrapper = xenrt.lib.generic.HostWrapper(self)
+            self.os = xenrt.lib.opsys.osFactory(osdistro, wrapper)
+            wrapper.os = self.os
+            self.os.tailor()
+        return self.os
 
     def registerJobTest(self, jt):
         try:
@@ -3625,6 +4547,23 @@ class GenericHost(GenericPlace):
         res = self.execdom0("grep -e'{0}' {1} || true".format(stringToFind, fileName))
         return len(res) > 0
 
+    def getIP(self):
+        if self.machine and self.use_ipv6:
+            return self.machine.ipaddr6
+        elif self.machine:
+            return self.machine.ipaddr
+        return None
+
+    def setIP(self,ip):
+        if self.machine:
+            obj = IPy.IP(ip)
+            if IPy.IP(ip).version() == 6:
+                self.machine.ipaddr6 = ip
+            else:
+                self.machine.ipaddr = ip
+        else:
+            raise xenrt.XRTError("No host Object Found")
+
     def getPXEIP(self):
         if self.machine:
             return self.machine.pxeipaddr
@@ -3664,6 +4603,14 @@ class GenericHost(GenericPlace):
                                                 var,
                                                 default=default,
                                                 boolean=boolean)
+
+    def waitForSSH(self, timeout, level=xenrt.RC_FAIL, desc="Operation",
+                   username="root", cmd="true"):
+        timeout = timeout + int(self.lookup("ALLOW_EXTRA_HOST_BOOT_SECONDS", "0"))
+        GenericPlace.waitForSSH(self, timeout, level, desc, username, cmd)
+        if self.lookup("SERIAL_DISABLE_ON_BOOT",False, boolean=True) and self.machine.consoleLogger:
+            self.machine.consoleLogger.reload()
+
 
     def addGuest(self, guest):
         self.guests[guest.name] = guest
@@ -3705,6 +4652,50 @@ class GenericHost(GenericPlace):
         """
 
         return command
+
+    def execdom0(self,
+                 command,
+                 username=None,
+                 retval="string",
+                 level=xenrt.RC_FAIL,
+                 timeout=300,
+                 idempotent=False,
+                 newlineok=False,
+                 nolog=False,
+                 outfile=None,
+                 useThread=False,
+                 getreply=True,
+                 password=None):
+        """Execute a command on the dom0 of the specified machine.
+
+        @param retval:  Whether to return the result code or stdout as a string
+            "C{string}" (default), "C{code}"
+            if "C{string}" is used then a failure results in an exception
+        @param level:   Exception level to use if appropriate.
+        @param nolog:   If C{True} then don't log the output of the command
+        @param useThread: If C{True} then run the SSH command in a thread to
+                        guard against hung SSH sessions
+        """
+        if not username:
+            if self.windows:
+                username = "Administrator"
+            else:
+                username = "root"
+        if not password:
+            password = self.password
+        return xenrt.ssh.SSH(self.getIP(),
+                             self.transformCommand(command),
+                             level=level,
+                             retval=retval,
+                             password=password,
+                             timeout=timeout,
+                             username=username,
+                             idempotent=idempotent,
+                             newlineok=newlineok,
+                             nolog=nolog,
+                             outfile=outfile,
+                             getreply=getreply,
+                             useThread=useThread)
 
     def postInstall(self):
         """Perform any product-specific post install actions."""
@@ -5962,7 +6953,6 @@ class NetPeerHost(GenericHost):
 
 class GenericGuest(GenericPlace):
     """Encapsulates a single guest VM."""
-    implements(xenrt.interfaces.OSParent)
 
     def __init__(self, name, host=None, reservedIP=None):
         GenericPlace.__init__(self)
@@ -6030,45 +7020,6 @@ class GenericGuest(GenericPlace):
         else:
             ret['host'] = None
         return ret
-
-    ##### Methods from OSParent #####
-    # Name is an attribute, no need to define as a property
-
-    @property
-    def hypervisorType(self):
-        return xenrt.HypervisorType.unknown
-
-    def getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
-        # TODO add arp sniffing capabilities here
-        return self.mainip
-
-    def getPort(self, trafficType):
-        return None
-
-    def setIP(self,ip):
-        self.mainip = ip
-
-    def startOS(self):
-        self.lifecycleOperation("vm-start")
-
-    def ejectIso(self):
-        # TODO implement this with ISO SRs
-        raise xenrt.XRTError("Not implemented")
-
-    def setIso(self, isoName, isoRepo=None):
-        # TODO implement this with ISO SRs
-        raise xenrt.XRTError("Not implemented")
-
-    def pollOSPowerState(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
-        """Poll for reaching the specified state"""
-        stateMapping = {
-            xenrt.PowerState.down: "DOWN",
-            xenrt.PowerState.up: "UP",
-            xenrt.PowerState.paused: "PAUSED",
-            xenrt.PowerState.suspended: "SUSPENDED"
-        }
-        self.poll(stateMapping[state], timeout, level, pollperiod)
-
 
     def setHost(self, host):
         if host and host.replaced:
@@ -6191,6 +7142,9 @@ class GenericGuest(GenericPlace):
 
     def setMemory(self, memory):
         self.memory = memory
+
+    def getIP(self):
+        return self.mainip
 
     def getName(self):
         return self.name
@@ -6536,6 +7490,56 @@ class GenericGuest(GenericPlace):
             self.checkNetworkSSH()
         else:
             self.checkNetworkNoSSH()
+
+    def execguest(self,
+                  command,
+                  username=None,
+                  retval="string",
+                  level=xenrt.RC_FAIL,
+                  timeout=1200,
+                  idempotent=False,
+                  newlineok=False,
+                  getreply=True,
+                  nolog=False,
+                  useThread=False,
+                  outfile=None,
+                  password=None):
+        """Execute a command on the guest.
+
+        @param retval:  Whether to return the result code or stdout as a string
+            "C{string}" (default), "C{code}"
+            if "C{string}" is used then a failure results in an exception
+        @param level:   Exception level to use if appropriate.
+        @param nolog:   If C{True} then don't log the output of the command
+        """
+        if not self.mainip:
+            raise xenrt.XRTError("Unknown IP address to SSH to %s" %
+                                 (self.name))
+        if not username:
+            if self.windows:
+                username = "Administrator"
+            else:
+                username = "root"
+        if not self.password and self.windows:
+            password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
+                                           "ADMINISTRATOR_PASSWORD"],
+                                          "xensource")
+        else:
+            if password is None:
+                password = self.password
+        return xenrt.ssh.SSH(self.mainip,
+                             command,
+                             username=username,
+                             password=password,
+                             level=level,
+                             retval=retval,
+                             timeout=timeout,
+                             idempotent=idempotent,
+                             newlineok=newlineok,
+                             getreply=getreply,
+                             nolog=nolog,
+                             useThread=useThread,
+                             outfile=outfile)
 
     def reboot(self, force=False, skipsniff=False):
         # Per-product guest subclasses will override this. Define a fallback
@@ -8383,7 +9387,7 @@ class GenericGuest(GenericPlace):
             raise xenrt.XRTError("Funcion not implemented for non-Windows guests")
 
         try:
-            self.os.enableDHCP6()
+            self._xmlrpc().enableDHCP6()
         except:
             pass
         if self.enlightenedDrivers:

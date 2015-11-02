@@ -90,13 +90,16 @@ class OSParent(Interface):
     def getIP(trafficType, timeout, level):
         """Get the IP for the OS"""
 
+    def getIPAndPort(trafficType, timeout, level):
+        """Get the IP and Port for the OS"""
+
     def getPort(trafficType):
         """Get the port for the traffic type"""
 
     def setIP(ip):
         """Set the IP for the OS"""
 
-    def startOS():
+    def start():
         """Start the OS container (VM/host)"""
 
     def ejectIso():
@@ -105,7 +108,7 @@ class OSParent(Interface):
     def setIso(isoName, isoRepo):
         """Set the ISO to the specified iso"""
 
-    def pollOSPowerState(state, timeout, level, pollperiod):
+    def poll(state, timeout, level, pollperiod):
         """Poll for a change in power state"""
 
 class OS(Interface):

@@ -34,13 +34,6 @@ class TestInterfaces(XenRTTestCaseUnitTestCase):
         # Do the verification
         verifyObject(xenrt.interfaces.Toolstack, x)
 
-    def test_OSParentInterfaces(self):
-        # Create a Mock host
-        x = xenrt.GenericHost(Mock())
-        verifyObject(xenrt.interfaces.OSParent, x)
-        x = xenrt.GenericGuest(Mock())
-        verifyObject(xenrt.interfaces.OSParent, x)
-
     def test_instanceInterface(self):
         """Verify the Instance class implements the OSParent interface"""
         # Mock out the methods used by the Instance __init__ so they don't get called

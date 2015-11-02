@@ -1,6 +1,5 @@
 import xenrt
 import string
-import socket
 from xenrt.lib.opsys import OS
 
 
@@ -8,9 +7,6 @@ class LinuxOS(OS):
     vifStem = "eth"
 
     tcpCommunicationPorts={"SSH": 22}
-
-    def __init__(self, distro, parent, password=None):
-        super(LinuxOS, self).__init__(distro, parent, password)
 
     def execSSH(self,
                 command,
@@ -40,12 +36,12 @@ class LinuxOS(OS):
             username = "root"
         if not password:
             if not self.password:
-                self.findPassword()
+                self.password = self.findPassword()
             password = self.password
 
-        return xenrt.ssh.SSH(self.getIP(trafficType="SSH"),
+        return xenrt.ssh.SSH(self.parent.getIP(trafficType="SSH"),
                              command,
-                             port=self.getPort(trafficType="SSH"),
+                             port=self.parent.getPort(trafficType="SSH"),
                              level=level,
                              retval=retval,
                              password=password,
@@ -58,13 +54,6 @@ class LinuxOS(OS):
                              getreply=getreply,
                              useThread=useThread)
 
-    def getArch(self):
-        arch = self.execSSH("uname -m")
-        if arch == "x86_64":
-            return "x86-64"
-        else:
-            return "x86-32"
-
     def getLogs(self, path):
         sftp = self.sftpClient()
         sftp.copyLogsFrom(["/var/log/messages",
@@ -75,11 +64,11 @@ class LinuxOS(OS):
 
     def sftpClient(self):
         """Get a SFTP client object to the guest"""
-        return xenrt.ssh.SFTPSession(self.getIP(trafficType="SSH"),
+        return xenrt.ssh.SFTPSession(self.parent.getIP(trafficType="SSH"),
                                      username="root",
                                      password=self.password,
                                      level=xenrt.RC_FAIL,
-                                     port=self.getPort(trafficType="SSH"))
+                                     port=self.parent.getPort(trafficType="SSH"))
 
     def populateFromExisting(self):
         if self.parent.getPowerState() != xenrt.PowerState.up:
@@ -93,7 +82,7 @@ class LinuxOS(OS):
             # Use a 30s timeout if we know the IP. If we don't try 10s first
             if len(ipList) == 0:
                 timeouts = [30]
-                ipList = [self.getIPAndPort(trafficType="SSH")]
+                ipList = [self.parent.getIPAndPort(trafficType="SSH")]
             else:
                 timeouts = [10, 30]
                 ipList = [(x,22) for x in ipList]
@@ -109,7 +98,7 @@ class LinuxOS(OS):
                             xenrt.TEC().logverbose("Setting my password to %s"
                                                     % (p))
                             self.password = p
-                            if i[0] != self.getIP(trafficType="SSH"):
+                            if i[0] != self.parent.getIP(trafficType="SSH"):
                                 xenrt.TEC().logverbose("Setting my IP to %s"
                                                         % (i))
                                 self.parent.setIP(i)
@@ -124,16 +113,16 @@ class LinuxOS(OS):
         while 1:
             if not self.password:
                 self.findPassword()
-            if xenrt.ssh.SSH(self.getIP(trafficType="SSH"),
+            if xenrt.ssh.SSH(self.parent.getIP(trafficType="SSH"),
                              cmd,
-                             port=self.getPort(trafficType="SSH"),
+                             port=self.parent.getPort(trafficType="SSH"),
                              password=self.password,
                              level=xenrt.RC_OK,
                              timeout=20,
                              username=username,
                              nowarn=True) == xenrt.RC_OK:
                 xenrt.TEC().logverbose(" ... OK reply from %s:%s" %
-                                       (self.getIP(trafficType="SSH"), self.getPort(trafficType="SSH")))
+                                       (self.parent.getIP(trafficType="SSH"), self.parent.getPort(trafficType="SSH")))
                 return xenrt.RC_OK
             now = xenrt.util.timenow()
             if now > deadline:
@@ -170,18 +159,3 @@ class LinuxOS(OS):
             self.execSSH("dd if=/dev/urandom oflag=direct of=%s count=1024"
                           % stampFile)
             self.execSSH("dd if=%s iflag=direct of=/dev/null" % stampFile)
-    
-    @classmethod
-    def osDetected(cls, parent, password):
-        obj = cls("testlin", parent, password)
-        try:
-            sock = socket.socket()
-            sock.settimeout(10)
-            sock.connect((obj.getIP(), obj.getPort("SSH")))
-            sock.close()
-            obj.execSSH("true")
-        except Exception, e:
-            xenrt.TEC().logverbose("OS appears not to have SSH: %s" % str(e))
-            return (False, password)
-        else:
-            return (True, obj.password)

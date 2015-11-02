@@ -53,7 +53,7 @@ class Instance(object):
         self.toolstack.discoverInstanceAdvancedNetworking(self)
         self.os.populateFromExisting()
 
-    def pollOSPowerState(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
+    def poll(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
         """Poll for reaching the specified state"""
         deadline = xenrt.timenow() + timeout
         while 1:
@@ -70,6 +70,15 @@ class Instance(object):
             return self.inboundmap[trafficType][1]
         else:
             return self.os.tcpCommunicationPorts[trafficType] 
+
+    def getIPAndPort(self, trafficType, timeout=600, level=xenrt.RC_ERROR):
+        if self.inboundmap.has_key(trafficType):
+            return self.inboundmap[trafficType]
+        elif self.inboundip:
+            return (self.inboundip, self.os.tcpCommunicationPorts[trafficType])
+        else:
+            return (self.getMainIP(timeout, level), self.os.tcpCommunicationPorts[trafficType])
+        
 
     def getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
         if trafficType:
@@ -95,14 +104,11 @@ class Instance(object):
     def setIP(self, ip):
         raise xenrt.XRTError("Not implemented")
 
-    def startOS(self, on=None):
+    def start(self, on=None, timeout=600):
         xenrt.xrtAssert(self.getPowerState() == xenrt.PowerState.down, "Power state before starting must be down")
         self.toolstack.startInstance(self, on)
-        xenrt.xrtCheck(self.getPowerState() == xenrt.PowerState.up, "Power state after start should be up")
-
-    def start(self, on=None, timeout=600):
-        self.startOS(on)
         self.os.waitForBoot(timeout)
+        xenrt.xrtCheck(self.getPowerState() == xenrt.PowerState.up, "Power state after start should be up")
 
     def reboot(self, force=False, timeout=600, osInitiated=False):
         xenrt.xrtAssert(self.getPowerState() == xenrt.PowerState.up, "Power state before rebooting must be up")
@@ -118,7 +124,7 @@ class Instance(object):
         xenrt.xrtAssert(self.getPowerState() == xenrt.PowerState.up, "Power state before shutting down must be up")
         if osInitiated:
             self.os.shutdown()
-            self.pollOSPowerState(xenrt.PowerState.down)
+            self.poll(xenrt.PowerState.down)
         else:
             self.toolstack.stopInstance(self, force)
         xenrt.xrtCheck(self.getPowerState() == xenrt.PowerState.down, "Power state after shutdown should be down")

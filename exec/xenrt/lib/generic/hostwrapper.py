@@ -3,32 +3,30 @@ import xenrt
 from zope.interface import implements
 
 
-class StaticOS(object):
+class HostWrapper(object):
     implements(xenrt.interfaces.OSParent)
 
-    def __init__(self, distro, ip):
-        self.distro = distro
-        self.mainip = ip
-
-        self.os = xenrt.lib.opsys.osFactory(self.distro, self)
+    def __init__(self, host):
+        self.host = host
+        self.os = None
 
     @property
     def name(self):
-        return "Static-%s" % self.mainip
+        return self.host.name
 
     @property
     def hypervisorType(self):
-        return None
+        return xenrt.HypervisorType.native
 
     def poll(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
         """Poll for reaching the specified state"""
         raise xenrt.XRTError("Not supported")
 
     def getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
-        return self.mainip
+        return self.host.getIP()
 
     def getIPAndPort(self, trafficType, timeout=600, level=xenrt.RC_ERROR):
-        return (self.mainip, self.os.tcpCommunicationPorts[trafficType])
+        return (self.host.getIP(), self.os.tcpCommunicationPorts[trafficType])
 
     def getPort(self, trafficType):
         return self.os.tcpCommunicationPorts[trafficType]
@@ -45,4 +43,4 @@ class StaticOS(object):
     def ejectIso(self):
         raise xenrt.XRTError("Not implemented")
 
-__all__ = ["StaticOS"]
+__all__ = ["HostWrapper"]

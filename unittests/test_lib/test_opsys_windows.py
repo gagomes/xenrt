@@ -21,7 +21,7 @@ class WindowsIsHealthy(XenRTUnitTestCase):
     def setUp(self):
         # Set up a series of method mocks invlved in assertHealthy
         parent = interfaceMock(xenrt.interfaces.OSParent)
-        parent.getPowerState = lambda: xenrt.PowerState.up
+        parent._osParent_getPowerState = lambda: xenrt.PowerState.up
         self.__win = WindowsOS(None, parent)
         self.__randomWord = "SomeRandomStringOrOther"
         generator = FakeRandomStringGenerator(self.__randomWord)

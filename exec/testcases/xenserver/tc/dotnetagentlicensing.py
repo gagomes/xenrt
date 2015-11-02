@@ -60,7 +60,20 @@ class DotNetAgentAdapter(object):
         if host.xenstoreExists("/guest_agent_features/Guest_agent_auto_update/parameters/update_url"):
             host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_url"%host.getPool().getUUID())
 
-    def nonCryptoMSIInstalled(self,guest):
+    def setUpServer(self,guest,port):
+        xenrt.TEC().logverbose("-----Setting up server-----")
+        guest.execguest("mkdir -p logs")
+        guest.execguest("python -m SimpleHTTPServer {0} > logs/server{0}.log 2>&1&".format(str(port)))
+        return SimpleServer(str(port), guest)
+
+    def lowerDotNetAgentVersion(self, guest):
+        os = guest.getInstance().os
+        os.winRegAdd("HKLM","SOFTWARE\\Citrix\\XenTools","BuildVersion","DWORD",0)
+
+class nonCrypto(object):
+
+    @staticmethod
+    def nonCryptoMSIInstalled(guest):
         os = guest.getInstance().os
         arch = os.getArch()
         if "64" in arch:
@@ -75,21 +88,12 @@ class DotNetAgentAdapter(object):
         else:
             return False
 
-    def getNonCryptoMSIs(self, server):
+    @staticmethod
+    def getNonCryptoMSIs(server):
         server.guest.execguest("wget '%s/citrixguestagent-Noncrypto.tgz'"%(xenrt.TEC().lookup("TEST_TARBALL_BASE")))
         server.guest.execguest("tar -xf citrixguestagent-Noncrypto.tgz")
         server.guest.execguest("mv citrixguestagent-Noncrypto/managementagentx64.msi managementagentx64.msi")
         server.guest.execguest("mv citrixguestagent-Noncrypto/managementagentx86.msi managementagentx86.msi")
-
-    def setUpServer(self,guest,port):
-        xenrt.TEC().logverbose("-----Setting up server-----")
-        guest.execguest("mkdir -p logs")
-        guest.execguest("python -m SimpleHTTPServer {0} > logs/server{0}.log 2>&1&".format(str(port)))
-        return SimpleServer(str(port), guest)
-
-    def lowerDotNetAgentVersion(self, guest):
-        os = guest.getInstance().os
-        os.winRegAdd("HKLM","SOFTWARE\\Citrix\\XenTools","BuildVersion","DWORD",0)
 
 class PingTriggerStrategy(object):
     def execute(self):
@@ -367,7 +371,7 @@ class NonCryptoMSI(DotNetAgentTestCases):
     def run(self, arglist):
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
         server.createCatalog("99.0.0.0")
-        self.adapter.getNonCryptoMSIs(server)
+        nonCrypto.getNonCryptoMSIs(server)
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.enable()
@@ -375,7 +379,7 @@ class NonCryptoMSI(DotNetAgentTestCases):
         self.agent.restartAgent()
         xenrt.sleep(200)
         assertions.assertNotNone(autoupdate.checkDownloadedMSI(),"msi has not downloaded")
-        assertions.assertFalse(self.adapter.nonCryptoMSIInstalled(self.win1),"Non cryprographically signed msi installed")
+        assertions.assertFalse(nonCrypto.nonCryptoMSIInstalled(self.win1),"Non cryprographically signed msi installed")
 
 class NoServerSurvive(DotNetAgentTestCases):
 

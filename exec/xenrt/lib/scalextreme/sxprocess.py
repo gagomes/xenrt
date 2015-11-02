@@ -87,8 +87,8 @@ class SXProcess(object):
                         d['sr_ref'] = srRef
                 if params.has_key('copy_sr'):
                     params['copy_sr'] = srRef
-                prop['propertyValue'] = json.dumps(propValue, ensure_ascii=False).encode('ascii')
-            item['attributeValue'] = json.dumps(v, ensure_ascii=False).encode('ascii')
+                prop['propertyValue'] = json.dumps(propValue)
+            item['attributeValue'] = json.dumps(v)
 
         return deploymentProfile
 
@@ -118,7 +118,7 @@ class SXProcess(object):
         # Save it
         if not profileName:
             profileName = "xenrt-%s-%s" % (xenrt.GEC().jobid(), xenrt.randomSuffix())
-        result = self.apiHandler.execute(category="deploymentprofile", method="POST", params={"processIdStr": self.processId, "processVersionStr": self.processVersion, "deploymentProfileName": profileName, "profileDetailsStr": json.dumps(deploymentProfile['profileDetails'], ensure_ascii=False).encode('ascii')})
+        result = self.apiHandler.execute(category="deploymentprofile", method="POST", params={"processIdStr": self.processId, "processVersionStr": self.processVersion, "deploymentProfileName": profileName, "profileDetailsStr": json.dumps(deploymentProfile['profileDetails'])})
         deploymentProfileId = result['deploymentProfileId']
         
         # Trigger the deployment using the profile

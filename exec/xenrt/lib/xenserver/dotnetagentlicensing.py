@@ -179,8 +179,8 @@ class VMUser(ActorImp):
         self.os = os
 
     def isActive(self):
-            key = self.os.winRegLookup(HIVE_CONST,KEY_CONST,AU_CONST)
-            return key != 1
+        key = self.os.winRegLookup(HIVE_CONST,KEY_CONST,AU_CONST)
+        return key != 1
 
     def enable(self):
         xenrt.TEC().logverbose("-----Enabling auto update via VM-----")

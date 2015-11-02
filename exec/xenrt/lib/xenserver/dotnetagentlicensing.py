@@ -184,27 +184,27 @@ class VMUser(ActorImp):
 
     def enable(self):
         xenrt.TEC().logverbose("-----Enabling auto update via VM-----")
-        self.os.winRegAdd(HIVE_CONST,KEY_CONST,AU_CONST,"DWORD",0)
+        self.os.winRegAdd(VMUser.HIVE_CONST,VMUser.KEY_CONST,VMUser.AU_CONST,"DWORD",0)
 
     def disable(self):
         xenrt.TEC().logverbose("-----Disabling auto update via VM-----")
-        self.os.winRegAdd(HIVE_CONST,KEY_CONST,AU_CONST,"DWORD",1)
+        self.os.winRegAdd(VMUser.HIVE_CONST,VMUser.KEY_CONST,VMUser.AU_CONST,"DWORD",1)
 
     def remove(self):
         xenrt.TEC().logverbose("-----Removing VM registry DisableAutoUpdate key-----")
-        self.os.winRegDel(HIVE_CONST,KEY_CONST,AU_CONST)
+        self.os.winRegDel(VMUser.HIVE_CONST,VMUser.KEY_CONST,VMUser.AU_CONST)
 
     def setURL(self,url):
         xenrt.TEC().logverbose("-----Setting VM URL to %s -----"%url)
-        self.os.winRegAdd(HIVE_CONST,KEY_CONST,URL_CONST,"SZ","%s"%url)
+        self.os.winRegAdd(VMUser.HIVE_CONST,VMUser.KEY_CONST,VMUser.URL_CONST,"SZ","%s"%url)
 
     def defaultURL(self):
         xenrt.TEC().logverbose("-----Removing VM URL key-----")
-        self.os.winRegDel(HIVE_CONST,KEY_CONST,URL_CONST)
+        self.os.winRegDel(VMUser.HIVE_CONST,VMUser.KEY_CONST,VMUser.URL_CONST)
 
     def checkKeyPresent(self):
-        if self.os.winRegExists(HIVE_CONST,KEY_CONST,AU_CONST,healthCheckOnFailure=False):
-            key = self.os.winRegLookup(HIVE_CONST,KEY_CONST,AU_CONST,healthCheckOnFailure=False)
+        if self.os.winRegExists(VMUser.HIVE_CONST,VMUser.KEY_CONST,VMUser.AU_CONST,healthCheckOnFailure=False):
+            key = self.os.winRegLookup(VMUser.HIVE_CONST,VMUser.KEY_CONST,VMUser.AU_CONST,healthCheckOnFailure=False)
             if key:
                 return True
         return False

@@ -27,6 +27,7 @@ __all__ = ["WebDirectory",
            "SpecifiedSMBShare",
            "ISCSIIndividualLun",
            "ISCSILun",
+           "HBALun",
            "ISCSIVMLun",
            "ISCSINativeLinuxLun",
            "ISCSILunSpecified",
@@ -1436,6 +1437,93 @@ class ISCSINativeLinuxLun(ISCSILun):
         pass
     
     def release(self, atExit=False):
+        CentralResource.release(self, atExit)
+
+class HBALun(CentralResource):
+    def __init__(self,
+                 hosts,
+                 luntype=None,
+                 minsize=10,
+                 maxsize=10000):
+        CentralResource.__init__(self)
+        self.scsiid = None
+        self.luntype = None
+        xenrt.TEC().logverbose("About to attempt to lock HBA LUN - current central resource status:")
+        self.logList()
+        luns = hosts[0].lookup("FC", {})
+        luns = dict([(x, luns[x]) for x in luns.keys() if x.startswith("LUN")])
+        for l in luns.keys():
+            accept = True
+            if minsize and int(luns[l].get('SIZE', "0")) < minsize:
+                accept = False
+            elif maxsize and int(luns[l].get('SIZE', "0")) > maxsize:
+                accept = False
+            elif luntype and luns[l].get("TYPE") != luntype:
+                accept = False
+            else:
+                for h in hosts[1:]:
+                    hluns = h.lookup("FC")
+                    if not luns[l]['SCSIID'] in [hluns[x]['SCSIID'] for x in hluns.keys() if x.startswith("LUN")]:
+                        accept = False
+                        break
+            
+            if not accept:
+                del luns[l]
+        
+        if not luns:
+            raise xenrt.XRTError("Could not find a suitable LUN")
+        else:
+            CentralResource.__init__(self, held=False)
+            startlooking = xenrt.util.timenow()
+            mylun = None
+            while True:
+                for l in luns.keys():
+                    try:
+                        self.acquire("HBA_LUN-%s" % (luns[l]['SCSIID']))
+                        mylun = luns[l]
+                        self.resourceHeld = True
+                        break
+                    except xenrt.XRTError:
+                        continue
+                if mylun:
+                    break
+                if xenrt.util.timenow() > (startlooking + 3600):
+                    xenrt.TEC().logverbose("Could not lock HBA LUN, current central resource status:")
+                    self.logList()
+                    raise xenrt.XRTError("Timed out waiting for a LUN to be "
+                                         "available")
+                xenrt.sleep(60)
+   
+        self.scsiid = luns[l]['SCSIID']
+        self.luntype = luns[l].get('TYPE')
+        self.lunid = int(luns[l]['LUNID']) if luns[l].has_key('LUNID') else None
+        self.mpclaim = luns[l].get("MPCLAIM")
+
+    def getID(self):
+        return self.scsiid
+
+    def getType(self):
+        return self.luntype
+
+    def getLunID(self):
+        return self.lunid
+
+    def getMPClaim(self):
+        return self.mpclaim
+
+    def release(self, atExit=False):
+        if xenrt.util.keepSetup():
+            xenrt.TEC().logverbose("Not releasing LUN %s" % self.scsiid)
+            return
+        
+        self.scsiid = None
+        self.luntype = None
+        if atExit:
+            for host in xenrt.TEC().registry.hostList():
+                if host == "SHARED":
+                    continue
+                h = xenrt.TEC().registry.hostGet(host)
+                h.machine.exitPowerOff()
         CentralResource.release(self, atExit)
 
 class NativeLinuxNFSShare(CentralResource):

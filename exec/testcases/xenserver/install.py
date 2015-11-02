@@ -344,57 +344,43 @@ class TCXenServerInstall(xenrt.TestCase):
             if fcsr:
                 if fcsr == "yes":
                     fcsr = "LUN0"
-                scsiid = host.lookup(["FC", fcsr, "SCSIID"], None)
+                lun = xenrt.HBALun([host])
                 multipathing = host.lookup("USE_MULTIPATH",
                                            False,
                                            boolean=True)
-                if not scsiid:
-                    raise xenrt.XRTError("No FC SCSIID found")
                 sr = xenrt.lib.xenserver.FCStorageRepository(host, "xenrtfc")
-                sr.create(scsiid, multipathing=multipathing)
+                sr.create(lun, multipathing=multipathing)
                 sr.check()
                 host.addSR(sr, default=True)
             if not fcoesr:
                 fcoesr = host.lookup("SR_FCOE", None)
             if fcoesr:
-                if fcoesr == "yes":
-                    fcoesr = "LUN0"
-                scsiid = host.lookup(["FC", fcoesr, "SCSIID"], None)
+                lun = xenrt.HBALun([host])
                 multipathing = host.lookup("USE_MULTIPATH",
                                            False,
                                            boolean=True)
-                if not scsiid:
-                    raise xenrt.XRTError("No FCOE SCSIID found")
                 sr = xenrt.lib.xenserver.FCOEStorageRepository(host, "xenrtfcoe")
-                sr.create(scsiid, multipathing=multipathing)
+                sr.create(lun, multipathing=multipathing)
                 sr.check()
                 host.addSR(sr, default=True)
                 
             if not sassr:
                 sassr = host.lookup("SR_SAS", None)
             if sassr:
-                if sassr == "yes":
-                    sassr = "LUN0"
-                scsiid = host.lookup(["SAS", sassr, "SCSIID"], None)
-                if not scsiid:
-                    raise xenrt.XRTError("No SAS SCSIID found")
+                lun = xenrt.HBALun([host])
                 sr = xenrt.lib.xenserver.SharedSASStorageRepository(host,
                                                                     "xenrtsas")
-                sr.create(scsiid)
+                sr.create(lun)
                 sr.check()
                 host.addSR(sr, default=True)
 
             if not iscsihbasr:
                 iscsihbasr = host.lookup("SR_ISCSIHBA", None)
             if iscsihbasr:
-                if iscsihbasr == "yes":
-                    iscsihbasr = "LUN0"
-                scsiid = host.lookup(["ISCSIHBA", iscsihbasr, "SCSIID"], None)
-                if not scsiid:
-                    raise xenrt.XRTError("No ISCSI HBA SCSIID found")
+                lun = xenrt.HBALun([host])
                 sr = xenrt.lib.xenserver.ISCSIHBAStorageRepository(host,
                                                                    "xenrthba")
-                sr.create(scsiid)
+                sr.create(lun)
                 sr.check()
                 host.addSR(sr, default=True)
 

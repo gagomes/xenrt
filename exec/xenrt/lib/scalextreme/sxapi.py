@@ -1,6 +1,7 @@
 import xenrt
 import requests
 import json
+import urllib
 
 __all__ = [ "SXAPI" ]
 

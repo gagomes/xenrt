@@ -682,7 +682,7 @@ class TC7366(SRSanityTestTemplate):
         
         # Make sure it's the 1024MB LUN we used
         host.execdom0("xe sr-scan uuid=%s" % sr.uuid)
-        size = sr.physicalSizeMB()
+        size = sr.physicalSize / xenrt.MEGA
         if size < 950:
             raise xenrt.XRTFailure("The SR was only %uMB in size. The LUN "
                                    "was 1024MB" % (size))
@@ -805,7 +805,7 @@ class TC7367(SRSanityTestTemplate):
                 expsize = self.LUN_SIZES[i]
             else:
                 expsize = self.LUN_SIZE
-            size = srs[i].physicalSizeMB()
+            size = srs[i].physicalSizeMB/xenrt.MEGA
             err = float(abs(size - expsize))/float(expsize)
             if err > 0.1:
                 raise xenrt.XRTFailure("The SR based on LUN %u is much "

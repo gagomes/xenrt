@@ -693,7 +693,7 @@ class TCThinAllocation(_ThinLVHDBase):
                 raise xenrt.XRTError("Only VDI and SR have sm-config.")
             srsize = xenrt.lib.xenserver.getStorageRepositoryClass(host, sruuid).fromExistingSR(host, sruuid).physicalSize
         else:
-            srsize = sr.physicalSize
+            srsize = obj.physicalSize
 
         # Refer https://info.citrite.net/display/xenserver/Thin-lvhd%3A+initial_allocation+and+allocation_quantum+customization
         # for upper and lower bound of allocation quantum.
@@ -701,7 +701,7 @@ class TCThinAllocation(_ThinLVHDBase):
         if targetQuantum > srsize * hostcount / 4000:
             targetQuantum = srsize * hostcount / 4000
         if targetQuantum < srsize / 50000:
-            targetQuantum = srzie / 50000
+            targetQuantum = srsize / 50000
         if targetQuantum < self.DEFAULTQUANTUM:
             targetQuantum = self.DEFAULTQUANTUM
 

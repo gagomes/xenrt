@@ -147,19 +147,19 @@ class LunPerVDI(xenrt.TestCase):
         for lun in self.netAppFiler.getLuns(): 
             # Check 2. Still mapped to iGroup?
             if not lun.isMapped():
-                raise xenrt.XRTError("The LUN %s mapping status changed unexpectedly." % lun.getId())
+                raise xenrt.XRTError("The LUN %s mapping status changed unexpectedly." % lun.getID())
 
             # Check 3. Still Online?
             if not lun.isOnline():
-                raise xenrt.XRTError("The LUN %s online status changed unexpectedly." % lun.getId() )
+                raise xenrt.XRTError("The LUN %s online status changed unexpectedly." % lun.getID() )
 
             # Check 4. Share-state of the lun altered ?
             if (lun.sharedState() != xenrt.StorageArrayLun.ShareState.NotSet): 
-                raise xenrt.XRTError("The LUN %s shared status changed unexpectedly: was %s." % (lun.getId(), str(lun.sharedState())))
+                raise xenrt.XRTError("The LUN %s shared status changed unexpectedly: was %s." % (lun.getID(), str(lun.sharedState())))
 
             # Check 5. Size altered ? (more work to check unless required, for the time being as below.)
             if (lun.size() == 0):
-                raise xenrt.XRTError("The LUN %s size: %d has changed unexpectedly." % (lun.getId(), lun.size()))
+                raise xenrt.XRTError("The LUN %s size: %d has changed unexpectedly." % (lun.getID(), lun.size()))
 
     def createSR(self):
         """Creates Raw LUN SR on the host"""
@@ -269,7 +269,7 @@ class LunPerVDI(xenrt.TestCase):
                                     (vdiuuid, nameLabel, virtualSize, physicalSize, vdiType))
 
             # 1. Verify the default name of each LUN/VDI is set to SCSIID its associated LUN.
-            matchingLun = next((lun for lun in lunList if lun.getId() == nameLabel), None)
+            matchingLun = next((lun for lun in lunList if lun.getID() == nameLabel), None)
             
             if matchingLun == None:
                 raise xenrt.XRTFailure("The VDI does not have an associated SCSI ID %s as name-label." % nameLabel)
@@ -562,7 +562,7 @@ class TC18357(LunPerVDI):
                                     (vdiNameLabel, list(set(deviceSizeBefore))[0]))
 
             # Deduce the NetApp serial number of the associated LUN of the VDI.
-            targetLun = next(lun for lun in self.netAppFiler.getLuns() if lun.getId() == vdiNameLabel)
+            targetLun = next(lun for lun in self.netAppFiler.getLuns() if lun.getID() == vdiNameLabel)
 
             xenrt.TEC().logverbose("Serial number of the LUN to be resized %s." % targetLun.getNetAppSerialNumber())
 

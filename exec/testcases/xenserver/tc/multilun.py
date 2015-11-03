@@ -16,7 +16,7 @@ class TCMultipleLunCreation(xenrt.TestCase):
             initiatorList[host.getIP()] = host.getFCWWPNInfo()
             
             self.netAppFiler.provisionLuns(2, 3, initiatorList)
-            self.scsiids = map(lambda x : x.getId(), self.netAppFiler.getLuns())
+            self.scsiids = map(lambda x : x.getID(), self.netAppFiler.getLuns())
             xenrt.TEC().logverbose(", ".join(self.scsiids))
             self.pause("Check luns")
         else:

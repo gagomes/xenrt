@@ -102,8 +102,8 @@ class Guest(xenrt.GenericGuest):
         self.memory = None # Default to template memory.
         self.vcpus = None # Default to template vcpus.
 
-    def rebootAsync(self, force):
-        self.host.execdom0("xe vm-reboot uuid=%s force=%s >/dev/null 2>&1 </dev/null &" % (self.getUUID(), str(force).lower()))
+    def rebootAsync(self):
+        self.host.execdom0("xe vm-reboot uuid=%s >/dev/null 2>&1 </dev/null &" % (self.getUUID()))
 
     def _checkPVAddonsInstalled(self):
         """This is require by waitForAgent to check for host license from Dundee onwards """

@@ -1913,10 +1913,10 @@ class VmRebootedOnce(xenrt.TestCase):
     def __disableSoftReboot(self, guest):
         #this Stops Soft Reboot - Only works on Debian 7 ... won't work on Debian 8 or later 
         guest.execguest("sed -i 's#.*ca:12345:ctrlaltdel:.*#ca:12345:ctrlaltdel:/bin/echo \"Oh no You Dont\"#' /etc/inittab")
-        xenrt.sleep(5)
+        xenrt.sleep(2)
         #reload inittab
         guest.execguest("init q")
-        xenrt.sleep(5)
+        xenrt.sleep(2)
     
     def run(self, arglist):
         for arg in arglist:
@@ -1929,14 +1929,12 @@ class VmRebootedOnce(xenrt.TestCase):
             step("VM soft reboot")
             rebootCountBefore = vm.getDomid()
             log("VM has been Rebooted %s times previously" % rebootCountBefore)
-            vm.rebootAsync(False)
-            #simulate hung reboot for VM
+            vm.rebootAsync()
+            #simulate hung reboot on guest VM
             xenrt.sleep(30)
             
             step("VM hard reboot")
-            vm.rebootAsync(True)
-            #wait for VM to reboot 
-            xenrt.sleep(60)
+            vm.reboot(force=True)
             rebootCountAfter = vm.getDomid()
             log("After Last Reboot total VM reboot count is %s " % rebootCountAfter)
             

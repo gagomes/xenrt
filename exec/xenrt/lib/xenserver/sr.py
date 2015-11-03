@@ -94,6 +94,9 @@ class StorageRepository(object):
         self.dconf = None
         self.content_type = ""
 
+        # Recorded by smconf property for possible future use by introduce
+        self.__smconf = {}
+
     @classmethod
     def fromExistingSR(cls, host, sruuid):
         """
@@ -121,6 +124,15 @@ class StorageRepository(object):
         instance.content_type = xsr.contentType
         return instance
 
+    def __backupSMConf(self):
+        """
+        Store current sm-config. This can be reused when SR is reintroduced
+        after forget/destroy.
+        """
+
+        # Back up smconf for future usage.
+        self.__smconf = self.smconf
+
     @property
     def smconf(self):
         """
@@ -135,7 +147,7 @@ class StorageRepository(object):
             conf[key.strip()] = val.strip()
 
         return conf
-    
+
     @property
     def smconfig(self):
         return self.smconf
@@ -210,8 +222,12 @@ class StorageRepository(object):
         args.append("name-label=\"%s\"" % (self.name))
         if self.SHARED:
             args.append("shared=true")
+
+        if "allocation" in self.__smconf:
+            args.append("sm-config:allocation=\"%s\"" % self.__smconf["allocation"])
+
         cli.execute("sr-introduce", string.join(args))
-        self.createPBDs()
+        self.createPBDs() 
 
     def unplugPBDs(self):
         """Unplug all PBDs associated with this SR."""
@@ -232,11 +248,23 @@ class StorageRepository(object):
 
     def forget(self):
         """Forget this SR (but keep the details in this object)"""
+
+        xenrt.TEC().logverbose("Trying forget SR: %s." % self.uuid)
+
+        self.__backupSMConf()
+        xenrt.TEC().logverbose("Backed up smconf before forget: %s" % self.__smconf)
+
         self.unplugPBDs()
         self.host.getCLIInstance().execute("sr-forget", "uuid=%s" % (self.uuid))
 
     def destroy(self):
         """Destroy this SR (but keep the details in this object)"""
+
+        xenrt.TEC().logverbose("Trying destroy SR: %s." % self.uuid)
+
+        self.__backupSMConf()
+        xenrt.TEC().logverbose("Backed up smconf before destroy: %s" % self.__smconf)
+
         self.unplugPBDs()
         self.host.getCLIInstance().execute("sr-destroy", "uuid=%s" % (self.uuid))
         self.isDestroyed = True
@@ -799,7 +827,6 @@ class NFSStorageRepository(StorageRepository):
                 path = r.group(2)
         self.server = server
         self.path = path
-
 
     def create(self, server=None, path=None, physical_size=0, content_type="", nosubdir=False):
         self.getServerAndPath(server, path)

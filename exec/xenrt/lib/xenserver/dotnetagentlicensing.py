@@ -37,8 +37,8 @@ class DotNetAgent(object):
 
     def restartAgent(self):
         if self.isAgentAlive():
-            self.os.execCmd("net stop \"XenSvc\" ")
-        self.os.execCmd("net start \"XenSvc\" ")
+            self.os.cmdExec("net stop \"XenSvc\" ")
+        self.os.cmdExec("net start \"XenSvc\" ")
 
     def agentVersion(self):
         major = self.os.winRegLookup("HKLM","SOFTWARE\\Citrix\\XenTools","MajorVersion",healthCheckOnFailure=False)
@@ -57,7 +57,7 @@ class DotNetAgent(object):
         return x
 
     def isAgentAlive(self):
-        info = self.os.execCmd("sc query \"XenSvc\" | find \"RUNNING\"", returndata = True)
+        info = self.os.cmdExec("sc query \"XenSvc\" | find \"RUNNING\"", returndata = True)
         return "RUNNING" in info
 
 class LicensedFeature(object):

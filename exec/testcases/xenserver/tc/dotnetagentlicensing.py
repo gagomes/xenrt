@@ -25,7 +25,7 @@ class DotNetAgentAdapter(object):
             license = self.__licenseFactory.licenseForHost(hostOrPool, sku)
         try:
             self.__licenseManager.addLicensesToServer(self.__v6,license, getLicenseInUse=False)
-        except:
+        except xenrt.XRTError, e:
             pass
         hostOrPool.licenseApply(self.__v6, license)
 

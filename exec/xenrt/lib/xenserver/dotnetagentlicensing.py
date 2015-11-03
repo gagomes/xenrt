@@ -180,7 +180,6 @@ class VMUser(ActorImp):
 
     def isActive(self):
         key = self.os.winRegLookup(HIVE_CONST,KEY_CONST,AU_CONST)
-        xenrt.TEC().logverbose("-----isActive: %s, type:%s-----"%(key,type(key)))
         return key != 1
 
     def enable(self):
@@ -207,7 +206,9 @@ class VMUser(ActorImp):
         if self.os.winRegExists(VMUser.HIVE_CONST,VMUser.KEY_CONST,VMUser.AU_CONST,healthCheckOnFailure=False):
             key = self.os.winRegLookup(VMUser.HIVE_CONST,VMUser.KEY_CONST,VMUser.AU_CONST,healthCheckOnFailure=False)
             if key:
+                xenrt.TEC().logverbose("-----return True----")
                 return True
+        xenrt.TEC().logverbose("-----return False----")
         return False
 
 class VSS(LicensedFeature):

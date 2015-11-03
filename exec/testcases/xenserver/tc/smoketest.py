@@ -139,6 +139,9 @@ class _TCSmokeTest(xenrt.TestCase):
 
     def checkGuestMemory(self, expected):
         """Validate the in-guest memory is what we expect (within 2%)"""
+        if expected is None:
+            return
+
         guestMemory = self.guest.getGuestMemory()
         difference = abs(expected - guestMemory)
         diffpct = (float(difference) / float(expected)) * 100

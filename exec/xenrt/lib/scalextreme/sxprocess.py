@@ -137,7 +137,7 @@ class SXProcess(object):
             statuses = set(map(lambda s: s['status'], statusresult))
             if len(statuses) > 0 and statuses.issubset(set(["complete","failed"])):
                 break
-            if (xenrt.util.timenow() - startttime) > 7200:
+            if (xenrt.util.timenow() - starttime) > 7200:
                 raise xenrt.XRTFailure("Deployment timed out")
             xenrt.sleep(15)
 

@@ -760,12 +760,9 @@ class TCThinAllocation(_ThinLVHDBase):
             else:
                 vdiquantum = int(vdiquantum)
 
-            try:
-                log("SR initial : %s SR quantum : %s VDI initial: %s VDI quantum : %s" % (SRinitial, SRquantum, vdiinitial, vdiquantum))
-                vdiuuid = self.createVDI(self.sr, self.sizebytes, initialAlloc=vdiinitial, quantumAlloc=vdiquantum, verifyInitial=True)
-                vbduuid = self.guest.createDisk(vdiuuid=vdiuuid, returnVBD=True)
-            except Exception, e :
-                raise xenrt.XRTFailure("VDI creation failed with exception %s" % (str(e)))
+            log("SR initial : %s SR quantum : %s VDI initial: %s VDI quantum : %s" % (SRinitial, SRquantum, vdiinitial, vdiquantum))
+            vdiuuid = self.createVDI(self.sr, self.sizebytes, initialAlloc=vdiinitial, quantumAlloc=vdiquantum, verifyInitial=True)
+            vbduuid = self.guest.createDisk(vdiuuid=vdiuuid, returnVBD=True)
 
             try:
                 # check we have correct values populated in vdi smconfig
@@ -773,8 +770,7 @@ class TCThinAllocation(_ThinLVHDBase):
 
                 # Check quantum allocation is as expected for the VDI
                 self.checkQuantumAlloc(vdiuuid, vdiinitial, vdiquantum)
-            except:
-                raise
+
             finally:
                 # Delete the VDI created
                 self.removeDisk(vdiuuid, vbduuid)

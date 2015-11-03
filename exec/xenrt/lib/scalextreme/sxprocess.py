@@ -105,7 +105,7 @@ class SXProcess(object):
         # Identify the network and SR the template is using and get their refs
         networkUUID = host.minimalList("vif-list", "network-uuid", "vm-uuid=%s" % template)[0]
         networkRef = xapi.network.get_by_uuid(networkUUID)
-        vdiUUID = host.minimalList("vbd-list", "vdi-uuid", "vm-uuid=%s" % template)[0]
+        vdiUUID = host.minimalList("vbd-list", "vdi-uuid", "vm-uuid=%s empty=false" % template)[0]
         srUUID = host.genParamGet("vdi", vdiUUID, "sr-uuid")
         srRef = xapi.SR.get_by_uuid(srUUID)
 

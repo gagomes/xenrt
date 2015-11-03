@@ -805,7 +805,7 @@ class TC7367(SRSanityTestTemplate):
                 expsize = self.LUN_SIZES[i]
             else:
                 expsize = self.LUN_SIZE
-            size = srs[i].physicalSizeMB/xenrt.MEGA
+            size = srs[i].physicalSize/xenrt.MEGA
             err = float(abs(size - expsize))/float(expsize)
             if err > 0.1:
                 raise xenrt.XRTFailure("The SR based on LUN %u is much "

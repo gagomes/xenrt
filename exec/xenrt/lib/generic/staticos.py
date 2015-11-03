@@ -13,36 +13,39 @@ class StaticOS(object):
         self.os = xenrt.lib.opsys.osFactory(self.distro, self)
 
     @property
-    def name(self):
+    def _osParent_name(self):
         return "Static-%s" % self.mainip
 
     @property
-    def hypervisorType(self):
+    def _osParent_hypervisorType(self):
         return None
 
-    def poll(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
+    def _osParent_pollPowerState(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
         """Poll for reaching the specified state"""
         raise xenrt.XRTError("Not supported")
 
-    def getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
+    def _osParent_getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
         return self.mainip
 
-    def getIPAndPort(self, trafficType, timeout=600, level=xenrt.RC_ERROR):
-        return (self.mainip, self.os.tcpCommunicationPorts[trafficType])
+    def _osParent_getPort(self, trafficType):
+        return None
 
-    def getPort(self, trafficType):
-        return self.os.tcpCommunicationPorts[trafficType]
-
-    def setIP(self, ip):
+    def _osParent_getPowerState(self):
         raise xenrt.XRTError("Not implemented")
 
-    def start(self, on=None, timeout=600):
+    def _osParent_setIP(self, ip):
         raise xenrt.XRTError("Not implemented")
 
-    def setIso(self, isoName, isoRepo=None):
+    def _osParent_start(self):
         raise xenrt.XRTError("Not implemented")
 
-    def ejectIso(self):
+    def _osParent_stop(self):
+        raise xenrt.XRTError("Not implemented")
+
+    def _osParent_setIso(self, isoName, isoRepo=None):
+        raise xenrt.XRTError("Not implemented")
+
+    def _osParent_ejectIso(self):
         raise xenrt.XRTError("Not implemented")
 
 __all__ = ["StaticOS"]

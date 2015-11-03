@@ -7,7 +7,7 @@ import xenrt
 class LinuxIsHealthy(XenRTUnitTestCase):
     def setUp(self):
         parent = interfaceMock(xenrt.interfaces.OSParent)
-        parent.getPowerState = lambda: xenrt.PowerState.up
+        parent._osParent_getPowerState = lambda: xenrt.PowerState.up
         self.__linux = LinuxOS(None, parent)
         self.__ssh = Mock()
         self.__linux.waitForSSH = Mock()

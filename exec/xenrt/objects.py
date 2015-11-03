@@ -22,6 +22,8 @@ import xml.etree.ElementTree as ET
 from xenrt.lazylog import log, warning, step
 from xenrt.linuxanswerfiles import *
 
+from zope.interface import implements
+
 #Dummy import of _strptime module
 #This is done to import this module before the threads do this - which causes CA-137801 - because _strptime is not threadsafe
 time.strptime('2014-06-12','%Y-%m-%d')
@@ -160,6 +162,7 @@ class GenericPlace(object):
         self.host = None
         self.memory = None
         self.vcpus = None
+        self._os = None
 
     def populateSubclass(self, x):
         x.password = self.password
@@ -172,6 +175,7 @@ class GenericPlace(object):
         x.extraLogsToFetch = self.extraLogsToFetch
         x.logFetchExclude = self.logFetchExclude
         x.vifstem = self.vifstem
+        x._os = self._os
 
     def compareConfig(self, other):
         """Compare the configuration of this place to another place. This
@@ -184,6 +188,22 @@ class GenericPlace(object):
                                                     str(self.windows),
                                                     other.getName(),
                                                     str(other.windows)))
+
+    @property
+    def os(self):
+        if not self._os:
+            if self.distro:
+                if self.windows or not self.arch:
+                    osdistro = self.distro
+                else:
+                    osdistro = "%s_%s" % (self.distro, self.arch)
+
+                self._os = xenrt.lib.opsys.osFactory(osdistro, self, self.password)
+            else:
+                self._os = xenrt.lib.opsys.osFromExisting(self, self.password)
+                self.password = self._os.password
+                self.distro = self._os.distro
+        return self._os
 
     def _clearObjectCache(self):
         """Remove cached object data."""
@@ -4416,6 +4436,7 @@ class RunOnLocation(GenericPlace):
         return self.address
 
 class GenericHost(GenericPlace):
+    implements(xenrt.interfaces.OSParent)
 
     # Domain states
     STATE_UNKNOWN  = 0
@@ -4451,7 +4472,6 @@ class GenericHost(GenericPlace):
         self.ipv6_mode = None
         self.controller = None
         self.containerHost = None
-        self.os = None
         self.jobTests = []
 
         xenrt.TEC().logverbose("Creating %s instance." % (self.__class__.__name__))
@@ -4487,18 +4507,58 @@ class GenericHost(GenericPlace):
             ret['access']['password'] = self.password
         return ret
 
-    def getOS(self):
-        if not self.os:
-            if self.windows or not self.arch:
-                osdistro = self.distro
-            else:
-                osdistro = "%s_%s" % (self.distro, self.arch)
+    ##### Methods from OSParent #####
 
-            wrapper = xenrt.lib.generic.HostWrapper(self)
-            self.os = xenrt.lib.opsys.osFactory(osdistro, wrapper)
-            wrapper.os = self.os
-            self.os.tailor()
-        return self.os
+    @property
+    def _osParent_name(self):
+        return self.getName()
+
+    @property
+    def _osParent_hypervisorType(self):
+        # This refers to the Hypervisor type of the control domain, which for most purposes can assumed to be Native
+        return xenrt.HypervisorType.native
+
+    def _osParent_getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
+        if self.machine and self.use_ipv6:
+            return self.machine.ipaddr6
+        elif self.machine:
+            return self.machine.ipaddr
+        return None
+
+    def _osParent_getPort(self, trafficType):
+        return None
+
+    def _osParent_setIP(self,ip):
+        if self.machine:
+            obj = IPy.IP(ip)
+            if IPy.IP(ip).version() == 6:
+                self.machine.ipaddr6 = ip
+            else:
+                self.machine.ipaddr = ip
+        else:
+            raise xenrt.XRTError("No host Object Found")
+
+    def _osParent_start(self):
+        self.machine.powerctl.on()
+
+    def _osParent_stop(self):
+        self.machine.powerctl.off()
+
+    def _osParent_ejectIso(self):
+        # TODO implement this with Virtual Media
+        raise xenrt.XRTError("Not implemented")
+
+    def _osParent_setIso(self, isoName, isoRepo=None):
+        # TODO implement this with Virtual Media
+        raise xenrt.XRTError("Not implemented")
+
+    def _osParent_pollPowerState(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
+        """Poll for reaching the specified state"""
+        raise xenrt.XRTError("Not supported")
+
+    def _osParent_getPowerState(self):
+        """Get the current power state"""
+        raise xenrt.XRTError("Not supported")
 
     def registerJobTest(self, jt):
         try:
@@ -6953,7 +7013,15 @@ class NetPeerHost(GenericHost):
 
 class GenericGuest(GenericPlace):
     """Encapsulates a single guest VM."""
+    implements(xenrt.interfaces.OSParent)
 
+    STATE_MAPPING = {
+        xenrt.PowerState.down: "DOWN",
+        xenrt.PowerState.up: "UP",
+        xenrt.PowerState.paused: "PAUSED",
+        xenrt.PowerState.suspended: "SUSPENDED"
+    }
+    
     def __init__(self, name, host=None, reservedIP=None):
         GenericPlace.__init__(self)
         self.host = host
@@ -7020,6 +7088,48 @@ class GenericGuest(GenericPlace):
         else:
             ret['host'] = None
         return ret
+
+    ##### Methods from OSParent #####
+
+    @property
+    def _osParent_name(self):
+        return self.name
+
+    @property
+    def _osParent_hypervisorType(self):
+        return xenrt.HypervisorType.unknown
+
+    def _osParent_getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
+        # TODO add arp sniffing capabilities here
+        return self.mainip
+
+    def _osParent_getPort(self, trafficType):
+        return None
+
+    def _osParent_setIP(self,ip):
+        self.mainip = ip
+
+    def _osParent_start(self):
+        self.lifecycleOperation("vm-start")
+
+    def _osParent_stop(self):
+        self.lifecycleOperation("vm-shutdown")
+
+    def _osParent_ejectIso(self):
+        # TODO implement this with ISO SRs
+        raise xenrt.XRTError("Not implemented")
+
+    def _osParent_setIso(self, isoName, isoRepo=None):
+        # TODO implement this with ISO SRs
+        raise xenrt.XRTError("Not implemented")
+
+    def _osParent_pollPowerState(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
+        """Poll for reaching the specified state"""
+        self.poll(self.STATE_MAPPING[state], timeout, level, pollperiod)
+
+    def _osParent_getPowerState(self):
+        """Get the current power state"""
+        return [x for x in self.STATE_MAPPING.keys() if self.STATE_MAPPING[x] == self.getState()][0]
 
     def setHost(self, host):
         if host and host.replaced:

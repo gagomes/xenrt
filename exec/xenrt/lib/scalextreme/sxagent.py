@@ -25,10 +25,7 @@ class SXAgent(object):
             raise xenrt.XRTError("Cannot retrieve download URL.")
 
         url = info["data"]["deb64"].replace("\\", "")
-        # Rest API returns a url that requires authentication.
-        # Using url from web interface.
-        # Todo: Check with SX whether this is expected.
-        return url.replace("https://lifecycle.cloud.com/store", "https://manage-mon.citrix.com")
+        return url
 
     def __executeOnAgent(self, command):
         """Execute a command on agent Linux VM via SSH"""

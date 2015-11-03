@@ -1439,6 +1439,12 @@ class FCOEStorageRepository(StorageRepository):
         self.lun.release()
         self.lun = None
 
+    def forget(self, release=True):
+        StorageRepository.forget(self)
+        if release:
+            self.lun.release()
+            self.lun = None
+
 class FCStorageRepository(HBAStorageRepository):
     pass
 

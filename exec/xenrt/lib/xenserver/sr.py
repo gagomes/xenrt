@@ -142,9 +142,10 @@ class StorageRepository(object):
         """
         confstr = self.host.genParamGet("sr", self.uuid, "sm-config")
         conf = {}
-        for item in confstr.split(";"):
-            key, val = item.split(":", 1)
-            conf[key.strip()] = val.strip()
+        if confstr.strip():
+            for item in confstr.strip().split(";"):
+                key, val = item.split(":", 1)
+                conf[key.strip()] = val.strip()
 
         return conf
 

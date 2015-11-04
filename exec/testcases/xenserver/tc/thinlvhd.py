@@ -211,9 +211,9 @@ class _ThinLVHDBase(xenrt.TestCase):
         stat = self.getPhysicalUtilisation(sr, scan)
         if host.pool:
             for h in host.pool.getHosts():
-                stat += self.getHostFreeSpace(h, sr)
+                stat -= self.getHostFreeSpace(h, sr)
         else:
-            stat += self.getHostFreeSpace(host, sr)
+            stat -= self.getHostFreeSpace(host, sr)
 
         return stat
 

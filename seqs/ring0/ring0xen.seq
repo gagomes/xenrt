@@ -9,15 +9,11 @@
   </variables>
 
   <prepare>
-    <host id="0">
-      </host>
+    <host id="0"/>
   </prepare>
 
-  <testsequence>
+  <testsequence group="XenTestFramework">
       <testcase id="xenserver.tc.ring0.ring0xen.TCRing0XenPV32Test" blocker="yes"/>
-  </testsequence>
-
-  <testsequence>
       <testcase id="xenserver.tc.ring0.ring0xen.TCRing0XenPV64Test" blocker="yes"/>
   </testsequence>
 

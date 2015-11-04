@@ -208,7 +208,7 @@ class VMUser(ActorImp):
             if key:
                 xenrt.TEC().logverbose("-----return True----")
                 return True
-        #xenrt.TEC().logverbose("-----return False----")
+        xenrt.TEC().logverbose("-----return False----")
         return False
 
 class VSS(LicensedFeature):

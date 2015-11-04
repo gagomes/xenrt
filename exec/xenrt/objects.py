@@ -5437,6 +5437,8 @@ class GenericHost(GenericPlace):
         if persist:
             self.execdom0("echo 'rm -f %s/.run' >> /etc/rc.d/rc.local" %
                           (self.guestconsolelogs))
+                          s
+            self.execdom0("echo 'mkdir -p %s' >> /etc/rc.d/rc.local" % (self.guestconsolelogs))
             self.execdom0("echo '%s' >> /etc/rc.d/rc.local" % (cmd))
 
     def guestConsoleLogTail(self, domid, lines=20):

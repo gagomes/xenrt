@@ -62,5 +62,5 @@ class TCRing0XenHVM32Test(TCRing0XenBase):
 class TCRing0XenHVM64Test(TCRing0XenBase):
     def run(self, arglist):
         step("64bit HVM test")
-        xenHvm64Test = XenTestRun(self.host, "test-hvm-64-example");
+        xenHvm64Test = XenTestRun(self.host, "test-hvm64-example");
         xenHvm64Test.run()

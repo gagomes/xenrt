@@ -355,6 +355,10 @@ class TCSmokeTestMaxvCPUs(_TCSmokeTest):
         self.memory = self.getTemplateParams().defaultMemory * 2
         self.vcpus = "MAX"
 
+    def checkGuestMemory(self, expected):
+        xenrt.TEC().logverbose("Not checking guest reported memory in max vCPU tests (CA-187775)")
+        return
+
 class TCSmokeTestMinConfig(_TCSmokeTest):
     # Min vCPUS + memory
     def getDefaultJiraTC(self):

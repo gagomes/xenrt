@@ -218,7 +218,7 @@ class TCFileBasedSRProperty(xenrt.TestCase):
 
     def run(self, arglist=[]):
 
-        log ("Using %s(%s) SR to test." % (self.xsr.name(), self.xsr.uuid))
+        log ("Using %s(%s) SR to test." % (self.xsr.name, self.xsr.uuid))
 
         step("Store initial status of local disk.")
         self.initialStatus = self.getRawProperties()

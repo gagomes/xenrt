@@ -9,7 +9,6 @@ class XenTestRun(object):
     def results(self):
         res = self.host.execdom0("grep -i 'Test Result:' /var/log/xen/guest-%s.log | tail -1 | awk -F: '{print $4}'" % self.name).strip()
 
-#        xenrt.TEC().comment('Test %s Result: %s' % self.name, res)
         if res == "SUCCESS":
             xenrt.TEC().logverbose('Test %s Result: PASS' % self.name)
         else:

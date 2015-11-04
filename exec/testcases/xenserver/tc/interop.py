@@ -552,7 +552,7 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
 
     def configureAsfController(self, asfCont, xdVersion, host):
         asfRepository = xdVersion
-        asfRepositoryPath = "\\\\camesarc01.eng.citrite.net\\planb\\Automation\\Tests\\XD"
+        asfRepositoryPath = "\\\\eng.citrite.net\\global\\Builds\\Automation\\Tests\\XD"
         testSuites = ['Common', 'TestApi', 'LayoutBvts']
 
         # Install tests
@@ -584,7 +584,7 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
         data = asfCont.xmlrpcReadFile("C:\\asf\\tests\\layoutbvts\\xenserver\\setup.ps1")
         asfCont.xmlrpcExec("attrib -r C:\\asf\\tests\\layoutbvts\\xenserver\\setup.ps1")
         asfCont.xmlrpcRemoveFile("C:\\asf\\tests\\layoutbvts\\xenserver\\setup.ps1")
-        asfCont.xmlrpcWriteFile("C:\\asf\\tests\\layoutbvts\\xenserver\\setup.ps1", data.replace("Install-SAL", "Install-SAL -RepositoryPath \"\\\\camarc01.eng.citrite.net\\planb\\automation\\SAL\" -UserName %s -Password %s" % (self.XD_SVC_ACCOUNT_USERNAME, self.XD_SVC_ACCOUNT_PASSWORD)))
+        asfCont.xmlrpcWriteFile("C:\\asf\\tests\\layoutbvts\\xenserver\\setup.ps1", data.replace("Install-SAL", "Install-SAL -RepositoryPath \"\\\\eng.citrite.net\\global\\Builds\\automation\\SAL\" -UserName %s -Password %s" % (self.XD_SVC_ACCOUNT_USERNAME, self.XD_SVC_ACCOUNT_PASSWORD)))
 
         self.executeASFShellCommand(asfCont, 'c:\\asf\\tests\\layoutbvts\\xenserver\\setup.ps1 -ClientTemplate %s -DdcTemplate %s -VdaTemplates %s' % (clientTemplates[0]['TemplateName'], serverTemplates[0]['TemplateName'], clientTemplates[0]['TemplateName']))
 

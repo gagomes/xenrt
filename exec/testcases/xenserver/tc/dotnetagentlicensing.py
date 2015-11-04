@@ -246,6 +246,7 @@ class ToggleAUHierarchy(DotNetAgentTestCases):
         #assertions.assertTrue(autoupdate.checkKeyPresent() and not autoupdate.isActive(),"Xapi does not indicate that AutoUpdate is disabled")
         assertions.assertTrue(self.getHost("RESOURCE_HOST_0").xenstoreExists("/guest_agent_features/Guest_agent_auto_update/parameters/enabled"),"Xapi does not indicate that AutoUpdate is disabled")
         autoupdate.setUserVMUser()
+        xenrt.TEC().logverbose("*** %s ",autoupdate.checkKeyPresent())
         assertions.assertFalse(autoupdate.checkKeyPresent(),"DisableAutoUpdate reg key is present")
         self._shouldNotBePinged(trigger,server)
         autoupdate.enable()

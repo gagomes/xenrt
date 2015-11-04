@@ -1,4 +1,4 @@
-import MySQLdb,IPy
+import MySQLdb,IPy,HTMLParser
 
 class RackTables:
     def __init__(self, host, db, user, password=None):
@@ -76,7 +76,8 @@ class RackTablesObject:
             return res[0][3]
 
     def getComment(self):
-        return self.parent._execSQL("SELECT comment FROM RackObject WHERE id=%d;" % self.objid)[0][0]
+        comment = self.parent._execSQL("SELECT comment FROM RackObject WHERE id=%d;" % self.objid)[0][0]
+        return HTMLParser.HTMLParser().unescape(comment) if comment else None
         
 
     def getPorts(self):

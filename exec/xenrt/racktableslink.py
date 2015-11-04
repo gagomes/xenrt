@@ -39,20 +39,19 @@ def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
     ports = o.getPorts()
     primaryInterface = None
     # For some infrastructure setup, we'll proceed without knowing the MAC addresses
-    ignoreMissingMACs = xenrt.TEC().lookup("RACKTABLES_IGNORE_MISSING_MACS", False, boolean=True)
     ignoreDisconnectedPorts = False
 
     # Get the main MAC address
     if not xenrt.GEC().config.lookupHost(machine, "MAC_ADDRESS", None):
         optionNets = xenrt.GEC().config.lookupHost(machine, "OPTION_CARBON_NETS", None)
         if optionNets:
-            availablePorts = [p for p in ports if (p[2] or ignoreMissingMACs) and p[4] and p[0] == optionNets]
+            availablePorts = [p for p in ports if (p[2] or p[3]) and p[4] and p[0] == optionNets]
         else:
-            availablePorts = sorted([p for p in ports if (p[2] or ignoreMissingMACs) and p[4] and (p[0].lower().startswith("e") or p[0].lower().startswith("nic"))], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0]))
+            availablePorts = sorted([p for p in ports if (p[2] or p[3]) and p[4] and (p[0].lower().startswith("e") or p[0].lower().startswith("nic"))], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0]))
             xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "FORCE_NIC_ORDER"], "yes")
         # If there aren't any connected ports, use the first one anyway
         if len(availablePorts) == 0:
-            availablePorts = sorted([p for p in ports if (p[2] or ignoreMissingMACs) and (p[0].lower().startswith("e") or p[0].lower().startswith("nic"))], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0]))
+            availablePorts = sorted([p for p in ports if (p[2] or p[3]) and (p[0].lower().startswith("e") or p[0].lower().startswith("nic"))], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0]))
             ignoreDisconnectedPorts = True
 
         if len(availablePorts) > 0:
@@ -62,7 +61,8 @@ def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
             if availablePorts[0][1].startswith("40G"):
                 xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "NIC_SPEED"],"40G")
             primaryInterface = availablePorts[0][0]
-            xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "MAC_ADDRESS"],mac)
+            if mac:
+                xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "MAC_ADDRESS"],mac)
 
     # Get the main IP address
     if not xenrt.GEC().config.lookupHost(machine, "HOST_ADDRESS", None):
@@ -229,11 +229,11 @@ def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
     # Secondary NICs
     if not xenrt.TEC().lookupHost(machine,"NICS",None):
         i = 1
-        availablePorts = sorted([p for p in ports if (p[2] or ignoreMissingMACs) and p[3] and (p[4] or ignoreDisconnectedPorts) and (p[0].lower().startswith("e") or p[0].lower().startswith("nic")) and p[0] != primaryInterface], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0]))
+        availablePorts = sorted([p for p in ports if p[3] and (p[4] or ignoreDisconnectedPorts) and (p[0].lower().startswith("e") or p[0].lower().startswith("nic")) and p[0] != primaryInterface], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0]))
         for c in o.getChildren():
             if c.getType() == "PCI Card":
                 cports = c.getPorts()
-                availablePorts.extend(sorted([p for p in cports if (p[2] or ignoreMissingMACs) and p[3] and (p[4] or ignoreDisconnectedPorts) and (p[0].lower().startswith("e") or p[0].lower().startswith("nic"))], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0])))
+                availablePorts.extend(sorted([p for p in cports if p[3] and (p[4] or ignoreDisconnectedPorts) and (p[0].lower().startswith("e") or p[0].lower().startswith("nic"))], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0])))
         for p in availablePorts:
             netport = getNetPortNameForPort(p)
             nicinfo = p[3].split(" - ")[0].split("/")
@@ -256,7 +256,8 @@ def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
             if netport:
                 xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"NETPORT"],netport)
             xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"NETWORK"],network)
-            xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"MAC_ADDRESS"],mac)
+            if mac:
+                xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"MAC_ADDRESS"],mac)
             i += 1
 
     # Disks

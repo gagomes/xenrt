@@ -3377,6 +3377,7 @@ class StaticIP4AddrDHCP(object):
         self.rangeObj = rangeObj
         if not self.rangeObj:
             xenrt.TEC().gec.registerCallback(self, mark=True, order=1)
+        self.lockid = "IP4ADDR-%s" % self.addr
 
     def getAddr(self):
         return self.addr

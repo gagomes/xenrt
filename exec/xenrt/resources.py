@@ -379,7 +379,7 @@ class CentralResource(object):
 
     def acquire(self, id, shared=False):
         if shared:
-            self.id = id
+            self.lockid = id
             return
         d = xenrt.TEC().lookup("RESOURCE_LOCK_DIR")
         if not os.path.exists(d):
@@ -422,7 +422,7 @@ class CentralResource(object):
                 f.close()
         except:
             pass
-        self.id = id
+        self.lockid = id
 
     def _listProcess(self,id):
         d = xenrt.TEC().lookup("RESOURCE_LOCK_DIR")

@@ -24,7 +24,7 @@ class XDPoc(xenrt.TestCase):
         # Find the Windows template
         template = self.getGuest("Windows Server 2012 R2")
         host = template.getHost()
-        sxp = SXProcess("57995", "2", "2957")
+        sxp = SXProcess("58687", "2", "2937")
 
         # Find our providerId (TODO: we should store this in the registry)
         providerName = "xenrt-%d" % xenrt.GEC().jobid()

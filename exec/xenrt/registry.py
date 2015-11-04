@@ -432,3 +432,14 @@ class Registry(object):
     def vlanGetAll(self):
         return self.objGetAll("vlan")
 
+    def centralResourcePut(self, id, res):
+        self.objPut("centralresource", id, res)
+
+    def centralResourceGet(self, id):
+        return self.objGet("centralresource", id)
+
+    def centralResourceDelete(self, tag):
+        self.objDelete("centralresource", id)
+
+    def centralResourceGetAll(self):
+        return self.objGetAll("centralresource")

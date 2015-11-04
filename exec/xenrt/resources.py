@@ -360,6 +360,7 @@ class CentralResource(object):
         self.lockfile = None
         self.mylock = threading.Lock()
         self.resourceHeld = held
+        self.id = None
         xenrt.TEC().gec.registerCallback(self, mark=True, order=1)
 
     @staticmethod
@@ -378,6 +379,7 @@ class CentralResource(object):
 
     def acquire(self, id, shared=False):
         if shared:
+            self.id = id
             return
         d = xenrt.TEC().lookup("RESOURCE_LOCK_DIR")
         if not os.path.exists(d):
@@ -420,6 +422,7 @@ class CentralResource(object):
                 f.close()
         except:
             pass
+        self.id = id
 
     def _listProcess(self,id):
         d = xenrt.TEC().lookup("RESOURCE_LOCK_DIR")
@@ -590,6 +593,7 @@ class CentralResource(object):
                 os.rmdir(self.lockfile)
                 self.lockfile = None
             self.resourceHeld = False
+            self.id = None
             xenrt.TEC().gec.unregisterCallback(self)
 
     def mark(self):

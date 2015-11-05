@@ -1676,7 +1676,7 @@ class SpecifiedSMBShare(object):
 class ISCSIVMLun(ISCSILun):
     """ A tempory LUN in a VM """
     
-    def __init__(self,hostIndex=None,sizeMB=None, totalSizeMB=None, guestName="xenrt-iscsi-target", bridges=None, targetType=None, host=None):
+    def __init__(self,hostIndex=None,sizeMB=None, totalSizeMB=None, guestName="xenrt-iscsi-target", bridges=None, targetType=None, host=None, sruuid=None):
         if host:
             self.host=host
         else:
@@ -1690,7 +1690,7 @@ class ISCSIVMLun(ISCSILun):
 
         # Check if we already have the VM on this host, if we don't, then create it, otherwise attach to the existing one.
         if not self.host.guests.has_key(self.guestName):
-            self._createISCSIVM(sizeMB, totalSizeMB, bridges=bridges, targetType=targetType)
+            self._createISCSIVM(sizeMB, totalSizeMB, bridges=bridges, targetType=targetType, sruuid=sruuid)
         else:
             self.guest = self.host.guests[self.guestName]
             self._existingISCSIVM(sizeMB)
@@ -1745,7 +1745,7 @@ class ISCSIVMLun(ISCSILun):
             self.targetname = self.guest.execguest("cat /root/iscsi_iqn").strip()
             self.lunid = int(self.guest.execguest("cat /root/iscsi_lun").strip()) + 1
 
-    def _createISCSIVM(self, sizeMB, totalSizeMB, bridges=None, targetType=None):
+    def _createISCSIVM(self, sizeMB, totalSizeMB, bridges=None, targetType=None, sruuid=None):
         if not bridges:
             networks = self.host.minimalList("pif-list", "network-uuid", "management=true host-uuid=%s" % self.host.getMyHostUUID()) # Find the management interface on this host
             networks.extend(self.host.minimalList("pif-list", "network-uuid", "IP-configuration-mode=DHCP host-uuid=%s management=false" % self.host.getMyHostUUID())) # And all of the non-management DHCP addresses
@@ -1774,7 +1774,7 @@ class ISCSIVMLun(ISCSILun):
             totalSizeMB=sizeMB
         
         # Create a disk, 1GB larger than specified for FS overhead, then format and mount it.
-        device = self.guest.createDisk(sizebytes=(int(totalSizeMB)*xenrt.MEGA + xenrt.GIGA), returnDevice=True)
+        device = self.guest.createDisk(sizebytes=(int(totalSizeMB)*xenrt.MEGA + xenrt.GIGA), returnDevice=True, sruuid=sruuid)
         self.guest.execguest("echo %s > /etc/xenrtiscsidev" % device)
         self.guest.execguest("mkfs.ext3 /dev/%s" % device)
         self.guest.execguest("mkdir /iscsi")

@@ -724,12 +724,6 @@ class TC8300(_PowerShellSnapTest):
     DISTRO = "w2k3eesp2"
 
 
-class TC8301(_PowerShellSnapTest):
-    """PowerShell Snap-In test on Windows Server 2003 EE SP2 x64"""
-
-    DISTRO = "w2k3eesp2-x64"
-
-
 class TC8302(_PowerShellSnapTest):
     """PowerShell Snap-In test on Windows XP SP3"""
 

@@ -1379,19 +1379,19 @@ class HBAStorageRepository(StorageRepository):
 
     def destroy(self, release=True):
         StorageRepository.destroy(self)
-        if release:
+        if release and self.lun:
             self.lun.release()
             self.lun = None
 
     def forget(self, release=True):
         StorageRepository.forget(self)
-        if release:
+        if release and self.lun:
             self.lun.release()
             self.lun = None
 
     def remove(self, release=True):
         StorageRepository.remove(self)
-        if release:
+        if release and self.lun:
             self.lun.release()
             self.lun = None
 
@@ -1441,14 +1441,21 @@ class FCOEStorageRepository(StorageRepository):
         if self.multipathing:
             slave.enableMultipathing()
 
-    def destroy(self):
+    def destroy(self, release=True):
         StorageRepository.destroy(self)
-        self.lun.release()
-        self.lun = None
+        if release and self.lun:
+            self.lun.release()
+            self.lun = None
 
     def forget(self, release=True):
         StorageRepository.forget(self)
-        if release:
+        if release and self.lun:
+            self.lun.release()
+            self.lun = None
+
+    def remove(self, release=True):
+        StorageRepository.remove(self)
+        if release and self.lun:
             self.lun.release()
             self.lun = None
 

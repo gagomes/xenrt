@@ -114,14 +114,19 @@ class StorageRepository(object):
         if not xsr:
             raise ValueError("Could not find sruuid %s on host %s" %(sruuid, host))
 
-        instance = cls(host, xsr.name)
-        instance.uuid = xsr.uuid
-        instance.srtype = xsr.srType
-        instance.host = host
+        instance = xenrt.GEC().registry.srGet(sruuid)
+        if instance:
+            xenrt.TEC().logverbose("Found SR in registry")
+        else:
+            instance = cls(host, xsr.name)
+            instance.uuid = xsr.uuid
+            instance.srtype = xsr.srType
+            instance.host = host
 
-        xpbd = next((p for p in xsr.PBDs if p.host == host.xapiObject), None)
-        instance.dconf = xpbd.deviceConfig
-        instance.content_type = xsr.contentType
+            xpbd = next((p for p in xsr.PBDs if p.host == host.xapiObject), None)
+            instance.dconf = xpbd.deviceConfig
+            instance.content_type = xsr.contentType
+            xenrt.GEC().registry.srPut(instance.uuid, instance)
         return instance
 
     def __backupSMConf(self):
@@ -310,6 +315,7 @@ class StorageRepository(object):
         self.srtype = srtype
         self.dconf = actualDeviceConfiguration
         self.content_type = content_type
+        xenrt.GEC().registry.srPut(self.uuid, self)
 
     def check(self):
         self.checkCommon(self.srtype)
@@ -1373,19 +1379,19 @@ class HBAStorageRepository(StorageRepository):
 
     def destroy(self, release=True):
         StorageRepository.destroy(self)
-        if release:
+        if release and self.lun:
             self.lun.release()
             self.lun = None
 
     def forget(self, release=True):
         StorageRepository.forget(self)
-        if release:
+        if release and self.lun:
             self.lun.release()
             self.lun = None
 
     def remove(self, release=True):
         StorageRepository.remove(self)
-        if release:
+        if release and self.lun:
             self.lun.release()
             self.lun = None
 
@@ -1435,14 +1441,21 @@ class FCOEStorageRepository(StorageRepository):
         if self.multipathing:
             slave.enableMultipathing()
 
-    def destroy(self):
+    def destroy(self, release=True):
         StorageRepository.destroy(self)
-        self.lun.release()
-        self.lun = None
+        if release and self.lun:
+            self.lun.release()
+            self.lun = None
 
     def forget(self, release=True):
         StorageRepository.forget(self)
-        if release:
+        if release and self.lun:
+            self.lun.release()
+            self.lun = None
+
+    def remove(self, release=True):
+        StorageRepository.remove(self)
+        if release and self.lun:
             self.lun.release()
             self.lun = None
 

@@ -360,6 +360,7 @@ class CentralResource(object):
         self.lockfile = None
         self.mylock = threading.Lock()
         self.resourceHeld = held
+        self.id = None
         xenrt.TEC().gec.registerCallback(self, mark=True, order=1)
 
     @staticmethod
@@ -378,6 +379,8 @@ class CentralResource(object):
 
     def acquire(self, id, shared=False):
         if shared:
+            self.lockid = id
+            self._addToRegistry()
             return
         d = xenrt.TEC().lookup("RESOURCE_LOCK_DIR")
         if not os.path.exists(d):
@@ -420,6 +423,11 @@ class CentralResource(object):
                 f.close()
         except:
             pass
+        self.lockid = id
+        self._addToRegistry()
+
+    def _addToRegistry(self):
+        xenrt.GEC().registry.centralResourcePut(self.lockid, self)
 
     def _listProcess(self,id):
         d = xenrt.TEC().lookup("RESOURCE_LOCK_DIR")
@@ -590,6 +598,7 @@ class CentralResource(object):
                 os.rmdir(self.lockfile)
                 self.lockfile = None
             self.resourceHeld = False
+            self.id = None
             xenrt.TEC().gec.unregisterCallback(self)
 
     def mark(self):
@@ -3373,6 +3382,8 @@ class StaticIP4AddrDHCP(object):
         self.rangeObj = rangeObj
         if not self.rangeObj:
             xenrt.TEC().gec.registerCallback(self, mark=True, order=1)
+        self.lockid = "IP4ADDR-%s" % self.addr
+        xenrt.GEC().registry.centralResourcePut(self.lockid, self)
 
     def getAddr(self):
         return self.addr

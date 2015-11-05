@@ -22,13 +22,14 @@ class TCParallelWriting(xenrt.TestCase):
         # TODO: following codes are not required after CP-14242
         if not xenrt.TEC().lookup("NO_XENVMD", False, boolean=True):
             srobj = xenrt.lib.xenserver.getStorageRepositoryClass(self.host, sr).fromExistingSR(self.host, sr)
-            if self.host.pool:
-                for host in self.host.pool.getHosts():
-                    output = host.execRawStorageCommand(srobj, "lvs /dev/VG_XenStorage-%s --nosuffix | grep %s-free" % (sr, host.uuid))
+            if srobj.thinProvisioning:
+                if self.host.pool:
+                    for host in self.host.pool.getHosts():
+                        output = host.execRawStorageCommand(srobj, "lvs /dev/VG_XenStorage-%s --nosuffix | grep %s-free" % (sr, host.uuid))
+                        stat -= int(output.split()[-1])
+                else:
+                    output = self.host.execRawStorageCommand(srobj, "lvs /dev/VG_XenStorage-%s --nosuffix | grep %s-free" % (sr, self.host.uuid))
                     stat -= int(output.split()[-1])
-            else:
-                output = self.host.execRawStorageCommand(srobj, "lvs /dev/VG_XenStorage-%s --nosuffix | grep %s-free" % (sr, self.host.uuid))
-                stat -= int(output.split()[-1])
 
         return stat
 

@@ -5,7 +5,7 @@
   <default name="GUESTMEMORY" value="1024" />
   <default name="VDICOUNT" value="200" />
   <default name="VDISIZE" value="3" /> <!-- in GiB -->
-  <default name="ITERATION" value="10" />
+  <default name="ITERATION" value="1" />
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
@@ -27,7 +27,7 @@
       <host id="1" />
       <host id="2" />
       <host id="3" />
-      <storage type="lvmoiscsi" name="iscsisr" size="600" vmhost="4" options="ietvm,thin" default="true"/>
+      <storage type="lvmoiscsi" name="iscsisr" size="600" vmhost="4" options="ietvm" default="true"/>
     </pool>
     <host id="4" />
   </prepare>

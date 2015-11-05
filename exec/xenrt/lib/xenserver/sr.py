@@ -126,6 +126,7 @@ class StorageRepository(object):
             xpbd = next((p for p in xsr.PBDs if p.host == host.xapiObject), None)
             instance.dconf = xpbd.deviceConfig
             instance.content_type = xsr.contentType
+            xenrt.GEC().registry.srPut(instance.uuid, instance)
         return instance
 
     def __backupSMConf(self):

@@ -114,14 +114,18 @@ class StorageRepository(object):
         if not xsr:
             raise ValueError("Could not find sruuid %s on host %s" %(sruuid, host))
 
-        instance = cls(host, xsr.name)
-        instance.uuid = xsr.uuid
-        instance.srtype = xsr.srType
-        instance.host = host
+        instance = xenrt.GEC().registry.srGet(sruuid)
+        if instance:
+            xenrt.TEC().logverbose("Found SR in registry")
+        else:
+            instance = cls(host, xsr.name)
+            instance.uuid = xsr.uuid
+            instance.srtype = xsr.srType
+            instance.host = host
 
-        xpbd = next((p for p in xsr.PBDs if p.host == host.xapiObject), None)
-        instance.dconf = xpbd.deviceConfig
-        instance.content_type = xsr.contentType
+            xpbd = next((p for p in xsr.PBDs if p.host == host.xapiObject), None)
+            instance.dconf = xpbd.deviceConfig
+            instance.content_type = xsr.contentType
         return instance
 
     def __backupSMConf(self):
@@ -310,6 +314,7 @@ class StorageRepository(object):
         self.srtype = srtype
         self.dconf = actualDeviceConfiguration
         self.content_type = content_type
+        xenrt.GEC().registry.srPut(self.uuid, self)
 
     def check(self):
         self.checkCommon(self.srtype)

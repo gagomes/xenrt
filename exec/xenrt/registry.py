@@ -438,8 +438,20 @@ class Registry(object):
     def centralResourceGet(self, id):
         return self.objGet("centralresource", id)
 
-    def centralResourceDelete(self, tag):
+    def centralResourceDelete(self, id):
         self.objDelete("centralresource", id)
 
     def centralResourceGetAll(self):
         return self.objGetAll("centralresource")
+    
+    def srPut(self, id, sr):
+        self.objPut("sr", id, sr)
+
+    def srGet(self, id):
+        return self.objGet("sr", id)
+
+    def srDelete(self, id):
+        self.objDelete("sr", id)
+
+    def srGetAll(self):
+        return self.objGetAll("sr")

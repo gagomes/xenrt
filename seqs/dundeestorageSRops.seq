@@ -21,7 +21,9 @@
     <testcase id="xenserver.tc.storage.TC7368" prio="3"/>
     <testcase id="xenserver.tc.storage.TC7369" prio="3"/>
     <testcase id="xenserver.storage.TCMultipleSRs" tc="TC-7310" prio="3"/>
+    <!-- RAW VDI is not supported in Dundee
     <testcase id="xenserver.tc.storage.TC8538" prio="3"/>
+    -->
     <testcase id="xenserver.tc.storage.TC9085" prio="3"/>
     <testcase id="xenserver.tc.storage.TC12818" prio="3"/>
   </testsequence>

@@ -14,6 +14,7 @@ class XapiObject(object):
     This class should remain generic
     """
     _OBJECT_TYPE = "XapiObject"
+
     def __init__(self, cli, uuid):
         self.uuid = uuid
         self.cli = cli
@@ -70,12 +71,14 @@ class XapiObject(object):
 
         for p in listParams:
             pair = p.split(keyDelimiter, 1)
-            params[pair[0].strip()]=pair[1].strip()
+            params[pair[0].strip()] = pair[1].strip()
         return params
 
     def _getObjectParam(self, objType, paramName):
         """
-        Get object-model form of a field referenced by the current object. For example if an object contains a ref to another object
+        Get object-model form of a field referenced by the current object. For example if an object contains
+        a ref to another object
+
         eg. for a vdi type: and sr class can be obtained by: sr = vdi._getObjectParam("sr", "sr-uuid")
 
         @var objType: the objects type to look up in the factory
@@ -144,6 +147,7 @@ Additional class implementations
 NB: Don't forget to register any new implementations with the object factory
 """
 
+
 class VM(NamedXapiObject):
     _OBJECT_TYPE = "vm"
     __NETWORK_ADDRESSES = "networks"
@@ -164,7 +168,7 @@ class VM(NamedXapiObject):
     def networkAddresses(self):
         return self._getListParam(self.__NETWORK_ADDRESSES)
 
-    def ipv6NetworkAddress(self, deviceNo = 0, ipNo = 0):
+    def ipv6NetworkAddress(self, deviceNo=0, ipNo=0):
         addresses = self.networkAddresses
         tag = str(deviceNo) + "/ipv6/" + str(ipNo)
         log("Addresses found: %s" % str(addresses))
@@ -195,6 +199,7 @@ class VM(NamedXapiObject):
         snaps = [Snapshot(self.cli, uuid) for uuid in self._getObjectsFromListing(Snapshot._OBJECT_TYPE)]
         return [s for s in snaps if s.VM.uuid == self.uuid]
 
+
 class VBD(XapiObject):
     _OBJECT_TYPE = "vbd"
     __VM_UUID = "vm-uuid"
@@ -214,20 +219,20 @@ class VBD(XapiObject):
     @property
     def VDI(self):
         return VDI(self.cli, self._getObjectParam(VDI._OBJECT_TYPE, self.__VDI_UUID))
-        
+
     @property
     def device(self):
         return self._getStringParam("device")
-        
+
     def plug(self):
         self._op("plug")
-        
+
     def unPlug(self):
         self._op("unplug")
-        
+
     def destroy(self):
         self._op("destroy")
-        
+
 
 class XapiHost(NamedXapiObject):
     _OBJECT_TYPE = "host"
@@ -240,6 +245,7 @@ class XapiHost(NamedXapiObject):
     @property
     def localSRs(self):
         return [SR(self.cli, uuid) for uuid in self._getObjectsReferencingName(SR._OBJECT_TYPE, self._OBJECT_TYPE)]
+
 
 class PBD(XapiObject):
     _OBJECT_TYPE = "pbd"
@@ -287,7 +293,7 @@ class SR(NamedXapiObject):
     @property
     def smConfig(self):
         return self._getStringParam("sm-config")
-        
+
     @property
     def physicalSize(self):
         return self._getIntParam("physical-size")

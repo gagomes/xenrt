@@ -7,6 +7,9 @@ class XenTestRun(object):
         self.name = name
 
     def results(self):
+        if 0 != self.host.execdom0("[ -e /var/log/xen/guest-%s.log ]" % self.name, retval="code"):
+            raise xenrt.XRTFailure("/var/log/guest-%s.log does not exists." % self.name
+)
         res = self.host.execdom0("grep -i 'Test Result:' /var/log/xen/guest-%s.log | tail -1 | awk -F: '{print $4}'" % self.name).strip()
 
         if res == "SUCCESS":
@@ -40,6 +43,9 @@ class TCRing0XenBase(xenrt.TestCase):
             sh.close()
 
         self.host.execdom0("rpm --force -Uvh %s" % (modulePath))
+
+        if 0 != self.host.execdom0("[ -e /etc/sysconfig/xencommons ]", retval="code"):
+            raise xenrt.XRTFailure("/etc/sysconfig/xencommons does not exists.")
 
         self.host.execdom0("sed -i 's/#XENSTORED_TRACE.*/XENSTORED_TRACE=yes/' /etc/sysconfig/xencommons")
         self.host.execdom0("sed -i 's/#XENCONSOLED_TRACE.*/XENCONSOLED_TRACE=all/' /etc/sysconfig/xencommons")

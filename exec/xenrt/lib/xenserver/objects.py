@@ -265,7 +265,7 @@ class SR(NamedXapiObject):
     __TYPE = "type"
 
     @property
-    def isLocal(self):
+    def isLocalStorage(self):
         return re.search(self.__LOCAL, self.name)
 
     @property

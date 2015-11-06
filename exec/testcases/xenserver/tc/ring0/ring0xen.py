@@ -22,6 +22,7 @@ class XenTestRun(object):
 
     def run(self):
         self.host.execdom0("xl create /opt/xen-test-framework/%s.cfg" % self.name)
+        time.sleep(10)
         self.results()
 
 class TCRing0XenBase(xenrt.TestCase):
@@ -46,11 +47,6 @@ class TCRing0XenBase(xenrt.TestCase):
 
         self.host.execdom0("rpm --force -Uvh %s" % (modulePath))
 
-        consoleCfg = xenrt.TEC().getFile("/etc/sysconfig/xencommons")
-        try:
-            xenrt.checkFileExists(consoleCfg)
-        except xenrt.XRTException, e:
-            raise xenrt.XRTError(e.reason)
         self.host.execdom0("sed -i 's/#XENSTORED_TRACE.*/XENSTORED_TRACE=yes/' /etc/sysconfig/xencommons")
         self.host.execdom0("sed -i 's/#XENCONSOLED_TRACE.*/XENCONSOLED_TRACE=all/' /etc/sysconfig/xencommons")
         self.host.execdom0("/bin/systemctl restart xenconsoled.service")
@@ -60,25 +56,21 @@ class TCRing0XenPV32Test(TCRing0XenBase):
         step("32bit PV test")
         xenPV32Test = XenTestRun(self.host, "test-pv32-example");
         xenPV32Test.run()
-        time.sleep(10)
 
 class TCRing0XenPV64Test(TCRing0XenBase):
     def run(self, arglist):
         step("64bit PV Test")
         xenPV64Test = XenTestRun(self.host, "test-pv64-example");
         xenPV64Test.run()
-        time.sleep(10)
 
 class TCRing0XenHVM32Test(TCRing0XenBase):
     def run(self, arglist):
         step("32bit HVM test")
         xenHvm32Test = XenTestRun(self.host, "test-hvm32-example");
         xenHvm32Test.run()
-        time.sleep(10)
 
 class TCRing0XenHVM64Test(TCRing0XenBase):
     def run(self, arglist):
         step("64bit HVM test")
         xenHvm64Test = XenTestRun(self.host, "test-hvm64-example");
         xenHvm64Test.run()
-        time.sleep(10)

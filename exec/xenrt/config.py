@@ -1203,6 +1203,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Dundee"]["TEMPLATE_NAME_SLED_12_64"] = "SUSE Linux Enterprise Desktop 12 (64-bit)"
         self.config["VERSION_CONFIG"]["Dundee"]["MAX_VBDS_PER_HOST"] = "4096"
         self.config["VERSION_CONFIG"]["Dundee"]["MAX_VDIS_PER_VM"] = "255"
+        self.config["VERSION_CONFIG"]["Dundee"]["MAX_MEM_HVM"] = "2097152"
 
         # XenServer dom0 partitions
         self.config["VERSION_CONFIG"]["Dundee"]["DOM0_PARTITIONS"] = {1:18*xenrt.GIGA, 2:18*xenrt.GIGA, 3:"*", 4:512*xenrt.MEGA, 5:4*xenrt.GIGA, 6:1024*xenrt.MEGA}
@@ -3331,15 +3332,21 @@ class Config(object):
         for r in self.config["GUEST_TESTS"].keys():
             for g in self.config["GUEST_TESTS"][r].keys():
                 self.config["GUEST_TESTS"][r]["%s_32BitPV" % g] = []
+                self.config["GUEST_TESTS"][r]["%s_64BitHVM" % g] = []
                 self.config["GUEST_TESTS"][r]["%s_Not32BitPV" % g] = []
+                self.config["GUEST_TESTS"][r]["%s_Not32BitPVOr64BitHVM" % g] = []
                 self.config["GUEST_TESTS"][r]["%s_LinuxISOInstall" % g] = []
                 self.config["GUEST_TESTS"][r]["%s_LinuxHTTPInstall" % g] = []
                 self.config["GUEST_TESTS"][r]["%s_LinuxNFSInstall" % g] = []
                 for d in self.config['GUEST_TESTS'][r][g]:
-                    if xenrt.is32BitPV(d, release=r, config=self):
+                    if not xenrt.is32BitPV(d, release=r, config=self):
+                        self.config["GUEST_TESTS"][r]["%s_Not32BitPV" % g].append(d)
+                    if xenrt.is64BitHVM(d, release=r, config=self):
+                        self.config["GUEST_TESTS"][r]["%s_64BitHVM" % g].append(d)
+                    elif xenrt.is32BitPV(d, release=r, config=self):
                         self.config["GUEST_TESTS"][r]["%s_32BitPV" % g].append(d)
                     else:
-                        self.config["GUEST_TESTS"][r]["%s_Not32BitPV" % g].append(d)
+                        self.config["GUEST_TESTS"][r]["%s_Not32BitPVOr64BitHVM" % g].append(d)
                     if not xenrt.isWindows(d):
                         if not [x for x in noIsoInstallSupport if re.match(x, d)]:
                             self.config["GUEST_TESTS"][r]["%s_LinuxISOInstall" % g].append(d)

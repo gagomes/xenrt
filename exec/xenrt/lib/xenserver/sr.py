@@ -1017,10 +1017,10 @@ class SMBStorageRepository(StorageRepository):
         #else:
         dconf['username'] = share.user
         dconf['password'] = share.password
-        self._create("cifs", dconf)
+        self._create("smb", dconf)
 
     def check(self):
-        StorageRepository.checkCommon(self, "cifs")
+        StorageRepository.checkCommon(self, "smb")
         if self.host.pool:
             self.checkOnHost(self.host.pool.master)
             for slave in self.host.pool.slaves.values():

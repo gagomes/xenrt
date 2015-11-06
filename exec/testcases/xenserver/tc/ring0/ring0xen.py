@@ -39,8 +39,8 @@ class TCRing0XenBase(xenrt.TestCase):
             sh.close()
 
         self.host.execdom0("rpm --force -Uvh %s" % (modulePath))
-        self.host.execdom0("sed 's/#XENSTORED_TRACE.*/XENSTORED_TRACE=yes/' /etc/sysconfig/xencommons")
-        self.host.execdom0("sed 's/#XENCONSOLED_TRACE.*/XENCONSOLED_TRACE=all/' /etc/sysconfig/xencommons")
+        self.host.execdom0("sed -i 's/#XENSTORED_TRACE.*/XENSTORED_TRACE=yes/' /etc/sysconfig/xencommons")
+        self.host.execdom0("sed -i 's/#XENCONSOLED_TRACE.*/XENCONSOLED_TRACE=all/' /etc/sysconfig/xencommons")
         self.host.execdom0("/bin/systemctl restart xenconsoled.service")
 
 class TCRing0XenPV32Test(TCRing0XenBase):

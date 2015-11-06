@@ -1,4 +1,4 @@
-import xenrt, xenrt.lib.xenserver
+import xenrt, xenrt.lib.xenserver, time
 from xenrt.lazylog import log, step
 
 class XenTestRun(object):

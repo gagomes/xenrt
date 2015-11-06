@@ -17,8 +17,8 @@
   <testsequence>
 
     <parallel workers="${PARALLEL}">
-      <testcase id="xenserver.tc.vminstall.TC12515" group="VMInstall"/>
-      <!--<testcase id="xenserver.tc.vminstall.TC12513" group="VMInstall"/>
+      <!--<testcase id="xenserver.tc.vminstall.TC12515" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC12513" group="VMInstall"/>
       <testcase id="xenserver.tc.vminstall.TC12514" group="VMInstall"/>
       <testcase id="xenserver.tc.vminstall.TC12516" group="VMInstall"/>
       <testcase id="xenserver.tc.vminstall.TC12517" group="VMInstall"/>-->

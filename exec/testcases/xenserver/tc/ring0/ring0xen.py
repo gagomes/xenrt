@@ -7,12 +7,6 @@ class XenTestRun(object):
         self.name = name
 
     def results(self):
-        logFile = "/var/log/xen/guest-%s.log" % self.name
-        try:
-            xenrt.checkFileExists(logFile)
-        except xenrt.XRTException, e:
-            raise xenrt.XRTError(e.reason)
-
         res = self.host.execdom0("grep -i 'Test Result:' /var/log/xen/guest-%s.log | tail -1 | awk -F: '{print $4}'" % self.name).strip()
 
         if res == "SUCCESS":

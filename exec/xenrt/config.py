@@ -3341,7 +3341,7 @@ class Config(object):
                 for d in self.config['GUEST_TESTS'][r][g]:
                     if not xenrt.is32BitPV(d, release=r, config=self):
                         self.config["GUEST_TESTS"][r]["%s_Not32BitPV" % g].append(d)
-                    if xenrt.is64BitHVM(d, release=r, config=self):
+                    if xenrt.util.is64BitHVM(d, release=r, config=self):
                         self.config["GUEST_TESTS"][r]["%s_64BitHVM" % g].append(d)
                     elif xenrt.is32BitPV(d, release=r, config=self):
                         self.config["GUEST_TESTS"][r]["%s_32BitPV" % g].append(d)

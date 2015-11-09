@@ -342,8 +342,6 @@ class TCXenServerInstall(xenrt.TestCase):
             if not fcsr:
                 fcsr = host.lookup("SR_FC", None)
             if fcsr:
-                if fcsr == "yes":
-                    fcsr = "LUN0"
                 lun = xenrt.HBALun([host])
                 multipathing = host.lookup("USE_MULTIPATH",
                                            False,

@@ -7,10 +7,10 @@
   </prepare>
 
   <testsequence group="XenTestFramework">
-      <testcase id="xenserver.tc.ring0.ring0xen.TCRing0XenPV32Test" blocker="yes"/>
-      <testcase id="xenserver.tc.ring0.ring0xen.TCRing0XenPV64Test" blocker="yes"/>
-      <testcase id="xenserver.tc.ring0.ring0xen.TCRing0XenHVM32Test" blocker="yes"/>
-      <testcase id="xenserver.tc.ring0.ring0xen.TCRing0XenHVM64Test" blocker="yes"/>
+      <testcase id="xenserver.tc.ring0.ring0xen.TCRing0XenPV32Test" />
+      <testcase id="xenserver.tc.ring0.ring0xen.TCRing0XenPV64Test" />
+      <testcase id="xenserver.tc.ring0.ring0xen.TCRing0XenHVM32Test" />
+      <testcase id="xenserver.tc.ring0.ring0xen.TCRing0XenHVM64Test" />
   </testsequence>
 
 </xenrt>

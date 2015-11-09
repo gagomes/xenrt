@@ -581,6 +581,13 @@ class GenericPlace(object):
             return self.xmlrpcIsAlive()
 
     def _xmlrpc(self, impatient=False, patient=False, reallyImpatient=False, ipoverride=None):
+        try:
+            if not isinstance(self.os, xenrt.xenrt.lib.opsys.WindowsOS):
+                xenrt.TEC().warning("OS is not Windows - self.os is of type %s" % str(self.os.__class__))
+                [xenrt.TEC().logverbose(x) for x in traceback.format_stack()]
+        except Exception, e:
+            xenrt.TEC().warning("Error creating OS: %s" % str(e))
+            [xenrt.TEC().logverbose(x) for x in traceback.format_stack()]
         if reallyImpatient:
             trans = MyReallyImpatientTrans()
         elif impatient:
@@ -4736,6 +4743,13 @@ class GenericHost(GenericPlace):
         @param useThread: If C{True} then run the SSH command in a thread to
                         guard against hung SSH sessions
         """
+        try:
+            if not isinstance(self.os, xenrt.xenrt.lib.opsys.LinuxOS):
+                xenrt.TEC().warning("OS is not Linux - self.os is of type %s" % str(self.os.__class__))
+                [xenrt.TEC().logverbose(x) for x in traceback.format_stack()]
+        except Exception, e:
+            xenrt.TEC().warning("Error creating OS: %s" % str(e))
+            [xenrt.TEC().logverbose(x) for x in traceback.format_stack()]
         if not username:
             if self.windows:
                 username = "Administrator"
@@ -7623,6 +7637,13 @@ class GenericGuest(GenericPlace):
         @param level:   Exception level to use if appropriate.
         @param nolog:   If C{True} then don't log the output of the command
         """
+        try:
+            if not isinstance(self.os, xenrt.xenrt.lib.opsys.LinuxOS):
+                xenrt.TEC().warning("OS is not Linux - self.os is of type %s" % str(self.os.__class__))
+                [xenrt.TEC().logverbose(x) for x in traceback.format_stack()]
+        except Exception, e:
+            xenrt.TEC().warning("Error creating OS: %s" % str(e))
+            [xenrt.TEC().logverbose(x) for x in traceback.format_stack()]
         if not self.mainip:
             raise xenrt.XRTError("Unknown IP address to SSH to %s" %
                                  (self.name))

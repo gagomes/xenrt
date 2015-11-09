@@ -134,7 +134,7 @@ class DebianBasedLinux(LinuxOS):
     def waitForInstallCompleteAndFirstBoot(self):
         # Install is complete when the guest shuts down
         # TODO: Use the signalling mechanism instead
-        self._parent._osParent_pollPowerState(xenrt.PowerState.down, timeout=1800)
+        self.parent._osParent_pollPowerState(xenrt.PowerState.down, timeout=1800)
         if self.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
             self.cleanupIsoAnswerfile()
             self.parent._osParent_ejectIso()

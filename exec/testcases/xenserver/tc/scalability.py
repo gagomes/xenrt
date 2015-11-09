@@ -3171,7 +3171,7 @@ class TC21482(_VBDScalability):
 
 class TC26977(_VDIScalability):
     """Verify the supported maximum number of VDIs per SR can be created and attached (CIFS)"""
-    SR = "cifs"
+    SR = "smb"
     MAX = True
     CONCURRENT = True
     VALIDATE = True

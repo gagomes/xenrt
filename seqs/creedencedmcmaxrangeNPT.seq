@@ -7,7 +7,9 @@
   </variables>
 
   <prepare>
-    <host/>
+    <host id="0">
+      <storage type="nfs" name="nfs" default="true" />
+    </host>
   </prepare>
 
   <testsequence>

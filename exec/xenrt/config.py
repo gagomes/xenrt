@@ -1198,7 +1198,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Dundee"]["V6_DBV"] = "2014.1127"
         self.config["VERSION_CONFIG"]["Dundee"]["TEMPLATE_NAME_SDK"] = ""  # SDK not present in trunk
         self.config["VERSION_CONFIG"]["Dundee"]["MAX_VDIS_PER_SR_smb"] = "600"
-        self.config["VERSION_CONFIG"]["Dundee"]["MAX_ATTACHED_VDIS_PER_SR_cifs"] = "600"
+        self.config["VERSION_CONFIG"]["Dundee"]["MAX_ATTACHED_VDIS_PER_SR_smb"] = "600"
         self.config["VERSION_CONFIG"]["Dundee"]["TEMPLATE_NAME_SLES_114_64"] = "SUSE Linux Enterprise Server 11 SP3 (64-bit),SUSE Linux Enterprise Server 11 SP3 x64"
         self.config["VERSION_CONFIG"]["Dundee"]["TEMPLATE_NAME_SLED_12_64"] = "SUSE Linux Enterprise Desktop 12 (64-bit)"
         self.config["VERSION_CONFIG"]["Dundee"]["MAX_VBDS_PER_HOST"] = "4096"

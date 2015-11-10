@@ -184,3 +184,9 @@ class LinuxOS(OS):
             raise OSNotDetected("OS appears not to have SSH: %s" % str(e))
         else:
             detectionState.password = obj.password
+
+    def getKdumpSize(self):
+        """Returns the size (in bytes) of any crashdump kernel present on the OS"""
+        size = int(self.execSSH("[ -e /sys/kernel/kexec_crash_size ] && cat /sys/kernel/kexec_crash_size || echo 0").strip())
+        return size or None
+

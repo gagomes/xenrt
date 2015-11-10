@@ -138,14 +138,19 @@ class _TCSmokeTest(xenrt.TestCase):
             self.guest.shutdown(force=True)
 
     def checkGuestMemory(self, expected):
-        """Validate the in-guest memory is what we expect (within 2%)"""
+        """Validate the in-guest memory is what we expect (within 4%)"""
         if expected is None:
             return
 
         guestMemory = self.guest.getGuestMemory()
+        # Take into account any kdump kernel
+        kdumpSize = self.guest.os.getKdumpSize()
+        if kdumpSize:
+            xenrt.TEC().logverbose("Taking into account %uMB of crash kernel" % (kdumpSize / xenrt.MEGA))
+            guestMemory += (kdumpSize / xenrt.MEGA)
         difference = abs(expected - guestMemory)
         diffpct = (float(difference) / float(expected)) * 100
-        if diffpct > 3:
+        if diffpct > 4:
             raise xenrt.XRTFailure("Guest reports %uMB memory, expecting %uMB" % (guestMemory, expected))
 
 

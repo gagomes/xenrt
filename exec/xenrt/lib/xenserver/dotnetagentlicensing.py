@@ -217,9 +217,7 @@ class VMUser(ActorImp):
         if self.os.winRegExists(self.HIVE_CONST, self.KEY_CONST, self.AU_CONST, healthCheckOnFailure=False):
             key = self.os.winRegLookup(self.HIVE_CONST, self.KEY_CONST, self.AU_CONST, healthCheckOnFailure=False)
             if key:
-                xenrt.TEC().logverbose("-----return True----")
                 return True
-        xenrt.TEC().logverbose("-----return False----")
         return False
 
 

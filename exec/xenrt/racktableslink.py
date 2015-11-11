@@ -144,7 +144,7 @@ def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
             xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "IPMI_INTERFACE"], ipmiInterface)
             intf = ipDict.get(xenrt.GEC().config.lookupHost(machine, "BMC_ADDRESS"))
             if intf:
-                ipmiPorts = [p for p in ports if p[0] == intf]
+                ipmiPorts = [p for p in ports if p[0].lower() == intf.lower()]
                 if len(ipmiPorts) > 0:
                     ipmiMAC = ipmiPorts[0][2]
                     if ipmiMAC:

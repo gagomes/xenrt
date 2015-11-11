@@ -216,7 +216,7 @@ class VMUser(ActorImp):
     def checkKeyPresent(self):
         if self.os.winRegExists(self.HIVE_CONST, self.KEY_CONST, self.AU_CONST, healthCheckOnFailure=False):
             key = self.os.winRegLookup(self.HIVE_CONST, self.KEY_CONST, self.AU_CONST, healthCheckOnFailure=False)
-            if key:
+            if key != None:
                 return True
         return False
 

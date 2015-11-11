@@ -26,3 +26,20 @@ class TestVMUserActorCheckKeyPresent(testing.XenRTUnitTestCase):
     def test_checkKeyPresentButNoValueSet(self, tec):
         cut = dnl.VMUser(None, self.__createMockOS(True, None))
         self.assertFalse(cut.checkKeyPresent(), "key is present")
+
+
+class ActorDouble(dnl.ActorAbstract):
+    def isLicensed(self):
+        return True
+
+
+class TestActorAbstract(testing.XenRTUnitTestCase):
+
+    @mock.patch("xenrt.TEC")
+    def testActorPassesThroughCheckKeyPresent(self, tec):
+        mockActor = mock.Mock()
+        mockActor.checkKeyPresent = mock.Mock(return_value=True)
+
+        cut = ActorDouble()
+        cut.setActor(mockActor)
+        self.assertTrue(cut.checkKeyPresent())

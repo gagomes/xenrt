@@ -67,6 +67,9 @@ class DotNetAgent(object):
 class LicensedFeature(object):
     __metaclass__ = ABCMeta
 
+    def __init__(self):
+        self.actor = None
+
     @abstractmethod
     def isLicensed(self):
         pass
@@ -82,7 +85,7 @@ class ActorAbstract(LicensedFeature):
         self.actor = actor
 
     def isActive(self):
-        self.actor.isActive()
+        return self.actor.isActive()
 
     def enable(self):
         self.actor.enable()
@@ -100,7 +103,7 @@ class ActorAbstract(LicensedFeature):
         self.actor.defaultURL()
 
     def checkKeyPresent(self):
-        self.actor.checkKeyPresent()
+        return self.actor.checkKeyPresent()
 
 
 class ActorImp(object):

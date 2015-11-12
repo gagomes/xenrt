@@ -253,7 +253,7 @@ class ToggleAUHierarchy(DotNetAgentTestCases):
         autoupdate.setUserVMUser()
         autoupdate.disable()
         assertions.assertTrue(autoupdate.checkKeyPresent() and not autoupdate.isActive(),"registry does not indicate that AutoUpdate is disabled")
-        self._shouldBePinged(trigger,server)
+        self._shouldNotBePinged(trigger,server)
 
 class URLHierarchy(DotNetAgentTestCases):
 
@@ -294,7 +294,7 @@ class URLHierarchy(DotNetAgentTestCases):
         self.autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         self.serverForPool = self.adapter.setUpServer(self.getGuest("server"),"16000")
         self.serverForVM = self.adapter.setUpServer(self.getGuest("server"),"16001")
-        self.__defaultServerPinged(True)
+        #self.__defaultServerPinged(True)
         self.__poolServerPinged()
         self.__VMServerPinged()
         self.__defaultURLVMServerPinged()

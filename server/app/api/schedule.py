@@ -164,14 +164,22 @@ class XenRTSchedule(XenRTAPIPage):
                                 verbose.write("  wants %s, not available\n" % (mxs[0]))
                                 # unscheduable at the moment
                                 continue
-                            # Any remaining machines have site and cluster ignored
+                            # Any remaining machines have cluster ignored
                             schedulable = True
                             for mx in mxs[1:]:
                                 if len(selected) == machines_required:
                                     break
                                 if machines.has_key(mx) or leasedmachines.has_key(mx):
-                                    selected.append(mx)
-                                    verbose.write("  wants %s, it is available\n" % (mx))
+                                    if machines.has_key(mx):
+                                        m = machines[mx]
+                                    else:
+                                        m = leasedmachines[mx]
+                                    if m[1] != site:
+                                        verbose.write("  wants %s, but it's in a different site\n" % (mx))
+                                        schedulable = False
+                                    else:
+                                        selected.append(mx)
+                                        verbose.write("  wants %s, it is available\n" % (mx))
                                 else:
                                     verbose.write("  wants %s, not available\n" % (mx))
                                     # unscheduable at the moment

@@ -4051,10 +4051,13 @@ class TC12154(_HardwareMultipath):
         self.sr = None
     
     def createSR(self):
+        self.lun = xenrt.HBALun([self.hostWithMultiplePaths])
+        self.sr_scsiid = self.lun.getID()
+
         self.sr = xenrt.lib.xenserver.FCStorageRepository(self.hostWithMultiplePaths, "fc")
-        self.sr.create(self.sr_scsiid, multipathing=True)
+        self.sr.create(self.lun, multipathing=True)
         self.hostWithMultiplePaths.addSR(self.sr, default=True)
-    
+
     def run(self, arglist=None):
         _HardwareMultipath.run(self, arglist=None)
 

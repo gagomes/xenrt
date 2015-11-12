@@ -614,8 +614,8 @@ class CentralResource(object):
 class CentralLock(CentralResource):
     """Implementation of a central lock"""
     def __init__(self, id, timeout=3600, acquire=True):
-        self.id = id
         CentralResource.__init__(self, timeout=timeout)
+        self.id = id
         if acquire:
             self.acquire()
 

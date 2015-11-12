@@ -71,10 +71,10 @@ class DotNetAgentAdapter(object):
         os.winRegAdd("HKLM","SOFTWARE\\Citrix\\XenTools","BuildVersion","DWORD",0)
 
     def removeMSIs(self, guest):
-        if self.os.fileExists("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\managementagentx64.msi"):
-            self.os.removeFile("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\managementagentx64.msi")
-        elif self.os.fileExists("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\managementagentx86.msi"):
-            self.os.removeFile("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\managementagentx86.msi")
+        if guest.getInstance().os.fileExists("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\managementagentx64.msi"):
+            guest.getInstance().os.removeFile("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\managementagentx64.msi")
+        elif guest.getInstance().os.fileExists("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\managementagentx86.msi"):
+            guest.getInstance().os.removeFile("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\managementagentx86.msi")
 
 class nonCrypto(object):
 

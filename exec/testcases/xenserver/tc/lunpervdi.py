@@ -995,7 +995,7 @@ class TC18372(LunPerVDI):
 
         step("Cleaning up")  
         self.pool.disableHA()
-        hba.forget() # which eventually release the LUN as well.
+        hba.remove()
 
 class TC18373(LunPerVDI):
     """Verify whether DR feature works with LUN/VDI SR"""

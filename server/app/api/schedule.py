@@ -166,15 +166,13 @@ class XenRTSchedule(XenRTAPIPage):
                                 continue
                             # Any remaining machines have cluster ignored
                             schedulable = True
+                            availablemachines = machines.copy()
+                            availablemachines.update(leasedmachines)
                             for mx in mxs[1:]:
                                 if len(selected) == machines_required:
                                     break
-                                if machines.has_key(mx) or leasedmachines.has_key(mx):
-                                    if machines.has_key(mx):
-                                        m = machines[mx]
-                                    else:
-                                        m = leasedmachines[mx]
-                                    if m[1] != site:
+                                if availablemachines.has_key(mx):
+                                    if availablemachines[mx][1] != site:
                                         verbose.write("  wants %s, but it's in a different site\n" % (mx))
                                         schedulable = False
                                     else:

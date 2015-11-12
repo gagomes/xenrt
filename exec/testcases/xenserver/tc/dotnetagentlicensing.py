@@ -246,7 +246,7 @@ class ToggleAUHierarchy(DotNetAgentTestCases):
         self._shouldNotBePinged(trigger, server)
         autoupdate.enable()
         assertions.assertTrue(autoupdate.checkKeyPresent(), "DisableAutoUpdate reg key is not present")
-        self._shouldNotPinged(trigger,server)
+        self._shouldNotBePinged(trigger,server)
         autoupdate.setUserPoolAdmin()
         autoupdate.enable()
         assertions.assertTrue(autoupdate.checkKeyPresent() and autoupdate.isActive(),"Xapi does not indicate that AutoUpdate is enabled")

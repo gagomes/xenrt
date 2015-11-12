@@ -15,8 +15,7 @@ class xst(object):
     def path(self, f):
         return "/sys/kernel/debug/xst/%s/%s" % (self.name, f)
 
-    @xenrt.irregularName
-    def set_params(self, params):
+    def setParams(self, params):
         for p in params:
             self.host.execdom0("echo %d > %s" % (p[1], self.path(p[0])))
 
@@ -70,5 +69,5 @@ class TCRing0LinuxAllocBalloon(TCRing0LinuxBase):
     def run(self, arglist):
         step("Run alloc_balloon")
         t = xst(self.host, "alloc_balloon")
-        t.set_params([("pages", 1024)])
+        t.setParams([("pages", 1024)])
         t.run()

@@ -4517,14 +4517,17 @@ class GenericHost(GenericPlace):
     ##### Methods from OSParent #####
 
     @property
+    @xenrt.irregularName
     def _osParent_name(self):
         return self.getName()
 
     @property
+    @xenrt.irregularName
     def _osParent_hypervisorType(self):
         # This refers to the Hypervisor type of the control domain, which for most purposes can assumed to be Native
         return xenrt.HypervisorType.native
 
+    @xenrt.irregularName
     def _osParent_getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
         if self.machine and self.use_ipv6:
             return self.machine.ipaddr6
@@ -4532,9 +4535,11 @@ class GenericHost(GenericPlace):
             return self.machine.ipaddr
         return None
 
+    @xenrt.irregularName
     def _osParent_getPort(self, trafficType):
         return None
 
+    @xenrt.irregularName
     def _osParent_setIP(self,ip):
         if self.machine:
             obj = IPy.IP(ip)
@@ -4545,24 +4550,30 @@ class GenericHost(GenericPlace):
         else:
             raise xenrt.XRTError("No host Object Found")
 
+    @xenrt.irregularName
     def _osParent_start(self):
         self.machine.powerctl.on()
 
+    @xenrt.irregularName
     def _osParent_stop(self):
         self.machine.powerctl.off()
 
+    @xenrt.irregularName
     def _osParent_ejectIso(self):
         # TODO implement this with Virtual Media
         raise xenrt.XRTError("Not implemented")
 
+    @xenrt.irregularName
     def _osParent_setIso(self, isoName, isoRepo=None):
         # TODO implement this with Virtual Media
         raise xenrt.XRTError("Not implemented")
 
+    @xenrt.irregularName
     def _osParent_pollPowerState(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
         """Poll for reaching the specified state"""
         raise xenrt.XRTError("Not supported")
 
+    @xenrt.irregularName
     def _osParent_getPowerState(self):
         """Get the current power state"""
         raise xenrt.XRTError("Not supported")
@@ -7107,41 +7118,52 @@ class GenericGuest(GenericPlace):
     ##### Methods from OSParent #####
 
     @property
+    @xenrt.irregularName
     def _osParent_name(self):
         return self.name
 
     @property
+    @xenrt.irregularName
     def _osParent_hypervisorType(self):
         return xenrt.HypervisorType.unknown
 
+    @xenrt.irregularName
     def _osParent_getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
         # TODO add arp sniffing capabilities here
         return self.mainip
 
+    @xenrt.irregularName
     def _osParent_getPort(self, trafficType):
         return None
 
+    @xenrt.irregularName
     def _osParent_setIP(self,ip):
         self.mainip = ip
 
+    @xenrt.irregularName
     def _osParent_start(self):
         self.lifecycleOperation("vm-start")
 
+    @xenrt.irregularName
     def _osParent_stop(self):
         self.lifecycleOperation("vm-shutdown")
 
+    @xenrt.irregularName
     def _osParent_ejectIso(self):
         # TODO implement this with ISO SRs
         raise xenrt.XRTError("Not implemented")
 
+    @xenrt.irregularName
     def _osParent_setIso(self, isoName, isoRepo=None):
         # TODO implement this with ISO SRs
         raise xenrt.XRTError("Not implemented")
 
+    @xenrt.irregularName
     def _osParent_pollPowerState(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
         """Poll for reaching the specified state"""
         self.poll(self.STATE_MAPPING[state], timeout, level, pollperiod)
 
+    @xenrt.irregularName
     def _osParent_getPowerState(self):
         """Get the current power state"""
         return [x for x in self.STATE_MAPPING.keys() if self.STATE_MAPPING[x] == self.getState()][0]

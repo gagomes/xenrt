@@ -70,6 +70,12 @@ class DotNetAgentAdapter(object):
         os = guest.getInstance().os
         os.winRegAdd("HKLM","SOFTWARE\\Citrix\\XenTools","BuildVersion","DWORD",0)
 
+    def removeMSIs(self, guest):
+        if self.os.fileExists("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\managementagentx64.msi"):
+            self.os.removeFile("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\managementagentx64.msi")
+        elif self.os.fileExists("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\managementagentx86.msi"):
+            self.os.removeFile("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\managementagentx86.msi")
+
 class nonCrypto(object):
 
     @staticmethod
@@ -105,6 +111,13 @@ class AgentTrigger(PingTriggerStrategy):
 
     def execute(self):
         self.__agent.restartAgent()
+
+class DisableTrigger(PingTriggerStrategy):
+    def __init__(self,autoupdate):
+        self.__autoupdate = autoupdate
+
+    def execute(self):
+        self.__autoupdate.disable()
 
 class UnlicenseTrigger(PingTriggerStrategy):
     def __init__(self, adapter, pool):
@@ -164,13 +177,14 @@ class PoolAutoUpdateToggle(DotNetAgentTestCases):
 
     def run(self, arglist):
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
+        autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         agent1 = DotNetAgent(self.win2)
         trigger = AgentTrigger(self.agent)
         trigger1 = AgentTrigger(agent1)
+        disableTrigger = DisableTrigger(autoupdate)
         self.adapter.applyLicense(self.getDefaultPool())
-        autoupdate = self.agent.getLicensedFeature("AutoUpdate")
-        autoupdate.disable()
         autoupdate.setURL("http://%s:16000"% server.getIP())
+        self._shouldNotBePinged(disableTrigger,server) #Disables pool autoupdate in disable trigger
         self._shouldNotBePinged(trigger,server)
         self._shouldNotBePinged(trigger1,server)
         autoupdate.enable()
@@ -264,7 +278,7 @@ class URLHierarchy(DotNetAgentTestCases):
             assertions.assertNotNone(self.autoupdate.checkDownloadedMSI(),"MSI did not download from default url")
         else:
             assertions.assertNone(self.autoupdate.checkDownloadedMSI(), "MSI was downloaded when it shouldnt be")
-        self.adapter.filesCleanup(self.win1)
+        self.adapter.removeMSIs(self.win1)
 
     def __poolServerPinged(self):
         self.autoupdate.enable()

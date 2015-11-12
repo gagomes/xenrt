@@ -259,27 +259,14 @@ class GenericPlace(object):
             barch = "x86-32"
         return barch
 
-    def getMyMemory(self, complete=False, unit=xenrt.MEGA):
+    def getMyMemory(self):
         """ This is how an OS inside a guest VM thinks about its physical
         memory. The figure is quite likely to be the same as the one used for
         VM creation (an integral metabytes) despite the actual memory (as
         obtained via "memory-actual") can be smaller.
         """
         try:
-            xenrt.TEC().logverbose("getMemory on %s" % (self.getIP()))
-            if self.windows:
-                if complete:
-                    rc = self._xmlrpc().getMemory(True,unit)
-                else:
-                    rc = self._xmlrpc().getMemory(False,unit)
-            elif re.search("solaris", self.distro):
-                rc = int(self.execcmd("prtconf | grep Mem|awk '{if ($1 == \"Memory\") {print $3}}'"))
-            else:
-                data = self.execcmd("cat /proc/meminfo")
-                rc = re.search(r"MemTotal:\s+(\d+)\s+kB", data)
-                rc = int(rc.group(1))/xenrt.KILO
-            xenrt.TEC().logverbose(" ... getMemory done")
-            return rc
+            return self.os.visibleMemory
         except Exception, e:
             self.checkHealth()
             raise
@@ -7303,8 +7290,8 @@ class GenericGuest(GenericPlace):
             memory = 0
         return [name, ip, vcpus, memory, distro, uuid]
 
-    def getGuestMemory(self, unit=xenrt.MEGA):
-        return self.getMyMemory(unit=unit)
+    def getGuestMemory(self):
+        return self.getMyMemory()
 
     def getGuestVCPUs(self):
         return self.getMyVCPUs()

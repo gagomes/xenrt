@@ -4398,13 +4398,13 @@ fi
         cli = self.getCLIInstance()
         cli.execute("host-syslog-reconfigure host-uuid=%s" % (self.getMyHostUUID()))
             
-    def getGuestMemory(self, guest, unit = xenrt.MEGA):
+    def getGuestMemory(self, guest):
         # Sometimes it take a few seconds for xapi to notice a memory
         # change after a migration.
         for i in range(3):
             m = int(self.genParamGet("vm",
                                      guest.getUUID(),
-                                     "memory-actual"))/unit
+                                     "memory-actual"))/xenrt.MEGA
             if m > 0:
                 return m
             xenrt.sleep(3)

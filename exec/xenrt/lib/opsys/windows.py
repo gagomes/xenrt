@@ -1367,6 +1367,11 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             start = time.mktime(startTime)
         return time.time() - start
 
+    @property
+    def visibleMemory(self):
+        assert self.parent._osParent_getPowerState() == xenrt.PowerState.up, "OS not running"
+        return self.getMemory(False, xenrt.MEGA)
+
     @classmethod
     def detect(cls, parent, detectionState):
         obj = cls.testInit(parent)

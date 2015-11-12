@@ -490,7 +490,7 @@
     },
     "sles12": {
       "MAXMEMORY": "16384",
-      "MAXMEMORY64": "67108864",
+      "MAXMEMORY64": "4194304",
       "MINMEMORY": "4096",
     },
     "sles92": {

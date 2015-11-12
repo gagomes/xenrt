@@ -130,8 +130,6 @@ class OS(Interface):
 
     tcpCommunicationPorts = Attribute("TCP Ports needed for inbound communication, of type {name:port}")
 
-    visibleMemory = Attribute("Memory visible to the guest OS in MB")
-
     def knownDistro(distro):
         """Determine if the given distro is known to this library"""
 

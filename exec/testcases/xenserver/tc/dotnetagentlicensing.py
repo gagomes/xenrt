@@ -287,7 +287,7 @@ class URLHierarchy(DotNetAgentTestCases):
         self._shouldNotBePinged(self.trigger,self.serverForVM)
         self.__defaultServerPinged(False)
 
-    def __VMServerPinged(Self):
+    def __VMServerPinged(self):
         self.autoupdate.setUserVMUser()
         self.autoupdate.enable()
         self.autoupdate.setURL("http://%s:16001"% self.serverForPool.getIP())

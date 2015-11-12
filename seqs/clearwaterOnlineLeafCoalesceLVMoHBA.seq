@@ -14,8 +14,6 @@
       <host id="1"/>
       <storage type="fc" name="fcsr" default="true"/>
     </pool>
-    <host id="2"/>
-    <host id="3"/>
   </prepare>
 
   <testsequence group="LVM">

@@ -182,7 +182,8 @@ class TC9352(_HostInstall):
     def postRun(self):
         if self.iscsiSR:
             self.iscsiSR.release()
-
+        if self.fcSR:
+            self.fcSR.forget() # which eventually release the LUN as well.
                 
 class TC12059(TC9352):
     """Install to a server with a boot disk on a SAN via Emulex HBAs with multipath root disk and single path SR"""

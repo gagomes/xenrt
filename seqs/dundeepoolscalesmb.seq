@@ -1,13 +1,13 @@
 <xenrt>
 
-  <default name="VMSPERHOST" value="50" />
-  <default name="THREADS" value="50" />
+  <default name="VMSPERHOST" value="20" />
+  <default name="THREADS" value="20" />
   <default name="DISTRO" value="win7sp1-x86" />
   <default name="NUMBEROFSLAVESTOREBOOT" value="4" />
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
-    <PREPARE_WORKERS>16</PREPARE_WORKERS>
+    <PREPARE_WORKERS>4</PREPARE_WORKERS>
     <EXTRA_TIME>yes</EXTRA_TIME>
     <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
     <BUGTOOL_MODE_STRESS>yes</BUGTOOL_MODE_STRESS>
@@ -17,14 +17,15 @@
     <NO_TC_HOST_SERIAL_LOGS>yes</NO_TC_HOST_SERIAL_LOGS>
     <NTHREADS>50</NTHREADS>
     <FLAT_VM_DIST>no</FLAT_VM_DIST>
-    <USE_MULTIPATH>yes</USE_MULTIPATH>
-    <SR_ISCSI_MINSIZE>3000</SR_ISCSI_MINSIZE>
   </variables>
 
   <prepare>
     <pool>
-      <storage type="lvmoiscsi" name="lvmoiscsi1" default="true" options="thin" />
-      <storage type="lvmoiscsi" name="lvmoiscsi2" options="thin" />
+
+      <!-- SMB SR using the share provided by NetApp SC04-FAS2554 -->
+      <storage type="smb" name="smb1" default="true" />
+      <storage type="smb" name="smb2" />
+
       <allhosts />
 
       <NETWORK>
@@ -51,7 +52,7 @@
         <network device="0" />
         <vcpus>2</vcpus>
         <memory>1024</memory>
-        <storage>lvmoiscsi1</storage>
+        <storage>smb1</storage>
       </vm>
       <vm name="gold1">
         <distro>${DISTRO}</distro>
@@ -63,7 +64,7 @@
         <network device="0" />
         <vcpus>2</vcpus>
         <memory>1024</memory>
-        <storage>lvmoiscsi2</storage>
+        <storage>smb2</storage>
       </vm>
       <vm name="XenCenter">
         <distro>win7sp1-x86</distro>
@@ -76,28 +77,28 @@
   </prepare>
 
   <testsequence>
-    <testcase id="xenserver.tc.scalability.TCXenDesktopCloneVMs" tc="TC-18701" sku="full.thin">
+    <testcase id="xenserver.tc.scalability.TCXenDesktopCloneVMs" tc="TC-18701" sku="smbfull">
       <arg>vmsperhost=${VMSPERHOST}</arg>
       <arg>threads=${THREADS}</arg>
     </testcase>
-    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart" tc="TC-18703" sku="full.thin">
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart" tc="TC-18703" sku="smbfull">
       <arg>threads=${THREADS}</arg>
     </testcase>
-    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopReboot" tc="TC-18705" sku="full.thin">
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopReboot" tc="TC-18705" sku="smbfull">
       <arg>threads=${THREADS}</arg>
       <arg>iterations=2</arg>
     </testcase>
-    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopShutdown" tc="TC-18707" sku="full.thin">
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopShutdown" tc="TC-18707" sku="smbfull">
       <arg>threads=${THREADS}</arg>
     </testcase>
-    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart" name="Start2" tc="TC-18709" sku="full.thin">
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart" name="Start2" tc="TC-18709" sku="smbfull">
       <arg>threads=${THREADS}</arg>
     </testcase>
-    <testcase id="xenserver.tc.scalability.TCStbltyMasterReboot" tc="TC-18808" sku="full.thin" />
-    <testcase id="xenserver.tc.scalability.TCStbltySlaveReboot" tc="TC-18817" sku="full.thin" />
-    <testcase id="xenserver.tc.scalability.TCStbltySRReboot" tc="TC-18789" sku="full.thin" />
-    <testcase id="xenserver.tc.scalability.TCStbltyAllReboot" tc="TC-18818" sku="full.thin" />
-    <testcase id="xenserver.tc.scalability.TCStbltyMSlaveReboot" tc="TC-21462" sku="full.thin">
+    <testcase id="xenserver.tc.scalability.TCStbltyMasterReboot" tc="TC-18808" sku="smbfull" />
+    <testcase id="xenserver.tc.scalability.TCStbltySlaveReboot" tc="TC-18817" sku="smbfull" />
+    <testcase id="xenserver.tc.scalability.TCStbltySRReboot" tc="TC-18789" sku="smbfull" />
+    <testcase id="xenserver.tc.scalability.TCStbltyAllReboot" tc="TC-18818" sku="smbfull" />
+    <testcase id="xenserver.tc.scalability.TCStbltyMSlaveReboot" tc="TC-21462" sku="smbfull">
       <arg>numberOfSlavesToReboot=${NUMBEROFSLAVESTOREBOOT}</arg>
     </testcase>
   </testsequence>

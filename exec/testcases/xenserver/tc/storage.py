@@ -2771,22 +2771,22 @@ class TC8509(_TCResizeDataCheck):
 class TCCIFSVDIResizeShrink(_TCResizeShrink):
     """Attempting to shrink a CIFS VDI should fail with a suitable error."""
 
-    SRTYPE = "cifs"
+    SRTYPE = "smb"
 
 class TCCIFSVDIResizeGrowSmall(_TCResizeGrow):
     """Grow a CIFS VDI of a round size by 1 byte."""
 
-    SRTYPE = "cifs"
+    SRTYPE = "smb"
 
 class TCCIFSVDIResizeGrowLarge(_TCResizeGrow2):
     """Grow a CIFS VDI twice in large chunks."""
 
-    SRTYPE = "cifs"
+    SRTYPE = "smb"
 
 class TCCIFSVDIResizeDataCheck(_TCResizeDataCheck):
     """Data integrity of resized CIFS VDI."""
 
-    SRTYPE = "cifs"
+    SRTYPE = "smb"
     FORCEOFFLINE = True
 
 class TCFCOEVDIResizeGrowSmall(_TCResizeGrow):
@@ -2951,7 +2951,7 @@ class TC8525(_TCVDICreateRoundup):
 class TCCIFSOddSize(_TCVDICreateRoundup):
     """CIFS Odd size"""
 
-    SRTYPE = "cifs"
+    SRTYPE = "smb"
     
 class TCFCOEOddSize(_TCVDICreateRoundup):
     """FCoE SR Odd size"""
@@ -3734,7 +3734,7 @@ class TC10680(TC10671):
 class TCCIFSZeroedContents(TC10671):
     """CIFS Zeroed contents"""
 
-    SRTYPE = "cifs"
+    SRTYPE = "smb"
 
 class TCFCOEZeroedContents(TC10671):
     """FCoE SR Zeroed contents"""
@@ -5075,7 +5075,7 @@ class TCCIFSLifecycle(xenrt.TestCase):
         self.args = self.parseArgsKeyValue(arglist)
 
         self.host = self.getDefaultHost()
-        srtype = "cifs"
+        srtype = "smb"
 
         xsr = next((s for s in self.host.xapiObject.localSRs if s.srType == srtype), None)
         self.sr = xenrt.lib.xenserver.SMBStorageRepository.fromExistingSR(self.host, xsr.uuid)

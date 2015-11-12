@@ -32,6 +32,20 @@ class RackTables:
     def close(self):
         self.db.close()
 
+    def getObjectsForTag(self, tag, recurse=True):
+        tags = [x[0] for x in self._execSQL("SELECT id FROM TagTree WHERE tag='%s';" % tag)]
+        if recurse:
+            nexttags = tags
+            while True:
+                if not nexttags:
+                    break
+                newtags = [x[0] for x in self._execSQL("SELECT id FROM TagTree WHERE parent_id IN (%s)" % ",".join([str(x) for x in nexttags]))]
+                tags.extend(newtags)
+                nexttags = newtags
+        res = self._execSQL("SELECT RackObject.id, RackObject.name FROM TagStorage INNER JOIN RackObject ON TagStorage.entity_realm='object' AND TagStorage.entity_id=RackObject.id WHERE TagStorage.tag_id IN (%s)" % (",".join([str(x) for x in tags])))
+        return [RackTablesObject(self, x[0], x[1]) for x in res]
+
+
 class RackTablesObject:
     def __init__(self, parent, objid, name):
         self.parent = parent

@@ -1,4 +1,4 @@
-import xenrt, xenrt.lib.xenserver
+import xenrt, xenrt.lib.xenserver, time
 from xenrt.lazylog import log, step
 
 class XenTestRun(object):
@@ -7,6 +7,9 @@ class XenTestRun(object):
         self.name = name
 
     def results(self):
+        if 0 != self.host.execdom0("[ -e /var/log/xen/guest-%s.log ]" % self.name, retval="code"):
+            raise xenrt.XRTFailure("/var/log/guest-%s.log does not exists." % self.name
+)
         res = self.host.execdom0("grep -i 'Test Result:' /var/log/xen/guest-%s.log | tail -1 | awk -F: '{print $4}'" % self.name).strip()
 
         if res == "SUCCESS":
@@ -16,6 +19,7 @@ class XenTestRun(object):
 
     def run(self):
         self.host.execdom0("xl create /opt/xen-test-framework/%s.cfg" % self.name)
+        time.sleep(10)
         self.results()
 
 class TCRing0XenBase(xenrt.TestCase):
@@ -24,14 +28,14 @@ class TCRing0XenBase(xenrt.TestCase):
 
         #install the xen-test-framework which is a prerequisite for running tests.
         step("install xen-test-framework RPM and copy other pre-requisites")
-        modulePath = "/tmp/xen-test-framework.rpm"
-        moduleRpm = xenrt.TEC().getFile("/usr/groups/build/trunk-ring0/latest/binary-packages/RPMS/domain0/RPMS/x86_64/xen-test-framework-*.rpm")
 
+        moduleRpm = xenrt.TEC().getFile("/usr/groups/build/trunk-ring0/latest/binary-packages/RPMS/domain0/RPMS/x86_64/xen-test-framework-*.rpm")
         try:
             xenrt.checkFileExists(moduleRpm)
         except xenrt.XRTException, e:
             raise xenrt.XRTError(e.reason)
 
+        modulePath = "/tmp/xen-test-framework.rpm"
         sh = self.host.sftpClient()
         try:
             sh.copyTo(moduleRpm, modulePath)
@@ -39,7 +43,13 @@ class TCRing0XenBase(xenrt.TestCase):
             sh.close()
 
         self.host.execdom0("rpm --force -Uvh %s" % (modulePath))
-        self.host.execdom0("xenconsoled --log=all")
+
+        if 0 != self.host.execdom0("[ -e /etc/sysconfig/xencommons ]", retval="code"):
+            raise xenrt.XRTFailure("/etc/sysconfig/xencommons does not exists.")
+
+        self.host.execdom0("sed -i 's/#XENSTORED_TRACE.*/XENSTORED_TRACE=yes/' /etc/sysconfig/xencommons")
+        self.host.execdom0("sed -i 's/#XENCONSOLED_TRACE.*/XENCONSOLED_TRACE=all/' /etc/sysconfig/xencommons")
+        self.host.execdom0("/bin/systemctl restart xenconsoled.service")
 
 class TCRing0XenPV32Test(TCRing0XenBase):
     def run(self, arglist):

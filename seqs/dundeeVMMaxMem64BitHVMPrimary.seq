@@ -1,14 +1,10 @@
-<?xml version="1.0" ?>
 <xenrt>
-  <variables>
-    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
-  </variables>
   <prepare>
     <host/>
   </prepare>
   <testsequence>
     <parallel group="MaxMem" workers="1">
-      <for iter="D" values="%GUEST_TESTS:Dundee:Primary_Not32BitPVOr64BitHVM%" limit="%LIMIT%" offset="%OFFSET%"> 
+      <for iter="D" values="%GUEST_TESTS:Dundee:Primary_64BitHVM%" > 
         <testcase id="xenserver.tc.smoketest.TCSmokeTestMaxMem" name="${D}" sku="${D}" />
       </for>
     </parallel>

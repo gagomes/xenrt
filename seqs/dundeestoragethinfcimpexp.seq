@@ -14,13 +14,13 @@
   </prepare>
 
   <testsequence group="ImpExpFC">
-    <testcase id="xenserver.tc.impexp.TC9175" name="TC27233" tc="TC-27233" sku="thin">
+    <testcase id="xenserver.tc.impexp.TC9175" name="TC27364" tc="TC-27364" sku="thin">
       <arg>srtype=lvmohba</arg>
     </testcase>
-    <testcase id="xenserver.tc.impexp.TC9978" name="TC27234" tc="TC-27234" sku="thin">
+    <testcase id="xenserver.tc.impexp.TC9978" name="TC27365" tc="TC-27365" sku="thin">
       <arg>srtype=lvmohba</arg>
     </testcase>
-    <testcase id="xenserver.tc.impexp.TC19935" name="TC27235" tc="TC-27235" sku="thin">
+    <testcase id="xenserver.tc.impexp.TC19935" name="TC27366" tc="TC-27366" sku="thin">
       <arg>srtype=lvmohba</arg>
     </testcase>
   </testsequence>

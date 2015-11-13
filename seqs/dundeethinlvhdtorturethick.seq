@@ -6,6 +6,7 @@
   <default name="VDICOUNT" value="200" />
   <default name="VDISIZE" value="3" /> <!-- in GiB -->
   <default name="ITERATION" value="1" />
+  <default name="NUMWORKER" value="10" />
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
@@ -39,6 +40,7 @@
       <arg>iteration=${ITERATION}</arg>
       <arg>vdicount=${VDICOUNT}</arg>
       <arg>vdisize=${VDISIZE}</arg>
+      <arg>numworker=${NUMWORKER}</arg>
     </testcase>
     -->
     <testcase id="testcases.xenserver.tc.thinlvhdstress.TCParallelWriting" tc="TC-27241" name="InGuestPtnWriting">
@@ -47,6 +49,7 @@
       <arg>vdicount=${VDICOUNT}</arg>
       <arg>vdisize=${VDISIZE}</arg>
       <arg>sequential=no</arg>
+      <arg>numworker=${NUMWORKER}</arg>
     </testcase>
   </testsequence>
 </xenrt>

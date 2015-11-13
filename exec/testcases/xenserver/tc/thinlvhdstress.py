@@ -10,6 +10,7 @@ class TCParallelWriting(xenrt.TestCase):
     VDI_SIZE = 2 # in GiB
     SEQUENTIAL = True
     ITERATION = 1
+    NUM_WORKER = 1
 
     def getPhysicalUtil(self):
         """Utility function to check current physical-utilisation of SR"""
@@ -19,7 +20,7 @@ class TCParallelWriting(xenrt.TestCase):
 
         stat = int(self.host.genParamGet("sr", sr, "physical-utilisation"))
 
-        # TODO: following codes are not required after CP-14242
+        # TODO: This codes may not required if 'host free pool' does not exist. i.e. sanlock or GFS2?
         if not xenrt.TEC().lookup("NO_XENVMD", False, boolean=True):
             srobj = xenrt.lib.xenserver.getStorageRepositoryClass(self.host, sr).fromExistingSR(self.host, sr)
             if srobj.thinProvisioning:
@@ -173,21 +174,46 @@ class TCParallelWriting(xenrt.TestCase):
             if failed > 0:
                 raise xenrt.XRTFailure("%d VDIs are corrupted." % failed)
 
+    def prepareVDIsOnGuest(self, guests):
+        """Creating VDIs on guests until all guests have additional VDI."""
+
+        for guest in guests:
+            guest.setState("UP")
+            guest.targetDevice = guest.createDisk(sizebytes = self.vdisize, sruuid=self.sr, returnDevice=True)
+        
+    def prepareVDIsOnHost(self, num):
+        """Creating VDIs."""
+
+        for i in xrange(num):
+            vdi = self.host.createVDI(sizebytes = self.vdisize)
+            self.vdis.append(vdi)
+
     def prepareIteration(self):
         """Prepare each iterations. All VDIs will be created in this process."""
 
         step("Creating VDIs and attaching them")
+
+        count = self.vdicount / self.numWorker
         if self.runOnGuest:
-            log("Creating VDIs and attching to test guests.")
-            for guest in self.guests:
-                guest.setState("UP")
-                guest.targetDevice = guest.createDisk(sizebytes = self.vdisize, sruuid=self.sr, returnDevice=True)
+            tasks = []
+            for i in xrange(self.numWorker):
+                tasks.append(xenrt.PTask(self.prepareVDIsOnGuest, self.guests[i * count:(i + 1) * count]))
+            xenrt.pfarm(tasks)
+            # Just in case.
+            if self.vdicount % self.numWorker:
+                self.prepareVDIsOnGuest(self.guests[-(self.vdicount % self.numWorker):])
+            log("Created %d VDIs on guests" % (self.vdicount))
+
         else:
-            log("Creating VDIs")
-            self.vdis = [self.host.createVDI(sizebytes = self.vdisize) for i in xrange(self.vdicount)]
+            xenrt.pfarm([xenrt.PTask(self.prepareVDIsOnHost, count) for i in xrange(self.numWorker)])
+            # Just in case.
+            if self.vdicount % self.numWorker:
+                self.prepareVDIsOnHost(self.vdicount % self.numWorker)
             log("Created %d VDIs: %s" % (self.vdicount, self.vdis))
 
         log("After creating %d VDIs: %d" % (self.vdicount, self.getPhysicalUtil()))
+
+        libsynexec.initialise_master_in_dom0(self.host)
 
     def finalizeIteration(self):
         """Clean up the iteration. All VDIs will be detached and destroyed."""
@@ -195,6 +221,7 @@ class TCParallelWriting(xenrt.TestCase):
         step("Destroying all test VDIs")
         if self.runOnGuest:
             for guest in self.guests:
+                libsynexec.kill_slave(guest)
                 guest.setState("DOWN")
                 guest.destroyAdditionalDisks()
                 guest.setState("UP")
@@ -227,6 +254,8 @@ class TCParallelWriting(xenrt.TestCase):
         self.iteration = int(self.getParam("iteration", self.ITERATION))
         self.vdicount = int(self.getParam("vdicount", self.VDI_COUNT))
         self.runOnGuest = self.getParam("vms", self.VMS, True)
+        self.numWorker = self.getParam("numworker", self.NUM_WORKER)
+
         # used to identify synexec.
         # This should NOT be used in multiple TC at the same time.
         self.jobid = int(xenrt.TEC().gec.config.lookup("JOBID", None))
@@ -275,7 +304,6 @@ class TCParallelWriting(xenrt.TestCase):
         self.guests = []
         if self.runOnGuest:
             xenrt.pfarm([xenrt.PTask(self.prepareGuests, host) for host in self.pool.getHosts()])
-            libsynexec.initialise_master_in_dom0(self.host)
         else:
             log("Test are running on the host.")
 

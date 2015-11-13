@@ -332,6 +332,8 @@ class TCSmokeTestMaxMem(_TCSmokeTest):
     def getGuestParams(self):
         if xenrt.is32BitPV(self.distro, self.arch, release=self.host.productVersion):
             hostMaxMem = int(self.host.lookup("MAX_VM_MEMORY_LINUX32BIT"))
+        elif xenrt.is64BitHVM(self.distro, self.arch, release=self.host.productVersion):
+            hostMaxMem = int(self.host.lookup("MAX_VM_MEMORY_HVM"))
         else:
             hostMaxMem = int(self.host.lookup("MAX_VM_MEMORY"))
 

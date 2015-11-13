@@ -184,6 +184,7 @@ class PoolAutoUpdateToggle(DotNetAgentTestCases):
         disableTrigger = DisableTrigger(autoupdate)
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate.setURL("http://%s:16000"% server.getIP())
+        xenrt.sleep(5)
         self._shouldNotBePinged(disableTrigger,server) #Disables pool autoupdate in disable trigger
         self._shouldNotBePinged(trigger,server)
         self._shouldNotBePinged(trigger1,server)

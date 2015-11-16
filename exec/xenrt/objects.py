@@ -5444,6 +5444,7 @@ class GenericHost(GenericPlace):
             else:
                 self.xenstoreWrite("/local/logconsole/@", "")
             if persist:
+                self.execdom0("echo 'mkdir -p %s' >> /etc/rc.d/rc.local" % (self.guestconsolelogs))
                 self.execdom0("echo 'xenstore-write /local/logconsole/@ "
                               "%s/console.%%d.log' >> /etc/rc.d/rc.local" %
                               (self.guestconsolelogs))

@@ -108,7 +108,7 @@
         <arg>input=DEFAULT</arg>
       </testcase>
     </serial>
-    <serial group="UpgVM">
+    <parallel group="UpgVM">
       <testcase id="xenserver.tc.upgrade.TC19900" sku="RTM" name="TC19900_RTM"/>
       <testcase id="xenserver.tc.upgrade.TC19901" sku="RTM" name="TC19901_RTM"/>
       <testcase id="xenserver.tc.upgrade.TC19902" sku="RTM" name="TC19902_RTM"/>
@@ -117,7 +117,7 @@
       <testcase id="xenserver.tc.upgrade.TC20717" sku="RTM" name="TC20717_RTM"/>
       <testcase id="xenserver.tc.upgrade.TC20718" sku="RTM" name="TC20718_RTM"/>
       <testcase id="xenserver.tc.upgrade.TC20719" sku="RTM" name="TC20719_RTM"/>
-    </serial>
+    </parallel>
   </testsequence>
 
 </xenrt>

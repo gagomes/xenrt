@@ -78,13 +78,13 @@
         <arg>input=DEFAULT</arg>
       </testcase>
     </serial>
-    <serial group="UpgVM">
+    <parallel group="UpgVM">
       <testcase id="xenserver.tc.upgrade.TC15223"/>
       <testcase id="xenserver.tc.upgrade.TC15225"/>
       <testcase id="xenserver.tc.upgrade.TC15227"/>
       <testcase id="xenserver.tc.upgrade.TC15229"/>
       <testcase id="xenserver.tc.upgrade.TC15230"/>
-    </serial>
+    </parallel>
   </testsequence>
 
 </xenrt>

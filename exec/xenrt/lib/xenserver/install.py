@@ -839,10 +839,10 @@ sleep 30
         #    # Enable SSH into the installer to aid debug if installations fail
         #    pxecfg.mbootArgsModule1Add("sshpassword=%s" % self.host.password)
         
-        optionRootMpath = self.host.lookup("OPTION_ROOT_MPATH", None)
+        optionRootMpath = self.host.lookup("OPTION_ROOT_MPATH", False, boolean=True)
         
-        if optionRootMpath != None and len(optionRootMpath) > 0:
-            pxecfg.mbootArgsModule1Add("device_mapper_multipath=%s" % optionRootMpath)
+        if optionRootMpath:
+            pxecfg.mbootArgsModule1Add("device_mapper_multipath=enabled")
 
         # Set up PXE for installer boot
         pxefile = pxe.writeOut(self.host.machine)

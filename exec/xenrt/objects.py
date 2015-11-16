@@ -6842,7 +6842,7 @@ chain tftp://${next-server}/%s
         noSan = noSan or self.lookup("NO_SAN_ROOT", False, boolean=True)
         disks = None
         if noSan:
-            varlist = ["%s_NOSAN", var]
+            varlist = ["%s_NOSAN" % var, var]
         else:
             varlist = [var]
         for v in varlist:

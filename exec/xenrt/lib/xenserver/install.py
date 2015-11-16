@@ -723,7 +723,7 @@ sleep 30
             pxe.setSerial(serport, serbaud)
         if self.host.lookup("PXE_NO_PROMPT", False, boolean=True):
             pxe.setPrompt("0")
-        chain = self.getChainBoot()
+        chain = self.host.getChainBoot()
         if chain:
             pxe.addEntry("local", boot="chainlocal", options=chain)
         else:

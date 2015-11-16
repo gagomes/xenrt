@@ -6848,20 +6848,20 @@ chain tftp://${next-server}/%s
         for v in varlist:
             try:
                 if ccissIfAvailable:
-                    disks = self.lookup([var, "CCISS"])
+                    disks = self.lookup([v, "CCISS"])
                 else:
-                    disks = self.lookup([var, "SCSI"])
+                    disks = self.lookup([v, "SCSI"])
             except:
                 pass
             try:
                 if legacySATA:
-                    disks = self.lookup([var, "LEGACY_SATA"])
+                    disks = self.lookup([v, "LEGACY_SATA"])
                 else:
-                    disks = self.lookup([var, "SATA"])
+                    disks = self.lookup([v, "SATA"])
             except:
                 pass
             if not disks:
-                disks = self.lookup(var, None)
+                disks = self.lookup(v, None)
                 # REQ-35: (Better) temp fix until we fix all of the config files
                 if not legacySATA and disks and "scsi-SATA" in "".join(disks):
                     disks = None

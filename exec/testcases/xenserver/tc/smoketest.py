@@ -142,7 +142,7 @@ class _TCSmokeTest(xenrt.TestCase):
         if expected is None:
             return
 
-        if not self.guest.windows:
+        if not xenrt.TEC().lookup("WORKAROUND_CA188967", True, boolean=True) and not self.guest.windows:
             guestMemory = self.guest.getGuestMemory()
             # Take into account any kdump kernel
             kdumpSize = self.guest.os.getKdumpSize()

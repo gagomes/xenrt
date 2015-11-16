@@ -5100,6 +5100,8 @@ class GenericHost(GenericPlace):
                 name = "SanibelCC"
             if name == "Creedence" and self.execdom0("grep XS65ESP1 /var/patch/applied/*", retval="code") == 0:
                 name = "Cream"
+            elif name == "Creedence" and not "90233" in buildNumber:
+                name = "Cream"
 
             xenrt.TEC().logverbose("Found: Version Name: %s, Version Number: %s" % (name, version))
             xenrt.TEC().logverbose("Found Build: %s" % (buildNumber))

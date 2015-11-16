@@ -113,7 +113,7 @@ class Instance(object):
     def _osParent_stop(self):
         self.stop()
 
-    def toolstackStart(on=None):
+    def toolstackStart(self, on=None):
         xenrt.xrtAssert(self.getPowerState() == xenrt.PowerState.down, "Power state before starting must be down")
         self.toolstack.startInstance(self, on)
         xenrt.xrtCheck(self.getPowerState() == xenrt.PowerState.up, "Power state after start should be up")

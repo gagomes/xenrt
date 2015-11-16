@@ -6663,13 +6663,11 @@ fi
                         template = self.chooseTemplate(\
                             "TEMPLATE_NAME_SLES_%s_64" % (v))
                     else:
-                        template = self.chooseTemplate(\
-						    "TEMPLATE_NAME_SLES_%s" % (v))
+                        template = self.chooseTemplate("TEMPLATE_NAME_SLES_%s" % (v))
             elif re.search(r"sled\d+", distro):
                 v = re.search(r"sled(\d+)", distro).group(1)
                 if arch and arch == "x86-64":
-                    template = self.chooseTemplate(\
-                            "TEMPLATE_NAME_SLED_%s_64" % (v))
+                    template = self.chooseTemplate("TEMPLATE_NAME_SLED_%s_64" % (v))
                 else:
                     template = self.chooseTemplate("TEMPLATE_NAME_SLED_%s" % (v))
             elif re.search(r"sl7", distro):
@@ -6723,7 +6721,7 @@ fi
                                     (distro))
                 template = self.chooseTemplate("TEMPLATE_NAME_RHEL_5")
             else:
-                raise e
+                raise
 
         return template
 

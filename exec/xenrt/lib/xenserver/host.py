@@ -671,6 +671,10 @@ class Host(xenrt.GenericHost):
         xenrt.TEC().logverbose("initrd has been rebuilt")
 
     @property
+    def mpathRoot(self):
+        return self.lookup("OPTION_ROOT_MPATH", False, boolean=True) and not self.lookup("FORCE_NO_ROOT_MPATH", False, boolean=True) and not self.lookup("NO_SAN_ROOT", False, boolean=True)
+
+    @property
     def xapiObject(self):
         """Gets a XAPI Host object for this Host
         @return: A xenrt.lib.xenserver.XapiHost object for this Host
@@ -1644,7 +1648,7 @@ done
             pxe.setSerial(serport, serbaud)
         if self.lookup("PXE_NO_PROMPT", False, boolean=True):
             pxe.setPrompt("0")
-        chain = self.lookup("PXE_CHAIN_LOCAL_BOOT", None)
+        chain = self.getChainBoot()
         if chain:
             pxe.addEntry("local", boot="chainlocal", options=chain)
         else:
@@ -1768,9 +1772,7 @@ done
         #    # Enable SSH into the installer to aid debug if installations fail
         #    pxecfg.mbootArgsModule1Add("sshpassword=%s" % self.password)
         
-        optionRootMpath = self.lookup("OPTION_ROOT_MPATH", False, boolean=True)
-        
-        if optionRootMpath:
+        if self.mpathRoot:
             pxecfg.mbootArgsModule1Add("device_mapper_multipath=enabled")
 
         # Set up PXE for installer boot
@@ -2156,8 +2158,7 @@ fi
         if xenrt.TEC().lookup("HOST_POST_INSTALL_REBOOT", False, boolean=True):
             self.reboot()
 
-        optionRootMpath = self.lookup("OPTION_ROOT_MPATH", False, boolean=True)
-        if optionRootMpath:
+        if self.mpathRoot:
             # Check to ensure that there is a multipath topology if we did multipath boot.
             if not len(self.getMultipathInfo()) > 0 :
                 raise xenrt.XRTFailure("There is no multipath topology found with multipath boot")
@@ -11386,7 +11387,7 @@ done
             pxe.setSerial(serport, serbaud)
         if self.lookup("PXE_NO_PROMPT", False, boolean=True):
             pxe.setPrompt("0")
-        chain = self.lookup("PXE_CHAIN_LOCAL_BOOT", None)
+        chain = self.getChainBoot()
         if chain:
             pxe.addEntry("local", boot="chainlocal", options=chain)
         else:
@@ -11450,10 +11451,8 @@ done
             xenrt.TEC().warning("Using installer user extra Dom0 boot args %s"
                                 % (dom0_extra_args_user))
 
-        optionRootMpath = self.lookup("OPTION_ROOT_MPATH", False, boolean=True)
-        
-        if optionRootMpath:
-            pxecfg.mbootArgsModule1Add("device_mapper_multipath=%s" % optionRootMpath)
+        if self.mpathRoot:
+            pxecfg.mbootArgsModule1Add("device_mapper_multipath=enabled")
         
         # Set up PXE for installer boot
         pxefile = pxe.writeOut(self.machine)

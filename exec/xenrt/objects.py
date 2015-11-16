@@ -5686,7 +5686,7 @@ class GenericHost(GenericPlace):
         serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
         serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
         pxe.setSerial(serport, serbaud)
-        chain = self.lookup("PXE_CHAIN_LOCAL_BOOT", None)
+        chain = self.getChainBoot()
         if chain:
             pxe.addEntry("local", boot="chainlocal", options=chain)
         else:
@@ -5820,7 +5820,7 @@ class GenericHost(GenericPlace):
         serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
         serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
         pxe.setSerial(serport, serbaud)
-        chain = self.lookup("PXE_CHAIN_LOCAL_BOOT", None)
+        chain = self.getChainBoot()
         if chain:
             pxe.addEntry("local", boot="chainlocal", options=chain)
         else:
@@ -5975,7 +5975,7 @@ exit 0
         # Construct a PXE target
         pxe = xenrt.PXEBoot()
         pxe.setSerial(serport, serbaud)
-        chain = self.lookup("PXE_CHAIN_LOCAL_BOOT", None)
+        chain = self.getChainBoot()
         if chain:
             pxe.addEntry("local", boot="chainlocal", options=chain)
         else:
@@ -6829,27 +6829,44 @@ chain tftp://${next-server}/%s
 
         return subnetMask,gateway
 
-    def _getDisks(self, var, sdfallback, count, ccissIfAvailable, legacySATA):
+    def getChainBoot(self, noSan=False):
+        noSan = noSan or self.lookup("NO_SAN_ROOT", False, boolean=True)
+        ret = None
+        if noSan:
+            ret = self.lookup("PXE_CHAIN_LOCAL_BOOT_NOSAN", None)
+        if not ret:
+            ret = self.lookup("PXE_CHAIN_LOCAL_BOOT", None)
+        return ret
+
+    def _getDisks(self, var, sdfallback, count, ccissIfAvailable, legacySATA, noSan):
+        noSan = noSan or self.lookup("NO_SAN_ROOT", False, boolean=True)
         disks = None
-        try:
-            if ccissIfAvailable:
-                disks = self.lookup([var, "CCISS"])
-            else:
-                disks = self.lookup([var, "SCSI"])
-        except:
-            pass
-        try:
-            if legacySATA:
-                disks = self.lookup([var, "LEGACY_SATA"])
-            else:
-                disks = self.lookup([var, "SATA"])
-        except:
-            pass
-        if not disks:
-            disks = self.lookup(var, None)
-            # REQ-35: (Better) temp fix until we fix all of the config files
-            if not legacySATA and disks and "scsi-SATA" in "".join(disks):
-                disks = None
+        if noSan:
+            varlist = ["%s_NOSAN", var]
+        else:
+            varlist = [var]
+        for v in varlist:
+            try:
+                if ccissIfAvailable:
+                    disks = self.lookup([var, "CCISS"])
+                else:
+                    disks = self.lookup([var, "SCSI"])
+            except:
+                pass
+            try:
+                if legacySATA:
+                    disks = self.lookup([var, "LEGACY_SATA"])
+                else:
+                    disks = self.lookup([var, "SATA"])
+            except:
+                pass
+            if not disks:
+                disks = self.lookup(var, None)
+                # REQ-35: (Better) temp fix until we fix all of the config files
+                if not legacySATA and disks and "scsi-SATA" in "".join(disks):
+                    disks = None
+            if disks:
+                break
         if not disks and sdfallback:
             disks = string.join(map(lambda x:"sd"+chr(97+x), range(count)))
         if not disks:
@@ -6857,14 +6874,14 @@ chain tftp://${next-server}/%s
         else:
             return string.split(disks)[:count]
 
-    def _getMainDisks(self, count, ccissIfAvailable, legacySATA):
-        return self._getDisks("OPTION_CARBON_DISKS", True, count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA)
+    def _getMainDisks(self, count, ccissIfAvailable, legacySATA, noSan):
+        return self._getDisks("OPTION_CARBON_DISKS", True, count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA, noSan=noSan)
 
-    def getInstallDisk(self, ccissIfAvailable=False, legacySATA=False):
-        return self._getMainDisks(ccissIfAvailable=ccissIfAvailable, count=1, legacySATA=legacySATA)[0]
+    def getInstallDisk(self, ccissIfAvailable=False, legacySATA=False, noSan=False):
+        return self._getMainDisks(ccissIfAvailable=ccissIfAvailable, count=1, legacySATA=legacySATA, noSan=noSan)[0]
 
-    def getGuestDisks(self, count=1, ccissIfAvailable=False, legacySATA=False):
-        disks = self._getDisks("OPTION_GUEST_DISKS", False, count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA)
+    def getGuestDisks(self, count=1, ccissIfAvailable=False, legacySATA=False, noSan=False):
+        disks = self._getDisks("OPTION_GUEST_DISKS", False, count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA, noSan=noSan)
         if disks:
             return disks
         else:

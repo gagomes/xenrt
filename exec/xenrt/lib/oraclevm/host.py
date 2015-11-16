@@ -153,7 +153,7 @@ umount /tmp/xenrttmpmount
         else:
             pxe.setSerial(serport, serbaud)
 
-        chain = self.lookup("PXE_CHAIN_LOCAL_BOOT", None)
+        chain = self.getChainBoot()
         if chain:
             pxe.addEntry("local", boot="chainlocal", options=chain)
         else:
@@ -258,7 +258,7 @@ umount /tmp/xenrttmpmount
         else:
             pxe.setSerial(serport, serbaud)
 
-        chain = self.lookup("PXE_CHAIN_LOCAL_BOOT", None)
+        chain = self.getChainBoot()
         if chain:
             pxe.addEntry("local", boot="chainlocal", options=chain)
         else:

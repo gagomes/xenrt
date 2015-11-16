@@ -723,7 +723,7 @@ sleep 30
             pxe.setSerial(serport, serbaud)
         if self.host.lookup("PXE_NO_PROMPT", False, boolean=True):
             pxe.setPrompt("0")
-        chain = self.host.lookup("PXE_CHAIN_LOCAL_BOOT", None)
+        chain = self.getChainBoot()
         if chain:
             pxe.addEntry("local", boot="chainlocal", options=chain)
         else:
@@ -839,9 +839,7 @@ sleep 30
         #    # Enable SSH into the installer to aid debug if installations fail
         #    pxecfg.mbootArgsModule1Add("sshpassword=%s" % self.host.password)
         
-        optionRootMpath = self.host.lookup("OPTION_ROOT_MPATH", False, boolean=True)
-        
-        if optionRootMpath:
+        if self.mpathRoot:
             pxecfg.mbootArgsModule1Add("device_mapper_multipath=enabled")
 
         # Set up PXE for installer boot

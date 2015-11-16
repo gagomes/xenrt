@@ -27,6 +27,10 @@
       <testcase id="xenserver.install.TCDom0SourceCheck" name="TC17998" tc="TC-17998">
         <arg>ignorerpmversion=${IGNORERMPVERSION}</arg>
       </testcase>
+      
+      <testcase id="xenserver.install.TCDLVMSourceCheck" name="TC17999" tc="TC-17999">
+        <arg>ignorerpmversion=${IGNORERMPVERSION}</arg>
+      </testcase>
 
       <testcase id="xenserver.install.TCVPXConversionSourceCheck" name="TC18001" tc="TC-18001">
         <arg>ignorerpmversion=${IGNORERMPVERSION}</arg>

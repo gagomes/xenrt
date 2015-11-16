@@ -1455,16 +1455,15 @@ class TCDLVMSourceCheck(SourceISOCheck): # TC-17999
             self.APPLIANCE_NAME, "NO_TEMPLATE",
             password=xenrt.TEC().lookup("DEFAULT_PASSWORD"))
         xenrt.TEC().registry.guestPut(self.APPLIANCE_NAME, g)
+        self.vpx_os_version = xenrt.TEC().lookup("VPX_OS_VERSION", "CentOS5")
         g.host = self.host
-        self.demolinuxvm = xenrt.DemoLinuxVM(g)
+        self.demolinuxvm = xenrt.DLVMApplianceFactory().create(g, self.vpx_os_version)
         g.importVM(self.host, xenrt.TEC().getFile("xe-phase-1/dlvm.xva"))
         g.windows = False
-        g.lifecycleOperation("vm-start",specifyOn=True)
-        # Wait for the VM to come up.
-        xenrt.TEC().progress("Waiting for the VM to enter the UP state")
-        g.poll("UP", pollperiod=5)
-        # Wait VM to boot up
-        time.sleep(300)
+        g.hasSSH = False # here we should support both old (CentOS5) and new (CentOS7) DLVM, disable sshcheck
+        g.tailored = True
+        g.start()
+
         self.demolinuxvm.doFirstbootUnattendedSetup()
         self.demolinuxvm.doLogin()
         self.demolinuxvm.installSSH()

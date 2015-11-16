@@ -31,7 +31,8 @@ time.strptime('2014-06-12','%Y-%m-%d')
 
 __all__ = ["GenericPlace", "GenericHost", "NetPeerHost", "GenericGuest", "productLib",
            "RunOnLocation", "ActiveDirectoryServer", "PAMServer", "CVSMServer", "WlbApplianceFactory",
-           "WlbApplianceServer", "WlbApplianceServerHVM", "DemoLinuxVM", "ConversionManagerApplianceFactory",
+           "WlbApplianceServer", "WlbApplianceServerHVM", "DLVMApplianceFactory", "DemoLinuxVM", 
+           "DemoLinuxVMHVM", "ConversionManagerApplianceFactory",
            "ConversionApplianceServer", "ConversionApplianceServerHVM", "EventObserver",
            "XenMobileApplianceServer", "_WinPEBase"]
 
@@ -11364,12 +11365,30 @@ class CVSMServer(object):
         data = self.cli('host-list')
         return uuid in data
 
-class DemoLinuxVM(object):
+class DemoLinuxBase(object):
+    """Base DLVM Appliance Class for PV DLVM Appliance and HVM DLVM Appliance"""
+
+    def __init__(self, place, password):
+        self.place = place
+        self.password = password
+        if self.place:
+            self.place.password = self.password
+
+    def doFirstbootUnattendedSetup(self):
+        pass
+
+    def doLogin(self):
+        pass
+
+    def installSSH(self):
+        pass
+
+class DemoLinuxVM(DemoLinuxBase):
     """An object to represent a Centos 5.7 based Citrix Demonstration Linux Virtual Machine"""
 
     def __init__(self, place):
-        self.place = place
-        self.password = xenrt.TEC().lookup("DEFAULT_PASSWORD")
+        password = xenrt.TEC().lookup("DEFAULT_PASSWORD")
+        super(DemoLinuxVM, self).__init__(place, password)
 
     def doFirstbootUnattendedSetup(self):
         # choose root passwd: 'xensource'
@@ -11388,6 +11407,20 @@ class DemoLinuxVM(object):
     def installSSH(self):
         self.place.writeToConsole("yum -y install openssh-server\\n")
         xenrt.sleep(360)
+
+class DemoLinuxVMHVM(DemoLinuxBase):
+    """An object to represent a Centos 7.* based Citrix Demonstration Linux Virtual Machine"""
+
+    def __init__(self, place):
+        password = xenrt.TEC().lookup("VPX_DEFAULT_PASSWORD", "citrix") # by default vpx root's password
+        super(DemoLinuxVMHVM, self).__init__(place, password)
+
+    def doFirstbootUnattendedSetup(self):
+        command = "/sbin/chkconfig rootpassword off"
+        self.place.execguest(command)
+        xenrt.sleep(60)
+        self.place.lifecycleOperation("vm-reboot", force=True)
+        self.place.waitReadyAfterStart()
 
 class ApplianceFactory(object):
     def create(self, guest, version="CentOS7"):
@@ -11415,6 +11448,13 @@ class ConversionManagerApplianceFactory(ApplianceFactory):
 
     def _createLegacy(self, guest):
         return ConversionApplianceServer(guest)
+
+class DLVMApplianceFactory(ApplianceFactory):
+    def _createHVM(self, guest):
+        return DemoLinuxVMHVM(guest)
+
+    def _createLegacy(self, guest):
+        return DemoLinuxVM(guest)
 
 class WlbApplianceBase(object):
     """Base WLB Appliance Class for PV WLB Appliance Server and HVM WLB Appliance Server"""

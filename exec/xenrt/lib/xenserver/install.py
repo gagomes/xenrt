@@ -839,7 +839,7 @@ sleep 30
         #    # Enable SSH into the installer to aid debug if installations fail
         #    pxecfg.mbootArgsModule1Add("sshpassword=%s" % self.host.password)
         
-        if self.mpathRoot:
+        if self.host.mpathRoot:
             pxecfg.mbootArgsModule1Add("device_mapper_multipath=enabled")
 
         # Set up PXE for installer boot

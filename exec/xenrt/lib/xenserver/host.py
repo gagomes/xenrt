@@ -635,15 +635,6 @@ class Host(xenrt.GenericHost):
         
         self.installationCookie = "%012x" % xenrt.random.randint(0,0xffffffffffff)
 
-    def uninstallGuestByName(self, name):
-        cli = self.getCLIInstance()
-        try:
-            cli.execute("vm-shutdown", "vm=\"%s\" --force" % name)
-        except Exception, ex:
-            xenrt.TEC().logverbose(str(ex))
-        cli.execute("vm-uninstall", "vm=\"%s\" --force" % name)
-
-    
     def getUptime(self):
         return float(self.execdom0("cat /proc/uptime").split()[0])
 
@@ -6672,11 +6663,13 @@ fi
                         template = self.chooseTemplate(\
                             "TEMPLATE_NAME_SLES_%s_64" % (v))
                     else:
-                        template = self.chooseTemplate("TEMPLATE_NAME_SLES_%s" % (v))
+                        template = self.chooseTemplate(\
+						    "TEMPLATE_NAME_SLES_%s" % (v))
             elif re.search(r"sled\d+", distro):
                 v = re.search(r"sled(\d+)", distro).group(1)
                 if arch and arch == "x86-64":
-                    template = self.chooseTemplate("TEMPLATE_NAME_SLED_%s_64" % (v))
+                    template = self.chooseTemplate(\
+                            "TEMPLATE_NAME_SLED_%s_64" % (v))
                 else:
                     template = self.chooseTemplate("TEMPLATE_NAME_SLED_%s" % (v))
             elif re.search(r"sl7", distro):
@@ -6730,7 +6723,7 @@ fi
                                     (distro))
                 template = self.chooseTemplate("TEMPLATE_NAME_RHEL_5")
             else:
-                raise
+                raise e
 
         return template
 
@@ -12519,28 +12512,32 @@ class Pool(object):
             raise xenrt.XRTFailure("Unable to determine pool master")
 
     def _getPoolMaster(self, host):
-        try:
-            if self.haEnabled and not (host.getMyHostUUID() in self.haLiveset):
-                # Don't trust anything this host knows about, as it's dead!
-                return None
-            pc = host.execdom0("cat /etc/xensource/pool.conf",timeout=10)
-            if pc.strip() == "master":
-                return host
-            elif pc.strip().startswith("slave:"):
-                l = pc.strip().split(":")
-                masterip = l[1].strip()
-                for h in self.getHosts():
-                    if h.getIP() == masterip:
-                        return h
-                raise xenrt.XRTError("Pool master (%s) is not a known host" %
-                                     (masterip))
-            else:
-                raise xenrt.XRTError("Unknown entry in pool.conf: %s" % 
-                                     (pc.strip()))
-        except xenrt.XRTFailure, e:
+        if self.haEnabled and not (host.getMyHostUUID() in self.haLiveset):
+            # Don't trust anything this host knows about, as it's dead!
             return None
-            
-            
+
+        #Retrying multiple times to get status to avoid intermittent network issues
+        for retry in [1,0]:
+            try:
+                pc = host.execdom0("cat /etc/xensource/pool.conf",timeout=10)
+                break
+            except xenrt.XRTFailure, e:
+                if not retry:
+                    return None
+
+        if pc.strip() == "master":
+            return host
+        elif pc.strip().startswith("slave:"):
+            l = pc.strip().split(":")
+            masterip = l[1].strip()
+            for h in self.getHosts():
+                if h.getIP() == masterip:
+                    return h
+            raise xenrt.XRTError("Pool master (%s) is not a known host" %
+                                 (masterip))
+        else:
+            raise xenrt.XRTError("Unknown entry in pool.conf: %s" % 
+                                 (pc.strip()))
 
     def recoverSlaves(self):          
         cli = self.getCLIInstance()

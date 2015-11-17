@@ -603,8 +603,12 @@ class _HATest(xenrt.TestCase):
             pass
         if cycle:
             host.machine.powerctl.cycle()
+            if host.machine.powerctl.status()[0] == 'off':
+                raise XRTError("Machine is still powered off")
         else:
             host.machine.powerctl.off()
+            if host.machine.powerctl.status()[0] != 'off':
+                raise XRTError("Machine is not powered off")
 
     def preLogs(self):
         for h in self.hostsToPowerOn:

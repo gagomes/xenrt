@@ -5,7 +5,7 @@ __all__=["XSDom0"]
 class XSDom0(LinuxOS):
     def __init__(self, distro, parent, password=None):
         super(XSDom0, self).__init__(distro, parent, password)
-    
+
     @staticmethod
     def knownDistro(distro):
         return distro == "XSDom0"
@@ -13,6 +13,10 @@ class XSDom0(LinuxOS):
     @staticmethod
     def testInit(parent):
         return XSDom0("XSDom0", parent)
+
+    @property
+    def canonicalDistroName(self):
+        return "XSDom0"
 
     def preCloneTailor(self):
         pass

@@ -12,6 +12,15 @@ class LinuxOS(OS):
     def __init__(self, distro, parent, password=None):
         super(LinuxOS, self).__init__(distro, parent, password)
 
+    @staticmethod
+    def testInit(cls, parent): raise NotImplementedError()
+
+    @property
+    def canonicalDistroName(self): raise NotImplementedError()
+
+    @property
+    def waitForBoot(self): raise NotImplementedError()
+
     def execSSH(self,
                 command,
                 username=None,

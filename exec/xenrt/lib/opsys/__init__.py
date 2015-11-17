@@ -2,6 +2,13 @@ import xenrt
 from zope.interface import implements, providedBy
 from abc import abstractproperty, abstractmethod, ABCMeta
 
+class abstractstatic(staticmethod):
+    __slots__ = ()
+    def __init__(self, function):
+        super(abstractstatic, self).__init__(function)
+        function.__isabstractmethod__ = True
+    __isabstractmethod__ = True
+
 oslist = []
 
 class OSNotDetected(Exception):
@@ -55,8 +62,8 @@ class OS(object):
         """Wait for the OS to boot"""
         pass
     
-    @abstractmethod
-    def testInit(self, parent):
+    @abstractstatic
+    def testInit(parent):
         """Instantiate a dummy version for unit testing"""
         pass
 
@@ -85,7 +92,6 @@ class OS(object):
     def getPort(self, trafficType):
         return self.parent._osParent_getPort(trafficType) or self.tcpCommunicationPorts[trafficType]
 
-    @abstractmethod
     def populateFromExisting(self):
         """Populate class members from an existing OS installation"""
         pass

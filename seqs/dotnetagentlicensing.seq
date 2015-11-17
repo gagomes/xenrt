@@ -1,0 +1,130 @@
+<xenrt>
+
+    <!-- Tests for DotNet Agnet Licensed Features -->
+    <default name="LICENSESERVER" value ="LicenseServer" />
+    <scheduler>
+        <resources>memory&gt;=20G/disk1&gt;=250G</resources>
+        <param>MACHINES_REQUIRED=2</param>
+    </scheduler>
+    <variables>
+        <LICENSE_SERVER>${LICENSESERVER}</LICENSE_SERVER>
+        <LICENSED_EDITION>PerSocketEnterprise</LICENSED_EDITION>
+        <UNLICENSED_EDITION>PerSocketStandard</UNLICENSED_EDITION>
+    </variables>
+
+    <prepare>
+        <pool id="0">
+            <host id="0" license="no" defaultlicense="no">
+                <vm name="WS">
+                    <distro>ws12-x64</distro>
+                    <arch>x86-64</arch>
+                    <memory>2048</memory>
+                    <vcpus>2</vcpus>
+                    <postinstall action="installDrivers" />
+                    <postinstall action="shutdown"/>
+                    <network device="0" />
+                    <disk device="0" size="22" />
+                    <postinstall action="snapshot(name='cleanWS')"/>
+                </vm>
+                <vm name="WS(1)">
+                    <distro>ws12-x64</distro>
+                    <arch>x86-64</arch>
+                    <memory>2048</memory>
+                    <vcpus>2</vcpus>
+                    <postinstall action="installDrivers" />
+                    <postinstall action="shutdown"/>
+                    <network device="0" />
+                    <disk device="0" size="22" />
+                    <postinstall action="snapshot(name='cleanWS1')"/>
+                </vm>
+                <vm name="Wx86">
+                    <distro>win7sp1-x86</distro>
+                    <arch>x86</arch>
+                    <memory>2048</memory>
+                    <vcpus>2</vcpus>
+                    <postinstall action="installDrivers" />
+                    <postinstall action="shutdown"/>
+                    <network device="0" />
+                    <disk device="0" size="22" />
+                    <postinstall action="snapshot(name='cleanWx86')"/>
+                </vm>
+            </host>
+            <host id="1" license="no" defaultlicense="no">
+                <vm name="server">
+                    <distro>ubuntu1404</distro>
+                    <memory>1024</memory>
+                    <vcpus>2</vcpus>
+                    <network device="0"/>
+                    <disk device="0" size="8" />
+                    <postinstall action="snapshot(name='cleanServer')"/>
+                </vm>
+                <vm name="${LICENSESERVER}">
+                    <file>%LICENSE_SERVER_XVA%</file>
+                    <postinstall action="installV6LicenseServer"/>
+                    <postinstall action="snapshot(name='cleanLicServer')"/>
+                </vm>
+            </host>
+        </pool>
+    </prepare>
+
+    <testsequence>
+        
+        <testcase id="testcases.xenserver.tc.dotnetagentlicensing.VMAutoUpdateToggle">
+            <arg>win1=WS</arg>
+        </testcase>
+        
+        <testcase id="testcases.xenserver.tc.dotnetagentlicensing.VSSQuiescedSnapshot">
+            <arg>win1=WS</arg>
+        </testcase>
+        
+        <testcase id="testcases.xenserver.tc.dotnetagentlicensing.PoolAutoUpdateToggle">
+            <arg>win1=WS</arg>
+            <arg>win2=WS(1)</arg>
+        </testcase>
+        
+        <testcase id="testcases.xenserver.tc.dotnetagentlicensing.HTTPRedirect">
+            <arg>win1=WS</arg>
+        </testcase>
+        
+        <testcase id="testcases.xenserver.tc.dotnetagentlicensing.AllHostsLicensed">
+            <arg>win1=WS</arg>
+        </testcase>
+        
+        <testcase id="testcases.xenserver.tc.dotnetagentlicensing.ToggleAUHierarchy">
+            <arg>win1=WS</arg>
+        </testcase>
+        
+        <testcase id="testcases.xenserver.tc.dotnetagentlicensing.URLHierarchy">
+            <arg>win1=WS</arg>
+        </testcase>
+        
+        <testcase id="testcases.xenserver.tc.dotnetagentlicensing.ImportAndExport">
+            <arg>win1=WS</arg>
+        </testcase>
+        
+        <testcase id="testcases.xenserver.tc.dotnetagentlicensing.CheckDownloadedArch">
+            <arg>win1=WS</arg>
+        </testcase>
+        
+        <testcase id="testcases.xenserver.tc.dotnetagentlicensing.NoVSSOnNonServer">
+            <arg>win1=Wx86</arg>
+        </testcase>
+        
+        <testcase id="testcases.xenserver.tc.dotnetagentlicensing.AUByDefault">
+            <arg>win1=WS</arg>
+        </testcase>
+        
+        <testcase id="testcases.xenserver.tc.dotnetagentlicensing.AUNoDownload">
+            <arg>win1=WS</arg>
+        </testcase>
+		
+		<testcase id="testcases.xenserver.tc.dotnetagentlicensing.NonCryptoMSI">
+            <arg>win1=WS</arg>
+        </testcase>
+
+		<testcase id="testcases.xenserver.tc.dotnetagentlicensing.NoServerSurvive">
+            <arg>win1=WS</arg>
+        </testcase>
+    </testsequence>
+
+</xenrt>

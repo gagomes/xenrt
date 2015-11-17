@@ -3,10 +3,10 @@
   <default name="GUESTDISTRO" value="generic-linux" />
   <default name="GUESTARCH" value="x86-64" />
   <default name="GUESTMEMORY" value="1024" />
-  <default name="VDICOUNT" value="200" />
-  <default name="VDISIZE" value="3" /> <!-- in GiB -->
-  <default name="ITERATION" value="10" />
-  <default name="NUMWORKER" value="10" />
+  <default name="VDICOUNT" value="800" />
+  <default name="VDISIZE" value="2" /> <!-- in GiB -->
+  <default name="ITERATION" value="1" />
+  <default name="NUMWORKER" value="20" />
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
@@ -18,19 +18,14 @@
 
   <scheduler>
     <pool>VMX</pool>
-    <param>FLAGS_4=sdb=ssdintel</param>
-    <param>MACHINES_REQUIRED=5</param>
+    <param>MACHINES_REQUIRED=16</param>
   </scheduler>
 
   <prepare>
     <pool>
-      <host id="0" />
-      <host id="1" />
-      <host id="2" />
-      <host id="3" />
-      <storage type="lvmoiscsi" name="iscsisr" size="600" vmhost="4" options="ietvm,thin" default="true"/>
+      <allhosts />
+      <storage type="lvmoiscsi" name="iscsisr" size="4096" options="thin" default="true" />
     </pool>
-    <host id="4" />
   </prepare>
 
   <testsequence>

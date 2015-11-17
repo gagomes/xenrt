@@ -635,6 +635,15 @@ class Host(xenrt.GenericHost):
         
         self.installationCookie = "%012x" % xenrt.random.randint(0,0xffffffffffff)
 
+    def uninstallGuestByName(self, name):
+        cli = self.getCLIInstance()
+        try:
+            cli.execute("vm-shutdown", "vm=\"%s\" --force" % name)
+        except Exception, ex:
+            xenrt.TEC().logverbose(str(ex))
+        cli.execute("vm-uninstall", "vm=\"%s\" --force" % name)
+
+    
     def getUptime(self):
         return float(self.execdom0("cat /proc/uptime").split()[0])
 

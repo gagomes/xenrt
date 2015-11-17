@@ -8,7 +8,7 @@ from xenrt.linuxanswerfiles import RHELKickStartFile
 from zope.interface import implements
 
 
-__all__ = ["RHELLinux", "CentOSLinux", "OELLinux"]
+__all__ = ["RHELLinux", "CentOSLinux", "OELLinux", "SciLinux"]
 
 
 class RHELBasedLinux(LinuxOS):
@@ -203,6 +203,8 @@ class RHELLinux(RHELBasedLinux):
             raise OSNotDetected("OS is CentOS")
         if obj.execSSH("test -e /etc/oracle-release", retval="code") == 0:
             raise OSNotDetected("OS is Oracle Linux")
+        if obj.execSSH("test -e /etc/sl-release", retval="code") == 0:
+            raise OSNotDetected("OS is Scientific Linux")
         distro = obj.execSSH("cat /etc/redhat-release | "
                     "sed 's/Red Hat Enterprise Linux Server release /rhel/' | "
                     "sed 's/Red Hat Enterprise Linux Client release /rheld/' | "
@@ -293,6 +295,44 @@ class OELLinux(RHELBasedLinux):
         else:
             raise OSNotDetected("Could not determine Oracle Linux version")
 
+class SciLinux(RHELBasedLinux):
+    implements(xenrt.interfaces.InstallMethodPV,
+               xenrt.interfaces.InstallMethodIsoWithAnswerFile)
+
+    @staticmethod
+    def knownDistro(distro):
+        return distro.startswith("sl")
+
+    @staticmethod
+    def testInit(parent):
+        return SciLinux("sl66", parent)
+
+    @property
+    def isoName(self):
+        if not SciLinux.knownDistro(self.distro):
+            return None
+        return self._defaultIsoName
+
+    @classmethod
+    def detect(cls, parent, detectionState):
+        obj=cls("testscilinux", parent, detectionState.password)
+        if obj.execSSH("test -e /etc/sl-release", retval="code") != 0:
+            raise OSNotDetected("OS is not Scientific Linux")
+        distro = obj.execSSH("cat /etc/sl-release | "
+                    "sed 's/Scientific Linux release /scilinux/' | "
+                    "awk '{print $1}'").strip()
+        dd = distro.split(".")
+        distro = dd[0]
+        if dd[1] != "0":
+            distro += dd[1]
+        if re.match("^scilinux(\d+)$", distro):
+            return cls("%s_%s" % (distro, obj.getArch()), parent, obj.password)
+        else:
+            raise OSNotDetected("Could not determine Scientific Linux version")
+
+
+
 registerOS(RHELLinux)
 registerOS(CentOSLinux)
 registerOS(OELLinux)
+registerOS(SciLinux)

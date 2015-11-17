@@ -102,9 +102,11 @@ class Guest(xenrt.GenericGuest):
         self.memory = None # Default to template memory.
         self.vcpus = None # Default to template vcpus.
 
+    @xenrt.irregularName
     def _osParent_ejectIso(self):
         self.changeCD(None)
 
+    @xenrt.irregularName
     def _osParent_setIso(self, isoName, isoRepo=None):
         self.changeCD(isoName)
 

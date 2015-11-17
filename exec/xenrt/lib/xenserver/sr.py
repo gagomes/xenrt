@@ -1378,19 +1378,19 @@ class HBAStorageRepository(StorageRepository):
             slave.enableMultipathing()
 
     def destroy(self, release=True):
-        StorageRepository.destroy(self)
+        super(HBAStorageRepository, self).destroy()
         if release and self.lun:
             self.lun.release()
             self.lun = None
 
     def forget(self, release=True):
-        StorageRepository.forget(self)
+        super(HBAStorageRepository, self).forget()
         if release and self.lun:
             self.lun.release()
             self.lun = None
 
     def remove(self, release=True):
-        StorageRepository.remove(self)
+        super(HBAStorageRepository, self).remove()
         if release and self.lun:
             self.lun.release()
             self.lun = None

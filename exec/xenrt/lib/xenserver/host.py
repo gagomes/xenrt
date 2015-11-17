@@ -3374,19 +3374,11 @@ fi
 
     def isSvmHardware(self):
         """Return True if host is HVM compatible and has SVM enabled"""
-        if isinstance(self, xenrt.lib.xenserver.BostonHost):
-            return self.isHvmEnabled() and "svm" in self.getHostParam("cpu_info")
-        else:
-            cpuinfo = self.execdom0("cat /proc/cpuinfo")
-            return self.isHvmEnabled() and re.search(r"svm", cpuinfo)
+        return self.isHvmEnabled() and re.search(r"AuthenticAMD", self.execdom0("cat /proc/cpuinfo"))
 
     def isVmxHardware(self):
         """Return True if host is HVM compatible and has VMX enabled"""
-        if isinstance(self, xenrt.lib.xenserver.BostonHost):
-            return self.isHvmEnabled() and "vmx" in self.getHostParam("cpu_info")
-        else:
-            cpuinfo = self.execdom0("cat /proc/cpuinfo")
-            return self.isHvmEnabled() and re.search(r"vmx", cpuinfo)
+        return self.isHvmEnabled() and re.search(r"GenuineIntel", self.execdom0("cat /proc/cpuinfo"))
 
     def getBridgeWithMapping(self, index):
         """Returns the name of a bridge corresponding to the interface
@@ -6671,13 +6663,11 @@ fi
                         template = self.chooseTemplate(\
                             "TEMPLATE_NAME_SLES_%s_64" % (v))
                     else:
-                        template = self.chooseTemplate(\
-						    "TEMPLATE_NAME_SLES_%s" % (v))
+                        template = self.chooseTemplate("TEMPLATE_NAME_SLES_%s" % (v))
             elif re.search(r"sled\d+", distro):
                 v = re.search(r"sled(\d+)", distro).group(1)
                 if arch and arch == "x86-64":
-                    template = self.chooseTemplate(\
-                            "TEMPLATE_NAME_SLED_%s_64" % (v))
+                    template = self.chooseTemplate("TEMPLATE_NAME_SLED_%s_64" % (v))
                 else:
                     template = self.chooseTemplate("TEMPLATE_NAME_SLED_%s" % (v))
             elif re.search(r"sl7", distro):
@@ -6731,7 +6721,7 @@ fi
                                     (distro))
                 template = self.chooseTemplate("TEMPLATE_NAME_RHEL_5")
             else:
-                raise e
+                raise
 
         return template
 

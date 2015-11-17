@@ -4297,6 +4297,7 @@ class TCUpgradeVMMigrate(xenrt.TestCase):
 
     def prepare(self, arglist):
         self.__balloonTo = None
+        self.guest = None
 
         for arg in arglist:
             if arg.startswith("BalloonTo"):
@@ -4318,16 +4319,15 @@ class TCUpgradeVMMigrate(xenrt.TestCase):
 
         memory = self.__getMemorySize(memory)
 
-        g = oldHost.createBasicGuest(distro=distro, arch=arch, memory=memory)
+        self.guest = oldHost.createBasicGuest(distro=distro, arch=arch, memory=memory)
 
         if self.__balloonTo:
             xenrt.TEC().logverbose("Ballooning Memory to %s" % self.__balloonTo)
             balloonMemory = self.__getMemorySize(self.__balloonTo)
-            g.setDynamicMemRange(balloonMemory, balloonMemory)
+            self.guest.setDynamicMemRange(balloonMemory, balloonMemory)
 
-        g.migrateVM(remote_host=newHost, remote_user="root", remote_passwd=newHost.password)
-        g.verifyGuestFunctional()
-        g.uninstall()
+        self.guest.migrateVM(remote_host=newHost, remote_user="root", remote_passwd=newHost.password)
+        self.guest.verifyGuestFunctional()
 
     def __getMemorySize(self, memory):
         if memory[-1] == "M":
@@ -4336,6 +4336,9 @@ class TCUpgradeVMMigrate(xenrt.TestCase):
             memory = int(memory[:-1]) * 1024
 
         return memory
+
+    def postRun(self):
+        self.guest.uninstall()
 
 class TCRollingPoolUpdate(xenrt.TestCase, xenrt.lib.xenserver.host.RollingPoolUpdate):
     """

@@ -3935,30 +3935,11 @@ class _HardwareMultipath(xenrt.TestCase):
         xenrt.TEC().logverbose("Successfully created and started generic linux guest.")
 
     def postRun(self):
-        
-        try:
-            if self.guest != None:
-                self.guest.shutdown()
-                time.sleep(20)
-                self.guest.lifecycleOperation("vm-destroy", force=True)
-                time.sleep(20)
-                
-                cli = self.hostWithMultiplePaths.getCLIInstance()
-                vdis = self.hostWithMultiplePaths.minimalList("vdi-list", args="sr-uuid=%s" % self.sr.uuid)
-                for vdi in vdis:
-                    cli.execute("vdi-destroy", "uuid=%s" % vdi)
-                pbdid = self.hostWithMultiplePaths.parseListForUUID("pbd-list", "sr-uuid", self.sr.uuid)
-                cli.execute("pbd-unplug", "uuid=%s" % pbdid)
-                cli.execute("sr-destroy", "uuid=%s" % self.sr.uuid)
-        
-        except Exception, e:
-            raise xenrt.XRTError("Exception cleaning up guest and FC SR.", data=str(e))
-        finally:
-            try: self.enableFCPort(0)
-            except: pass
-            try: self.enableFCPort(1)
-            except: pass
-            self.lun.release()
+            self.sr.remove() # destroys the FC SR and release the associated FC LUN.
+            try:
+                self.hostWithMultiplePaths.enableAllFCPorts() # Enable all FC ports.
+            except:
+                xenrt.TEC().warning("Unable to bring up one or more FC ports of the switch")
 
     def checkGuest(self):
         # Check the periodic read/write script is still running on the VM
@@ -4066,32 +4047,21 @@ class TC12154(_HardwareMultipath):
         self.sr.forget(release=False)
         self.sr.introduce()
         self.sr.check()
-        
-        pbdid = self.hostWithMultiplePaths.parseListForUUID("pbd-list", "sr-uuid", self.sr.uuid)
-        cli = self.hostWithMultiplePaths.getCLIInstance()
-        cli.execute("pbd-unplug", "uuid=%s" % pbdid)
-        cli.execute("sr-destroy", "uuid=%s" % self.sr.uuid)
+        self.sr.remove() # destroys it.
         self.sr = None
     
     def createSR(self):
+        self.lun = xenrt.HBALun([self.hostWithMultiplePaths])
+        self.sr_scsiid = self.lun.getID()
+
         self.sr = xenrt.lib.xenserver.FCStorageRepository(self.hostWithMultiplePaths, "fc")
-        self.sr.create(self.sr_scsiid, multipathing=True)
+        self.sr.create(self.lun, multipathing=True)
         self.hostWithMultiplePaths.addSR(self.sr, default=True)
-    
+
     def run(self, arglist=None):
         _HardwareMultipath.run(self, arglist=None)
-        time.sleep(20)
-        self.guest.shutdown()
-        time.sleep(20)
-        self.guest.lifecycleOperation("vm-destroy", force=True)
-        time.sleep(20)
-        self.guest = None
-        cli = self.hostWithMultiplePaths.getCLIInstance()
-        vdis = self.hostWithMultiplePaths.minimalList("vdi-list", args="sr-uuid=%s" % self.sr.uuid)
-        for vdi in vdis:
-            cli.execute("vdi-destroy", "uuid=%s" % vdi)
 
-        self.checkThenDestroySR()
+        self.sr.remove() # Removes all the existing VMs from previous test + the FC SR.
         
         self.disableFCPort(0)
         self.createSR()

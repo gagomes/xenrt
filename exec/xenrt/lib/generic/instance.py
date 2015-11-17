@@ -30,10 +30,12 @@ class Instance(object):
         self.special = {}
 
     @property
+    @xenrt.irregularName
     def _osParent_name(self):
         return self.name
 
     @property
+    @xenrt.irregularName
     def _osParent_hypervisorType(self):
         return self.toolstack.instanceHypervisorType(self)
 
@@ -57,6 +59,7 @@ class Instance(object):
         self.toolstack.discoverInstanceAdvancedNetworking(self)
         self.os.populateFromExisting()
 
+    @xenrt.irregularName
     def _osParent_pollPowerState(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
         """Poll for reaching the specified state"""
         deadline = xenrt.timenow() + timeout
@@ -69,12 +72,14 @@ class Instance(object):
                           (self.name, state), level)
             xenrt.sleep(15, log=False)
 
+    @xenrt.irregularName
     def _osParent_getPort(self, trafficType):
         if self.inboundmap.has_key(trafficType):
             return self.inboundmap[trafficType][1]
         else:
             return self.os.tcpCommunicationPorts[trafficType] 
 
+    @xenrt.irregularName
     def _osParent_getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
         if trafficType:
             if trafficType == "OUTBOUND":
@@ -96,16 +101,19 @@ class Instance(object):
             return self.mainip
         return self.toolstack.getInstanceIP(self, timeout, level)
 
+    @xenrt.irregularName
     def _osParent_setIP(self, ip):
         raise xenrt.XRTError("Not implemented")
 
+    @xenrt.irregularName
     def _osParent_start(self):
         self.toolstackStart()
 
+    @xenrt.irregularName
     def _osParent_stop(self):
         self.stop()
 
-    def toolstackStart(on=None):
+    def toolstackStart(self, on=None):
         xenrt.xrtAssert(self.getPowerState() == xenrt.PowerState.down, "Power state before starting must be down")
         self.toolstack.startInstance(self, on)
         xenrt.xrtCheck(self.getPowerState() == xenrt.PowerState.up, "Power state after start should be up")
@@ -181,15 +189,18 @@ class Instance(object):
     def getPowerState(self):
         return self.toolstack.getInstancePowerState(self)
 
+    @xenrt.irregularName
     def _osParent_getPowerState(self):
         return self.getPowerState()
 
+    @xenrt.irregularName
     def _osParent_setIso(self, isoName, isoRepo=None):
         return self.setIso(isoName, isoRepo)
 
     def setIso(self, isoName, isoRepo=None):
         return self.toolstack.setInstanceIso(self, isoName, isoRepo)
 
+    @xenrt.irregularName
     def _osParent_ejectIso(self):
         return self.ejectIso()
 

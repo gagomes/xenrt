@@ -995,10 +995,7 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                     else:
                         tcsku = None
                     xenrt.TEC().logverbose("Replaying %s on SR %s" % (tc,sr))
-                    try:
-                        self.testrunRecordRun(sr,tc,result,ticket,detailid,tcsku)
-                    except: # Fix for buggy saved runs
-                        self.testrunRecordRun(sr,tc,result,ticket,None,detailid)
+                    self.testrunRecordRun(sr,tc,result,ticket,detailid,tcsku)
                 elif recordtype == "Subcase":
                     sr = fitem[1]
                     tc = fitem[2]

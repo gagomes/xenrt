@@ -76,10 +76,9 @@ class DotNetAgentAdapter(object):
         elif guest.getInstance().os.fileExists("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\managementagentx86.msi"):
             guest.getInstance().os.removeFile("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\managementagentx86.msi")
 
-class nonCrypto(object):
+class NonCryptoMSI(object):
 
-    @staticmethod
-    def nonCryptoMSIInstalled(guest):
+    def installed(guest):
         os = guest.getInstance().os
         arch = os.getArch()
         if "64" in arch:
@@ -94,8 +93,7 @@ class nonCrypto(object):
         else:
             return False
 
-    @staticmethod
-    def getNonCryptoMSIs(server):
+    def getMSIs(server):
         server.guest.execguest("wget '%s/citrixguestagent-Noncrypto.tgz'"%(xenrt.TEC().lookup("TEST_TARBALL_BASE")))
         server.guest.execguest("tar -xf citrixguestagent-Noncrypto.tgz")
         server.guest.execguest("mv citrixguestagent-Noncrypto/managementagentx64.msi managementagentx64.msi")
@@ -388,7 +386,7 @@ class NonCryptoMSI(DotNetAgentTestCases):
     def run(self, arglist):
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
         server.createCatalog("99.0.0.0")
-        nonCrypto.getNonCryptoMSIs(server)
+        NonCryptoMSI().getMSIs(server)
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.enable()
@@ -396,7 +394,7 @@ class NonCryptoMSI(DotNetAgentTestCases):
         self.agent.restartAgent()
         xenrt.sleep(200)
         assertions.assertNotNone(autoupdate.checkDownloadedMSI(),"msi has not downloaded")
-        assertions.assertFalse(nonCrypto.nonCryptoMSIInstalled(self.win1),"Non cryprographically signed msi installed")
+        assertions.assertFalse(NonCryptoMSI.installed(self.win1),"Non cryprographically signed msi installed")
 
 class NoServerSurvive(DotNetAgentTestCases):
 

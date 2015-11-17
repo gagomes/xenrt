@@ -1521,7 +1521,7 @@ class HBALun(CentralResource):
         return self.mpclaim
 
     def release(self, atExit=False):
-        if xenrt.util.keepSetup():
+        if xenrt.util.keepSetup() and atExit:
             xenrt.TEC().logverbose("Not releasing LUN %s" % self.scsiid)
             return
         

@@ -80,6 +80,9 @@ class TC9352(_HostInstall):
 
     ISCSI_SR_MULTIPATHED = True
 
+    def prepare(self, arglist=None):
+        xenrt.TEC().config.setVariable("FORCE_NO_ROOT_MPATH", "yes") 
+
     def postInstall(self):
         # Create a FC SR on another LUN
         self.fcLun = xenrt.HBALun([self.host])
@@ -367,7 +370,7 @@ class TC12209(TC9352):
     ISCSI_SR_MULTIPATHED = False
     
     def prepare(self, arglist=None):
-        xenrt.TEC().config.setVariable("OPTION_ROOT_MPATH", "") 
+        xenrt.TEC().config.setVariable("FORCE_NO_ROOT_MPATH", "yes") 
 
     def postInstall(self):
         self.scsiid = string.split(self.host.lookup("OPTION_CARBON_DISKS", None), "scsi-")[1]

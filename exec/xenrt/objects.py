@@ -6874,7 +6874,10 @@ chain tftp://${next-server}/%s
         if not disks:
             return []
         else:
-            return string.split(disks)[:count]
+            ret = string.split(disks)[:count]
+            if legacySATA:
+                ret = [xenrt.convertToLegacySATA(x) for x in ret]
+            return ret
 
     def _getMainDisks(self, count, ccissIfAvailable, legacySATA, overrideBoot):
         return self._getDisks("OPTION_CARBON_DISKS", True, count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA, overrideBoot=overrideBoot)

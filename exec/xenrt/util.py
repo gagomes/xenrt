@@ -98,7 +98,8 @@ __all__ = ["timenow",
            "checkXMLDomSubset",
            "getUpdateDistro",
            "getLinuxRepo",
-           "getURLContent"
+           "getURLContent",
+           "convertToLegacySATA"
            ]
 
 def sleep(secs, log=True):
@@ -1685,3 +1686,21 @@ def getURLContent(url):
     resp = sock.read()
     sock.close()
     return resp
+
+def convertToLegacySATA(diskId):
+    if "/" in diskId:
+        (prefix, diskId) = diskId.rsplit("/", 1)
+        prefix += "/"
+    else:
+        prefix = ""
+
+    m = re.match("^ata-(ST.*?-..)....(_.*)$", diskId)
+    if m:
+        diskId = "scsi-SATA_%s%s" % (m.group(1), m.group(2))
+
+    m = re.match("^ata-(WDC_WD.*?-).*?(_.*)$", diskId)
+    if m:
+        diskId = "scsi-SATA_%s%s" % (m.group(1), m.group(2))
+
+    return "%s%s" % (prefix, diskId)
+

@@ -6830,6 +6830,7 @@ chain tftp://${next-server}/%s
         return subnetMask,gateway
 
     def getChainBoot(self, overrideBoot=None):
+        ret = None
         if not overrideBoot:
             overrideBoot = self.lookup("OVERRIDE_BOOT_TYPE", None)
         if overrideBoot:

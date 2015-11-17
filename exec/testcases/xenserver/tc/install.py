@@ -134,7 +134,7 @@ class TC9352(_HostInstall):
         else:
             raise xenrt.XRTError("Unkown device mapping mode",
                                  data = deviceinfo)
-        if not dvendor in ["DGC", "NETAPP"]:
+        if not dvendor in ["DGC", "NETAPP", "ZVAULT"]:
             raise xenrt.XRTError("Installation primary disk is not a SAN LUN",
                                  "%s -> %s is '%s'" %
                                  (primarydisk, pddev, dvendor))

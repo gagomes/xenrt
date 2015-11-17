@@ -734,7 +734,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             self.checkHealth()
             raise
    
-    def getMemory(complete, unit):
+    def getMemory(self, complete, unit):
         return self._xmlrpc().getMemory(complete, unit)
 
     def getCPUs(self):

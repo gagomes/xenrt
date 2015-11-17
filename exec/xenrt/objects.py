@@ -6887,7 +6887,7 @@ chain tftp://${next-server}/%s
         if disks:
             return disks
         else:
-            return self._getMainDisks(count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA)
+            return self._getMainDisks(count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA, overrideBoot=overrideBoot)
 
     def getContainerHost(self):
         container = self.lookup("CONTAINER_HOST", None)

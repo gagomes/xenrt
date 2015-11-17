@@ -21,10 +21,10 @@
       <testcase id="xenserver.tc.multipath.TC18786" name="TC18786" tc="TC-18786" />
 
       <!-- Hotfix: Hammonds - 630 -->
-      <testcase id="xenserver.tc.multipath.TC18782" name="TC18782" tc="TC-18782">
+      <!--<testcase id="xenserver.tc.multipath.TC18782" name="TC18782" tc="TC-18782">
         <arg>iterations=20</arg>
         <arg>delay=60</arg>
-      </testcase>
+      </testcase>-->
 
       <!-- Hotfix: Hammonds - 631 -->
       <!-- <testcase id="xenserver.tc.multipath.TC18783" name="TC18783" tc="TC-18783" /> -->

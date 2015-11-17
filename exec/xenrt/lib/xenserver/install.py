@@ -868,7 +868,7 @@ sleep 30
         otherconfigs = ""
         
         workdir = xenrt.TEC().getWorkdir()
-        # If we want to create the Local SR manually, set up the firstboot script here
+        # If we use multipathed root disk, but want to put the local SR on a local disk, we need to set this up manually
         self.firstBootSRInfo = None
         if self.host.mpathRoot and guestdisks != [primarydisk]: 
             defaultSRType = self.host.lookup("DEFAULT_SR_TYPE", "lvm")

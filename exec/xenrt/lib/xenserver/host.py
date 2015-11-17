@@ -1007,7 +1007,7 @@ class Host(xenrt.GenericHost):
         interfaceconfig = ""
         otherconfigs = ""
         
-        # If we want to create the Local SR manually, set up the firstboot script here
+        # If we use multipathed root disk, but want to put the local SR on a local disk, we need to set this up manually
         firstBootSRInfo = None
         if self.mpathRoot and guestdisks != [primarydisk]: 
             defaultSRType = self.lookup("DEFAULT_SR_TYPE", "lvm")

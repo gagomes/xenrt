@@ -1,6 +1,6 @@
 from zope.interface import Interface, Attribute
 
-__all__=["Toolstack", "OSParent", "OS", "InstallMethodPV", "InstallMethodIso", "InstallMethodIsoWithAnswerFile"]
+__all__=["Toolstack", "OSParent", "InstallMethodPV", "InstallMethodIso", "InstallMethodIsoWithAnswerFile"]
 
 class Toolstack(Interface):
 
@@ -113,46 +113,6 @@ class OSParent(Interface):
 
     def _osParent_getPowerState():
         """Get the current power state"""
-
-class OS(Interface):
-
-    installMethod = Attribute("Selected installation method")
-
-    defaultRootdisk = Attribute("Default rootdisk size")
-
-    defaultVcpus = Attribute("Default number of vCPUs")
-
-    defaultRootdisk = Attribute("Default root disk size")
-
-    defaultMemory = Attribute("Default memory size")
-
-    canonicalDistroName = Attribute("Canonical distro name")
-
-    tcpCommunicationPorts = Attribute("TCP Ports needed for inbound communication, of type {name:port}")
-
-    def knownDistro(distro):
-        """Determine if the given distro is known to this library"""
-
-    def waitForBoot(timeout):
-        """Wait for the OS to boot"""
-
-    def testInit(parent):
-        """Instantiate a dummy version for interface testing"""
-
-    def reboot():
-        """Perform an OS-initiated reboot"""
-
-    def shutdown():
-        """Perform an OS-initiated shutdown"""
-
-    def populateFromExisting():
-        """Populate class members from an existing OS installaion"""
-
-    def assertHealthy(quick):
-        """Quickly verify that the OS is in a healthy state"""
-
-    def preCloneTailor():
-        """Perform any necessary steps to make it possible to clone this VM"""
 
 class InstallMethodPV(Interface):
     installURL = Attribute("HTTP installation URL")

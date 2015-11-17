@@ -45,7 +45,7 @@ class GetUserDetails(XenRTAPIv2Page):
     def render(self):
         u = app.user.User(self, self.matchdict('user'))
         if not u.valid:
-            raise XenRTAPIError(HTTPNotFound, "User not found")
+            raise XenRTAPIError(self, HTTPNotFound, "User not found")
         return {"user": u.userid, "email": u.email, "team": u.team, "admin": u.admin, "groups": u.groups}
 
 class GetUsersDetails(XenRTAPIv2Page):
@@ -69,6 +69,12 @@ class GetUsersDetails(XenRTAPIv2Page):
             if u.valid:
                 ret[u.userid] = {"user": u.userid, "email": u.email, "team": u.team, "admin": u.admin, "groups": u.groups}
         return ret
+
+class EmailList(XenRTAPIv2Page):
+    def cli(self):
+        cur = self.getDB().cursor()
+        cur.execute("SELECT DISTINCT(email) FROM tblusers WHERE email IS NOT NULL AND NOT disabled;")
+        print "; ".join([x[0] for x in cur.fetchall()])
 
 class GetGroupDetails(XenRTAPIv2Page):
     PATH = "/groupdetails/{group}"
@@ -148,7 +154,7 @@ class ADLookup(XenRTAPIv2Page):
         ad = self.getAD()
         search = self.request.params.get("search")
         if not search:
-            raise XenRTAPIError(HTTPBadRequest, "You must specify a search string")
+            raise XenRTAPIError(self, HTTPBadRequest, "You must specify a search string")
         attributes = self.getMultiParam("attributes")
         if len(attributes) == 0:
             attributes = ["objectClass","cn","mail","sAMAccountName"]

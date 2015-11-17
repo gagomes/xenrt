@@ -682,7 +682,7 @@ class TC7366(SRSanityTestTemplate):
         
         # Make sure it's the 1024MB LUN we used
         host.execdom0("xe sr-scan uuid=%s" % sr.uuid)
-        size = sr.physicalSizeMB()
+        size = sr.physicalSize / xenrt.MEGA
         if size < 950:
             raise xenrt.XRTFailure("The SR was only %uMB in size. The LUN "
                                    "was 1024MB" % (size))
@@ -805,7 +805,7 @@ class TC7367(SRSanityTestTemplate):
                 expsize = self.LUN_SIZES[i]
             else:
                 expsize = self.LUN_SIZE
-            size = srs[i].physicalSizeMB()
+            size = srs[i].physicalSize/xenrt.MEGA
             err = float(abs(size - expsize))/float(expsize)
             if err > 0.1:
                 raise xenrt.XRTFailure("The SR based on LUN %u is much "
@@ -2771,22 +2771,22 @@ class TC8509(_TCResizeDataCheck):
 class TCCIFSVDIResizeShrink(_TCResizeShrink):
     """Attempting to shrink a CIFS VDI should fail with a suitable error."""
 
-    SRTYPE = "cifs"
+    SRTYPE = "smb"
 
 class TCCIFSVDIResizeGrowSmall(_TCResizeGrow):
     """Grow a CIFS VDI of a round size by 1 byte."""
 
-    SRTYPE = "cifs"
+    SRTYPE = "smb"
 
 class TCCIFSVDIResizeGrowLarge(_TCResizeGrow2):
     """Grow a CIFS VDI twice in large chunks."""
 
-    SRTYPE = "cifs"
+    SRTYPE = "smb"
 
 class TCCIFSVDIResizeDataCheck(_TCResizeDataCheck):
     """Data integrity of resized CIFS VDI."""
 
-    SRTYPE = "cifs"
+    SRTYPE = "smb"
     FORCEOFFLINE = True
 
 class TCFCOEVDIResizeGrowSmall(_TCResizeGrow):
@@ -2951,7 +2951,7 @@ class TC8525(_TCVDICreateRoundup):
 class TCCIFSOddSize(_TCVDICreateRoundup):
     """CIFS Odd size"""
 
-    SRTYPE = "cifs"
+    SRTYPE = "smb"
     
 class TCFCOEOddSize(_TCVDICreateRoundup):
     """FCoE SR Odd size"""
@@ -3734,7 +3734,7 @@ class TC10680(TC10671):
 class TCCIFSZeroedContents(TC10671):
     """CIFS Zeroed contents"""
 
-    SRTYPE = "cifs"
+    SRTYPE = "smb"
 
 class TCFCOEZeroedContents(TC10671):
     """FCoE SR Zeroed contents"""
@@ -4486,9 +4486,9 @@ class TCVDICopyDeltas(xenrt.TestCase):
         # Create a disk on the guest which can be backed up
         
         vbdUUID = self.guest.createDisk(sizebytes = xenrt.GIGA, returnVBD=True, userdevice=1, sruuid=self.sr.uuid)
-        self.vbd = xenrt.lib.xenserver.objectFactory().getObject("vbd")(self.cli, "vbd", vbdUUID)
-        self.vdi = self.vbd.getObjectParam("vdi", "vdi-uuid")
-        self.device = self.vbd.getStringParam("device")
+        self.vbd = xenrt.lib.xenserver.VBD(self.cli, vbdUUID)
+        self.vdi = self.vbd.VDI
+        self.device = self.vbd.device
         self.guest.execguest("mkfs.ext3 /dev/%s" % self.device)
         self.guest.execguest("mkdir -p /test")
 
@@ -4496,15 +4496,15 @@ class TCVDICopyDeltas(xenrt.TestCase):
         return self.guest.execguest("md5sum /dev/%s" % device).split()[0]
 
     def vdiMd5Sum(self, vdi):
-        vbdUUID= self.cli.execute("vbd-create device=2 vdi-uuid=%s vm-uuid=%s" % (vdi.uuid, self.guest.getUUID())).strip()
-        vbd = xenrt.lib.xenserver.objectFactory().getObject("vbd")(self.cli, "vbd", vbdUUID)
-        vbd.op("plug")
+        vbdUUID = self.cli.execute("vbd-create device=2 vdi-uuid=%s vm-uuid=%s" % (vdi.uuid, self.guest.getUUID())).strip()
+        vbd =  xenrt.lib.xenserver.VBD(self.cli, vbdUUID)
+        vbd.plug()
         xenrt.sleep(5)
 
-        md5 = self.diskMd5Sum(vbd.getStringParam("device"))
+        md5 = self.diskMd5Sum(vbd.device)
         
-        vbd.op("unplug")
-        vbd.op("destroy")
+        vbd.unPlug()
+        vbd.destroy()
         return md5
     
     def vdiCopy(self, vdi, baseVdi=None, intoVdi=None):
@@ -4514,7 +4514,7 @@ class TCVDICopyDeltas(xenrt.TestCase):
         else:
             if self.COPY_INTO_EMPTY_VDI:
                 emptyVdiUuid = self.cli.execute("vdi-create sr-uuid=%s name-label=%s type=user virtual-size=%s" % (
-                            self.sr.uuid, vdi.getStringParam("name-label"), vdi.getStringParam("virtual-size"))).strip()
+                            self.sr.uuid, vdi.name, vdi.size)).strip()
                 params = "into-vdi-uuid=%s" % emptyVdiUuid
             else:
                 params = "sr-uuid=%s " % self.sr.uuid
@@ -4522,7 +4522,7 @@ class TCVDICopyDeltas(xenrt.TestCase):
         if baseVdi:
             params += " base-vdi-uuid=%s" % baseVdi.uuid
             
-        return vdi.op("copy", params, returnObject="vdi")
+        return vdi.copy(params)
 
     def vhdSize(self, vdi):
         return int(self.host.execdom0("ls -l /var/run/sr-mount/%s/%s.vhd | awk '{print $5}'" % (self.sr.uuid, vdi.uuid)).strip())
@@ -5075,9 +5075,9 @@ class TCCIFSLifecycle(xenrt.TestCase):
         self.args = self.parseArgsKeyValue(arglist)
 
         self.host = self.getDefaultHost()
-        srtype = "cifs"
+        srtype = "smb"
 
-        xsr = next((s for s in self.host.asXapiObject().SR() if s.srType() == srtype), None)
+        xsr = next((s for s in self.host.xapiObject.localSRs if s.srType == srtype), None)
         self.sr = xenrt.lib.xenserver.SMBStorageRepository.fromExistingSR(self.host, xsr.uuid)
 
     def run(self, arglist):
@@ -5225,7 +5225,7 @@ class TCFCOESRLifecycle(FCOELifecycleBase):
         self.sr = xenrt.lib.xenserver.FCOEStorageRepository.fromExistingSR(self.host, self.srs[0])
         self.vdiuuid = self.host.createVDI(sizebytes=1024, sruuid=self.sr.uuid, name="XenRTTest" )
         originalVdiSize = self.host.genParamGet("vdi", self.vdiuuid, "virtual-size")
-        self.sr.forget()
+        self.sr.forget(release=False)
         
         self.sr.introduce()
         self.sr.scan()
@@ -5374,10 +5374,10 @@ class TCFCOEAfterUpgrade(FCOELifecycleBase):
     
     def run(self,arglist):
         
-        self.fcLun = self.host.lookup("SR_FCHBA", "LUN0")
-        self.fcSRScsiid = self.host.lookup(["FC", self.fcLun, "SCSIID"], None)
+        self.fcLun = xenrt.HBALun([self.host])
+        self.fcSRScsiid = self.fcLun.getID()
         self.fcSR = xenrt.lib.xenserver.FCOEStorageRepository(self.host, "FCOESR")
-        self.fcSR.create(self.fcSRScsiid)
+        self.fcSR.create(self.fcLun)
         self.host.addSR(self.fcSR, default=True)
         
         self.srs = self.host.getSRs(type = self.SRTYPE)
@@ -5391,12 +5391,10 @@ class TCFCOEBlacklist(xenrt.TestCase):
     
     def prepare(self,arglist=None):
         self.host = self.getDefaultHost()
-        fcoesr = self.host.lookup("SR_FC", "yes")
-        if fcoesr == "yes":
-            fcoesr = "LUN0"
-        self.scsiid = self.host.lookup(["FC", fcoesr, "SCSIID"], None)
+        lun = xenrt.HBALun([self.host])
+        self.scsiid = lun.getID()
         self.sr = xenrt.lib.xenserver.FCOEStorageRepository(self.host, "fcoe")
-        self.sr.create(self.scsiid,multipathing=True)
+        self.sr.create(lun,multipathing=True)
         
         
     def isNICFCOECapable(self,pif):

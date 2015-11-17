@@ -1,0 +1,51 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+    <PREPARE_WORKERS>4</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="shared" default="true"/>
+      <host id="0">
+        <vm name="masterrhel7_x86-64">
+        <distro>rhel7</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="10" />
+        <postinstall action="installDrivers" />
+        <postinstall action="preCloneTailor"/>
+      </vm>
+
+      <vm name="masterubuntu1404_x86-64">
+        <distro>ubuntu1404</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="8" />
+        <postinstall action="installDrivers" />
+        <postinstall action="preCloneTailor"/>
+      </vm>
+      </host>
+    </pool>
+  </prepare>
+    
+  <testsequence>
+    <serial group="M60vGPU">
+            
+      <testcase id="testcases.xenserver.tc.vgpu.TCNvidiaM60HVMLifeCycle" name="TC-27348" tc="TC-27348">
+        <arg>distro=11,14</arg> <!-- 11 = Distro RHEL7 and 14 = Ubuntu 14.0.4 -->
+        <arg>typeofvgpu=nvidialinuxhvmvgpu</arg>
+        <arg>others=nvidialinuxhvmvgpu</arg>
+        <arg>vgpuconfig=14</arg> <!-- 14 = GPU PT-->
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>
+

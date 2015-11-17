@@ -101,9 +101,6 @@
           <arg>live</arg>
           <arg>to=${OTHERHOST}</arg>
         </testcase>
-        <testcase id="xenserver.guest.TCCheckToolsCD" tc="TC-14993" sku="thin">
-          <arg>guest=${GUESTNAME}</arg>
-        </testcase>
         <testcase id="guestops.basic.TCShutdown" tc="TC-14994" sku="thin">
           <arg>guest=${GUESTNAME}</arg>
         </testcase>
@@ -173,11 +170,9 @@
     </parallel>
 
     <!-- Perform a basic HA sanity test -->
-    <!-- Thin LVHD does not support HA, yet. Commenting out for temporary.
     <testcase id="xenserver.tc.ha.TC7829" group="HATests" sku="thin">
       <arg>mypool</arg>
     </testcase>
-    -->
     <testcase id="xenserver.install.TCVerifyLicenseList" tc="TC-17899" sku="thin"/>
 
   </testsequence>

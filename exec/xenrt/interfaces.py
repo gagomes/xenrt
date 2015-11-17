@@ -1,3 +1,4 @@
+import xenrt
 from zope.interface import Interface, Attribute
 
 __all__=["Toolstack", "OSParent", "OS", "InstallMethodPV", "InstallMethodIso", "InstallMethodIsoWithAnswerFile"]
@@ -83,33 +84,45 @@ class Toolstack(Interface):
 
 class OSParent(Interface):
 
-    name = Attribute("Name of the OS")
+    _osParent_name = Attribute("Name of the OS")
 
-    hypervisorType = Attribute("Hypervisor (or native) on which the OS is running")
+    _osParent_hypervisorType = Attribute("Hypervisor (or native) on which the OS is running")
 
-    def getIP(trafficType, timeout, level):
+    @xenrt.irregularName
+    def _osParent_getIP(trafficType, timeout, level):
         """Get the IP for the OS"""
 
-    def getIPAndPort(trafficType, timeout, level):
-        """Get the IP and Port for the OS"""
-
-    def getPort(trafficType):
+    @xenrt.irregularName
+    def _osParent_getPort(trafficType):
         """Get the port for the traffic type"""
 
-    def setIP(ip):
+    @xenrt.irregularName
+    def _osParent_setIP(ip):
         """Set the IP for the OS"""
 
-    def start():
+    @xenrt.irregularName
+    def _osParent_start():
         """Start the OS container (VM/host)"""
 
-    def ejectIso():
+    @xenrt.irregularName
+    def _osParent_stop():
+        """Stop the OS container (VM/host)"""
+
+    @xenrt.irregularName
+    def _osParent_ejectIso():
         """Eject the ISO from the OS container"""
 
-    def setIso(isoName, isoRepo):
+    @xenrt.irregularName
+    def _osParent_setIso(isoName, isoRepo):
         """Set the ISO to the specified iso"""
 
-    def poll(state, timeout, level, pollperiod):
+    @xenrt.irregularName
+    def _osParent_pollPowerState(state, timeout, level, pollperiod):
         """Poll for a change in power state"""
+
+    @xenrt.irregularName
+    def _osParent_getPowerState():
+        """Get the current power state"""
 
 class OS(Interface):
 

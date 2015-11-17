@@ -17,9 +17,8 @@
   </prepare>
 
   <testsequence>
-    <testcase id="xenserver.tc.thinlvhd.TCThinAllocationDefault" name="ThinAllocation" tc="TC-27126">
+    <testcase id="xenserver.tc.thinlvhd.TCThinAllocation" name="ThinAllocation" tc="TC-27126">
       <arg>guest=GoldVM</arg>
-      <!-- intial/quantum allocations values are in bytes and number of inital/quantum values are mismatched to cover various scenrios mentioned in Requirement -->
       <arg>initial_allocation=104857600,2147483648</arg>
       <arg>allocation_quantum=8388608</arg>
       <arg>vdi_initial=1073741824,2147483648,1073741824</arg>

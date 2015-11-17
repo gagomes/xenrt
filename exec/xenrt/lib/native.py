@@ -565,7 +565,7 @@ class NativeLinuxHost(xenrt.GenericHost):
             self.reboot()
 
         else:
-            datadisk = "/dev/%s" % self.getGuestDisks[0]
+            datadisk = "/dev/%s" % self.getGuestDisks()[0]
 
         self.execcmd("mkfs.ext4 %s" % datadisk)
         self.execcmd("echo %s /data ext4 defaults 0 0 >> /etc/fstab" % datadisk)

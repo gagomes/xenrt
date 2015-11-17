@@ -7,6 +7,7 @@
 
   <prepare>
     <host>
+     <storage type="nfs" name="nfsStorage" default="true"/>
       <vm name="win7sp1x86">
         <distro>win7sp1-x86</distro>
         <postinstall action="installDrivers"/>

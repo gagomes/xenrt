@@ -20,7 +20,8 @@ class _KirkwoodBase(xenrt.TestCase):
     def __init__(self, tcid=None):
         self.kirkwood = None
         self.kwserver = None
-        self.wlbappsrv = xenrt.WlbApplianceServer(None)
+        self.vpx_os_version = xenrt.TEC().lookup("VPX_OS_VERSION", "CentOS5")
+        self.wlbappsrv = xenrt.WlbApplianceFactory().create(None, self.vpx_os_version)
         xenrt.TestCase.__init__(self, tcid=tcid)
 
     def createFakeKirkwood(self, port=None):
@@ -46,7 +47,7 @@ class _KirkwoodBase(xenrt.TestCase):
         self.wlbUsername = self.wlbappsrv.wlb_username #"wlbuser"
         self.wlbPassword = self.wlbappsrv.wlb_password # default password#
         self.xs_username = "root"
-        self.xs_password = self.wlbPassword
+        self.xs_password = xenrt.TEC().lookup("DEFAULT_PASSWORD")
 
     def prepare(self, arglist):
         self.usevpxwlb = xenrt.TEC().lookup("USE_VPXWLB",False,boolean=True)
@@ -1553,7 +1554,8 @@ class TC8982(xenrt.TestCase):
         self.usevpxwlb = xenrt.TEC().lookup("USE_VPXWLB",False,boolean=True)
         if self.usevpxwlb:
             xenrt.TEC().logverbose("Using VPXWLB")
-            self.wlbappsrv = xenrt.WlbApplianceServer(None)
+            self.vpx_os_version = xenrt.TEC().lookup("VPX_OS_VERSION", "CentOS5")
+            self.wlbappsrv = xenrt.WlbApplianceFactory().create(None, self.vpx_os_version)
             self.WLBSERVER = _KirkwoodBase.WLBSERVER
             self.WLBUSERNAME = self.wlbappsrv.wlb_username #"wlbuser"
             self.WLBPASSWORD = self.wlbappsrv.wlb_password # default password

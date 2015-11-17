@@ -1596,7 +1596,6 @@ class _TC8159(xenrt.TestCase):
         # Create a VM on the SR
         g = host.createBasicGuest(distro='rhel5x',sr=sr.uuid)
         self.guest = g
-        self.uninstallOnCleanup(g)        
         expectedDiskCount = len(self.guest.listVBDUUIDs("Disk"))
 
         # Verify the lun(s) for the VM are using multipathing and that all
@@ -1782,11 +1781,10 @@ class TC9075(_TC8159):
     MORE_PATHS_OK = True
     
     def createSR(self, host):
-        fcsr = host.lookup("SR_FCHBA", "LUN0")
-        scsiid = host.lookup(["FC", fcsr, "SCSIID"], None)
-        self.scsiid = scsiid
+        lun = xenrt.HBALun(self.getAllHosts())
+        self.scsiid = lun.getID()
         sr = xenrt.lib.xenserver.FCStorageRepository(host, "fc")
-        sr.create(scsiid,multipathing=True)
+        sr.create(lun,multipathing=True)
         return sr
 
 class TC9771(_TC8159):
@@ -3362,10 +3360,9 @@ class _FCMultipathRT(testcases.xenserver.tc._XapiRTBase):
 
     def extraPrepare(self):
         # Set up a FC SR
-        fcsr = self.host.lookup("SR_FCHBA", "LUN0")
-        scsiid = self.host.lookup(["FC", fcsr, "SCSIID"], None)
+        lun = xenrt.HBALun(self.getAllHosts())
         sr = xenrt.lib.xenserver.FCStorageRepository(self.host, "fc")
-        sr.create(scsiid)
+        sr.create(lun)
         self.fcSR = sr.uuid
 
     def run(self, arglist):
@@ -3751,14 +3748,11 @@ class TC15464(xenrt.TestCase):
         self.host.enableAllFCPorts() # Enable all the FC ports, if not.
         self.host.enableMultipathing() # Enable multipathing on host.
 
-        # Checking if we have a FC LUN
-        if self.host.getNumOfFCLUNs() > 0:
-            self.lun0_scsiid = self.host.lookup(["FC", "LUN0", "SCSIID"], None)
-        else:
-            raise xenrt.XRTError("Host doesn't have any FC LUNs configured.")
+        lun = xenrt.HBALun(self.getAllHosts())
+        self.lun0_scsiid = lun.getID()
 
         self.fc_sr = xenrt.lib.xenserver.FCStorageRepository(self.host, "FC01")
-        self.fc_sr.create(self.lun0_scsiid, multipathing=True)
+        self.fc_sr.create(lun, multipathing=True)
 
     def getScsiID(self, dev):
         return self.host.getSCSIID(dev)
@@ -3914,10 +3908,11 @@ class _HardwareMultipath(xenrt.TestCase):
         self.enableFCPort(0)
         self.enableFCPort(1)
 
-        fcsr = self.hostWithMultiplePaths.lookup("SR_FCHBA", "LUN0")
-        self.sr_scsiid = self.hostWithMultiplePaths.lookup(["FC", fcsr, "SCSIID"], None)
+        self.lun = xenrt.HBALun([self.hostWithMultiplePaths])
+
+        self.sr_scsiid = self.lun.getID()
         self.sr = xenrt.lib.xenserver.FCStorageRepository(self.hostWithMultiplePaths, "fc")
-        self.sr.create(self.sr_scsiid, multipathing=True)
+        self.sr.create(self.lun, multipathing=True)
         self.hostWithMultiplePaths.addSR(self.sr, default=True)
         
         xenrt.TEC().logverbose("Successfully created LVMoHBA SR")
@@ -3940,29 +3935,11 @@ class _HardwareMultipath(xenrt.TestCase):
         xenrt.TEC().logverbose("Successfully created and started generic linux guest.")
 
     def postRun(self):
-        
-        try:
-            if self.guest != None:
-                self.guest.shutdown()
-                time.sleep(20)
-                self.guest.lifecycleOperation("vm-destroy", force=True)
-                time.sleep(20)
-                
-                cli = self.hostWithMultiplePaths.getCLIInstance()
-                vdis = self.hostWithMultiplePaths.minimalList("vdi-list", args="sr-uuid=%s" % self.sr.uuid)
-                for vdi in vdis:
-                    cli.execute("vdi-destroy", "uuid=%s" % vdi)
-                pbdid = self.hostWithMultiplePaths.parseListForUUID("pbd-list", "sr-uuid", self.sr.uuid)
-                cli.execute("pbd-unplug", "uuid=%s" % pbdid)
-                cli.execute("sr-destroy", "uuid=%s" % self.sr.uuid)
-        
-        except Exception, e:
-            raise xenrt.XRTError("Exception cleaning up guest and FC SR.", data=str(e))
-        finally:
-            try: self.enableFCPort(0)
-            except: pass
-            try: self.enableFCPort(1)
-            except: pass
+            self.sr.remove() # destroys the FC SR and release the associated FC LUN.
+            try:
+                self.hostWithMultiplePaths.enableAllFCPorts() # Enable all FC ports.
+            except:
+                xenrt.TEC().warning("Unable to bring up one or more FC ports of the switch")
 
     def checkGuest(self):
         # Check the periodic read/write script is still running on the VM
@@ -4067,35 +4044,24 @@ class TC12153(_HardwareMultipath):
 class TC12154(_HardwareMultipath):
     """Test SR operation with each FC path in failure state."""
     def checkThenDestroySR(self):
-        self.sr.forget()
+        self.sr.forget(release=False)
         self.sr.introduce()
         self.sr.check()
-        
-        pbdid = self.hostWithMultiplePaths.parseListForUUID("pbd-list", "sr-uuid", self.sr.uuid)
-        cli = self.hostWithMultiplePaths.getCLIInstance()
-        cli.execute("pbd-unplug", "uuid=%s" % pbdid)
-        cli.execute("sr-destroy", "uuid=%s" % self.sr.uuid)
+        self.sr.remove() # destroys it.
         self.sr = None
     
     def createSR(self):
+        self.lun = xenrt.HBALun([self.hostWithMultiplePaths])
+        self.sr_scsiid = self.lun.getID()
+
         self.sr = xenrt.lib.xenserver.FCStorageRepository(self.hostWithMultiplePaths, "fc")
-        self.sr.create(self.sr_scsiid, multipathing=True)
+        self.sr.create(self.lun, multipathing=True)
         self.hostWithMultiplePaths.addSR(self.sr, default=True)
-    
+
     def run(self, arglist=None):
         _HardwareMultipath.run(self, arglist=None)
-        time.sleep(20)
-        self.guest.shutdown()
-        time.sleep(20)
-        self.guest.lifecycleOperation("vm-destroy", force=True)
-        time.sleep(20)
-        self.guest = None
-        cli = self.hostWithMultiplePaths.getCLIInstance()
-        vdis = self.hostWithMultiplePaths.minimalList("vdi-list", args="sr-uuid=%s" % self.sr.uuid)
-        for vdi in vdis:
-            cli.execute("vdi-destroy", "uuid=%s" % vdi)
 
-        self.checkThenDestroySR()
+        self.sr.remove() # Removes all the existing VMs from previous test + the FC SR.
         
         self.disableFCPort(0)
         self.createSR()
@@ -4181,10 +4147,10 @@ class TC21455(xenrt.TestCase):
             raise xenrt.XRTFailure("Mutlipathd did not restart with in 2m+2s")
         
         #creating FC SR  
-        fcLun = self.host.lookup("SR_FCHBA", "LUN0")
-        scsiid = self.host.lookup(["FC",fcLun, "SCSIID"], None)
+        fcLun = xenrt.HBALun([self.host])
+        scsiid = fcLun.getID()
         fcSR = xenrt.lib.xenserver.FCStorageRepository(self.host, "fc")
-        fcSR.create(scsiid, multipathing=True)
+        fcSR.create(fcLun, multipathing=True)
         activeMPathBeforeFailover = self.host.getMultipathInfo(onlyActive=True)
         self.host.disableFCPort(0)
         xenrt.sleep(100)
@@ -4852,11 +4818,10 @@ class TCValidatePathCount(_TC8159):
     MORE_PATHS_OK = True
     
     def createSR(self, host):
-        fcsr = host.lookup("SR_FCHBA", "LUN0")
-        scsiid = host.lookup(["FC", fcsr, "SCSIID"], None)
-        self.scsiid = scsiid
+        lun = xenrt.HBALun([host])
+        self.scsiid = lun.getID()
         sr = xenrt.lib.xenserver.FCStorageRepository(host, "fc")
-        sr.create(scsiid,multipathing=True)
+        sr.create(lun,multipathing=True)
         return sr
         
     def run(self, arglist=None):
@@ -4894,12 +4859,10 @@ class TCVerifyMultipathSetup(_TC8159):
     MORE_PATHS_OK = True
     
     def createSR(self, host):
-        fcoesr = host.lookup("SR_FC", "yes")
-        if fcoesr == "yes":
-            fcoesr = "LUN0"
-        self.scsiid = host.lookup(["FC", fcoesr, "SCSIID"], None)
+        self.lun = xenrt.HBALun([host])
+        self.scsiid = self.lun.getID()
         sr = xenrt.lib.xenserver.FCOEStorageRepository(host, "fcoe")
-        sr.create(self.scsiid,multipathing=True)
+        sr.create(self.lun,multipathing=True)
         return sr
         
 class TCValidateFCOEMultipathPathCount(TCVerifyMultipathSetup):
@@ -5070,7 +5033,7 @@ class TCCheckGuestOperations(_PathFailOver):
 class TCCheckSROperations(_PathFailOver):
     
     def checkThenDestroySR(self):
-        self.sr.forget()
+        self.sr.forget(release=False)
         self.sr.introduce()
         self.sr.check()
         self.sr.destroy()

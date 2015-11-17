@@ -18,8 +18,6 @@
     <pool id="1">
       <storage type="fc" name="lvmohba_targetSR" options="LUN2"/>
       <host id="2" />
-      <!-- We need to use 4 hosts in this test to stop another job trampling on the SR -->
-      <host id="3" />
     </pool>
   </prepare>
 

@@ -27,6 +27,7 @@ __all__ = ["WebDirectory",
            "SpecifiedSMBShare",
            "ISCSIIndividualLun",
            "ISCSILun",
+           "HBALun",
            "ISCSIVMLun",
            "ISCSINativeLinuxLun",
            "ISCSILunSpecified",
@@ -359,6 +360,7 @@ class CentralResource(object):
         self.lockfile = None
         self.mylock = threading.Lock()
         self.resourceHeld = held
+        self.id = None
         xenrt.TEC().gec.registerCallback(self, mark=True, order=1)
 
     @staticmethod
@@ -377,6 +379,8 @@ class CentralResource(object):
 
     def acquire(self, id, shared=False):
         if shared:
+            self.lockid = id
+            self._addToRegistry()
             return
         d = xenrt.TEC().lookup("RESOURCE_LOCK_DIR")
         if not os.path.exists(d):
@@ -419,6 +423,11 @@ class CentralResource(object):
                 f.close()
         except:
             pass
+        self.lockid = id
+        self._addToRegistry()
+
+    def _addToRegistry(self):
+        xenrt.GEC().registry.centralResourcePut(self.lockid, self)
 
     def _listProcess(self,id):
         d = xenrt.TEC().lookup("RESOURCE_LOCK_DIR")
@@ -589,6 +598,7 @@ class CentralResource(object):
                 os.rmdir(self.lockfile)
                 self.lockfile = None
             self.resourceHeld = False
+            self.id = None
             xenrt.TEC().gec.unregisterCallback(self)
 
     def mark(self):
@@ -604,8 +614,8 @@ class CentralResource(object):
 class CentralLock(CentralResource):
     """Implementation of a central lock"""
     def __init__(self, id, timeout=3600, acquire=True):
-        self.id = id
         CentralResource.__init__(self, timeout=timeout)
+        self.id = id
         if acquire:
             self.acquire()
 
@@ -1438,6 +1448,93 @@ class ISCSINativeLinuxLun(ISCSILun):
     def release(self, atExit=False):
         CentralResource.release(self, atExit)
 
+class HBALun(CentralResource):
+    def __init__(self,
+                 hosts,
+                 luntype=None,
+                 minsize=10,
+                 maxsize=10000):
+        CentralResource.__init__(self)
+        self.scsiid = None
+        self.luntype = None
+        xenrt.TEC().logverbose("About to attempt to lock HBA LUN - current central resource status:")
+        self.logList()
+        luns = hosts[0].lookup("FC", {})
+        luns = dict([(x, luns[x]) for x in luns.keys() if x.startswith("LUN")])
+        for l in luns.keys():
+            accept = True
+            if minsize and int(luns[l].get('SIZE', "0")) < minsize:
+                accept = False
+            elif maxsize and int(luns[l].get('SIZE', "0")) > maxsize:
+                accept = False
+            elif luntype and luns[l].get("TYPE") != luntype:
+                accept = False
+            else:
+                for h in hosts[1:]:
+                    hluns = h.lookup("FC")
+                    if not luns[l]['SCSIID'] in [hluns[x]['SCSIID'] for x in hluns.keys() if x.startswith("LUN")]:
+                        accept = False
+                        break
+            
+            if not accept:
+                del luns[l]
+        
+        if not luns:
+            raise xenrt.XRTError("Could not find a suitable LUN")
+        else:
+            CentralResource.__init__(self, held=False)
+            startlooking = xenrt.util.timenow()
+            mylun = None
+            while True:
+                for l in luns.keys():
+                    try:
+                        self.acquire("HBA_LUN-%s" % (luns[l]['SCSIID']))
+                        mylun = luns[l]
+                        self.resourceHeld = True
+                        break
+                    except xenrt.XRTError:
+                        continue
+                if mylun:
+                    break
+                if xenrt.util.timenow() > (startlooking + 3600):
+                    xenrt.TEC().logverbose("Could not lock HBA LUN, current central resource status:")
+                    self.logList()
+                    raise xenrt.XRTError("Timed out waiting for a LUN to be "
+                                         "available")
+                xenrt.sleep(60)
+   
+        self.scsiid = luns[l]['SCSIID']
+        self.luntype = luns[l].get('TYPE')
+        self.lunid = int(luns[l]['LUNID']) if luns[l].has_key('LUNID') else None
+        self.mpclaim = luns[l].get("MPCLAIM")
+
+    def getID(self):
+        return self.scsiid
+
+    def getType(self):
+        return self.luntype
+
+    def getLunID(self):
+        return self.lunid
+
+    def getMPClaim(self):
+        return self.mpclaim
+
+    def release(self, atExit=False):
+        if xenrt.util.keepSetup():
+            xenrt.TEC().logverbose("Not releasing LUN %s" % self.scsiid)
+            return
+        
+        self.scsiid = None
+        self.luntype = None
+        if atExit:
+            for host in xenrt.TEC().registry.hostList():
+                if host == "SHARED":
+                    continue
+                h = xenrt.TEC().registry.hostGet(host)
+                h.machine.exitPowerOff()
+        CentralResource.release(self, atExit)
+
 class NativeLinuxNFSShare(CentralResource):
     """NFS share on a native (bare metal) linux host."""
     def __init__(self, hostName="RESOURCE_HOST_0", device='sda'):
@@ -1579,7 +1676,7 @@ class SpecifiedSMBShare(object):
 class ISCSIVMLun(ISCSILun):
     """ A tempory LUN in a VM """
     
-    def __init__(self,hostIndex=None,sizeMB=None, totalSizeMB=None, guestName="xenrt-iscsi-target", bridges=None, targetType=None, host=None):
+    def __init__(self,hostIndex=None,sizeMB=None, totalSizeMB=None, guestName="xenrt-iscsi-target", bridges=None, targetType=None, host=None, sruuid=None):
         if host:
             self.host=host
         else:
@@ -1593,7 +1690,7 @@ class ISCSIVMLun(ISCSILun):
 
         # Check if we already have the VM on this host, if we don't, then create it, otherwise attach to the existing one.
         if not self.host.guests.has_key(self.guestName):
-            self._createISCSIVM(sizeMB, totalSizeMB, bridges=bridges, targetType=targetType)
+            self._createISCSIVM(sizeMB, totalSizeMB, bridges=bridges, targetType=targetType, sruuid=sruuid)
         else:
             self.guest = self.host.guests[self.guestName]
             self._existingISCSIVM(sizeMB)
@@ -1648,7 +1745,7 @@ class ISCSIVMLun(ISCSILun):
             self.targetname = self.guest.execguest("cat /root/iscsi_iqn").strip()
             self.lunid = int(self.guest.execguest("cat /root/iscsi_lun").strip()) + 1
 
-    def _createISCSIVM(self, sizeMB, totalSizeMB, bridges=None, targetType=None):
+    def _createISCSIVM(self, sizeMB, totalSizeMB, bridges=None, targetType=None, sruuid=None):
         if not bridges:
             networks = self.host.minimalList("pif-list", "network-uuid", "management=true host-uuid=%s" % self.host.getMyHostUUID()) # Find the management interface on this host
             networks.extend(self.host.minimalList("pif-list", "network-uuid", "IP-configuration-mode=DHCP host-uuid=%s management=false" % self.host.getMyHostUUID())) # And all of the non-management DHCP addresses
@@ -1677,7 +1774,7 @@ class ISCSIVMLun(ISCSILun):
             totalSizeMB=sizeMB
         
         # Create a disk, 1GB larger than specified for FS overhead, then format and mount it.
-        device = self.guest.createDisk(sizebytes=(int(totalSizeMB)*xenrt.MEGA + xenrt.GIGA), returnDevice=True)
+        device = self.guest.createDisk(sizebytes=(int(totalSizeMB)*xenrt.MEGA + xenrt.GIGA), returnDevice=True, sruuid=sruuid)
         self.guest.execguest("echo %s > /etc/xenrtiscsidev" % device)
         self.guest.execguest("mkfs.ext3 /dev/%s" % device)
         self.guest.execguest("mkdir /iscsi")
@@ -3285,6 +3382,8 @@ class StaticIP4AddrDHCP(object):
         self.rangeObj = rangeObj
         if not self.rangeObj:
             xenrt.TEC().gec.registerCallback(self, mark=True, order=1)
+        self.lockid = "IP4ADDR-%s" % self.addr
+        xenrt.GEC().registry.centralResourcePut(self.lockid, self)
 
     def getAddr(self):
         return self.addr

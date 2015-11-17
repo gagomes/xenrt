@@ -1,12 +1,16 @@
 import xenrt
 import string
-from xenrt.lib.opsys import OS
+import socket
+from xenrt.lib.opsys import OS,OSNotDetected
 
 
 class LinuxOS(OS):
     vifStem = "eth"
 
     tcpCommunicationPorts={"SSH": 22}
+
+    def __init__(self, distro, parent, password=None):
+        super(LinuxOS, self).__init__(distro, parent, password)
 
     def execSSH(self,
                 command,
@@ -36,12 +40,12 @@ class LinuxOS(OS):
             username = "root"
         if not password:
             if not self.password:
-                self.password = self.findPassword()
+                self.findPassword()
             password = self.password
 
-        return xenrt.ssh.SSH(self.parent.getIP(trafficType="SSH"),
+        return xenrt.ssh.SSH(self.getIP(trafficType="SSH"),
                              command,
-                             port=self.parent.getPort(trafficType="SSH"),
+                             port=self.getPort(trafficType="SSH"),
                              level=level,
                              retval=retval,
                              password=password,
@@ -54,6 +58,13 @@ class LinuxOS(OS):
                              getreply=getreply,
                              useThread=useThread)
 
+    def getArch(self):
+        arch = self.execSSH("uname -m").strip()
+        if arch == "x86_64":
+            return "x86-64"
+        else:
+            return "x86-32"
+
     def getLogs(self, path):
         sftp = self.sftpClient()
         sftp.copyLogsFrom(["/var/log/messages",
@@ -64,14 +75,14 @@ class LinuxOS(OS):
 
     def sftpClient(self):
         """Get a SFTP client object to the guest"""
-        return xenrt.ssh.SFTPSession(self.parent.getIP(trafficType="SSH"),
+        return xenrt.ssh.SFTPSession(self.getIP(trafficType="SSH"),
                                      username="root",
                                      password=self.password,
                                      level=xenrt.RC_FAIL,
-                                     port=self.parent.getPort(trafficType="SSH"))
+                                     port=self.getPort(trafficType="SSH"))
 
     def populateFromExisting(self):
-        if self.parent.getPowerState() != xenrt.PowerState.up:
+        if self.parent._osParent_getPowerState() != xenrt.PowerState.up:
             self.password = xenrt.TEC().lookup("ROOT_PASSWORD")
         else:
             self.findPassword()
@@ -82,7 +93,7 @@ class LinuxOS(OS):
             # Use a 30s timeout if we know the IP. If we don't try 10s first
             if len(ipList) == 0:
                 timeouts = [30]
-                ipList = [self.parent.getIPAndPort(trafficType="SSH")]
+                ipList = [(self.getIP(trafficType="SSH"), self.getPort(trafficType="SSH"))]
             else:
                 timeouts = [10, 30]
                 ipList = [(x,22) for x in ipList]
@@ -98,10 +109,10 @@ class LinuxOS(OS):
                             xenrt.TEC().logverbose("Setting my password to %s"
                                                     % (p))
                             self.password = p
-                            if i[0] != self.parent.getIP(trafficType="SSH"):
+                            if i[0] != self.getIP(trafficType="SSH"):
                                 xenrt.TEC().logverbose("Setting my IP to %s"
                                                         % (i))
-                                self.parent.setIP(i)
+                                self.parent._osParent_setIP(i)
                             return
                         except:
                             pass
@@ -113,16 +124,16 @@ class LinuxOS(OS):
         while 1:
             if not self.password:
                 self.findPassword()
-            if xenrt.ssh.SSH(self.parent.getIP(trafficType="SSH"),
+            if xenrt.ssh.SSH(self.getIP(trafficType="SSH"),
                              cmd,
-                             port=self.parent.getPort(trafficType="SSH"),
+                             port=self.getPort(trafficType="SSH"),
                              password=self.password,
                              level=xenrt.RC_OK,
                              timeout=20,
                              username=username,
                              nowarn=True) == xenrt.RC_OK:
                 xenrt.TEC().logverbose(" ... OK reply from %s:%s" %
-                                       (self.parent.getIP(trafficType="SSH"), self.parent.getPort(trafficType="SSH")))
+                                       (self.getIP(trafficType="SSH"), self.getPort(trafficType="SSH")))
                 return xenrt.RC_OK
             now = xenrt.util.timenow()
             if now > deadline:
@@ -150,7 +161,7 @@ class LinuxOS(OS):
         return 256
 
     def assertHealthy(self, quick=False):
-        if self.parent.getPowerState() == xenrt.PowerState.up:
+        if self.parent._osParent_getPowerState() == xenrt.PowerState.up:
             # Wait for basic SSH access
             self.waitForSSH(timeout=180)
             if quick:
@@ -159,3 +170,23 @@ class LinuxOS(OS):
             self.execSSH("dd if=/dev/urandom oflag=direct of=%s count=1024"
                           % stampFile)
             self.execSSH("dd if=%s iflag=direct of=/dev/null" % stampFile)
+    
+    @classmethod
+    def detect(cls, parent, detectionState):
+        obj = cls("testlin", parent, detectionState.password)
+        try:
+            sock = socket.socket()
+            sock.settimeout(10)
+            sock.connect((obj.getIP(), obj.getPort("SSH")))
+            sock.close()
+            obj.execSSH("true")
+        except Exception, e:
+            raise OSNotDetected("OS appears not to have SSH: %s" % str(e))
+        else:
+            detectionState.password = obj.password
+
+    def getKdumpSize(self):
+        """Returns the size (in bytes) of any crashdump kernel present on the OS"""
+        size = int(self.execSSH("[ -e /sys/kernel/kexec_crash_size ] && cat /sys/kernel/kexec_crash_size || echo 0").strip())
+        return size or None
+

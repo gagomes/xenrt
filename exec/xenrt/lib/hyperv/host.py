@@ -129,7 +129,7 @@ class HyperVHost(xenrt.lib.nativewindows.WindowsHost):
 Get-ADComputer %s | Set-AdObject -Replace @{msnpallowdialin=$true}
 Get-ADComputer %s -Properties msnpallowdialin | Select-Object -ExpandProperty msnpallowdialin
 """ % (myhost, myhost)
-        xenrt.TEC().logverbose(self.getDomainController().os.execCmd(script, powershell=True, returndata=True))
+        xenrt.TEC().logverbose(self.getDomainController().os.cmdExec(script, powershell=True, returndata=True))
 
     def createVirtualSwitch(self, eth):
         ps = """Import-Module Hyper-V
@@ -376,4 +376,4 @@ New-VMSwitch -Name externalSwitch -NetAdapterName $ethernet.Name -AllowManagemen
 Get-ADComputer %s | Set-AdObject -Add @{"msDS-AllowedToDelegateTo"="%s/%s","%s/%s.%s"}
 Get-ADComputer %s -Properties msDS-AllowedToDelegateTo | Select-Object -ExpandProperty msDs-AllowedToDelegateTo
 """ % (myhost, service, remote, service, remote, ad.domain, myhost)
-        xenrt.TEC().logverbose(self.getDomainController().os.execCmd(script, powershell=True, returndata=True))
+        xenrt.TEC().logverbose(self.getDomainController().os.cmdExec(script, powershell=True, returndata=True))

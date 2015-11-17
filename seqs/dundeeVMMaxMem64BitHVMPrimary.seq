@@ -1,0 +1,12 @@
+<xenrt>
+  <prepare>
+    <host/>
+  </prepare>
+  <testsequence>
+    <parallel group="MaxMem" workers="1">
+      <for iter="D" values="%GUEST_TESTS:Dundee:Primary_64BitHVM%" > 
+        <testcase id="xenserver.tc.smoketest.TCSmokeTestMaxMem" name="${D}" sku="${D}" />
+      </for>
+    </parallel>
+  </testsequence>
+</xenrt>

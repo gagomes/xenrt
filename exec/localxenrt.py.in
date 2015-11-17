@@ -10,3 +10,4 @@
 
 SHAREDIR = "@sharedir@"
 CONFDIR = "@confdir@"
+VARDIR = "@vardir@"

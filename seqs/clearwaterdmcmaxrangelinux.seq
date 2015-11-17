@@ -11,12 +11,22 @@
   </prepare>
 
   <testsequence>
-    <serial group="Linux1">
-      <testcase id="xenserver.tc.balloon.TC9341"/>
-      <testcase id="xenserver.tc.balloon.TC20691"/>
-      <testcase id="xenserver.tc.balloon.TC12597"/>
-      <testcase id="xenserver.tc.balloon.TC12596"/>
-    </serial>
+    <parallel group="LinuxVMInstallation" workers="8">
+      <for iter="D" values="%DISTROS%"> 
+        <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall.${D}" sku="${D}.dmc" tc="TC-14987">
+          <arg>RESOURCE_HOST_0</arg>
+          <arg>guest=${D}</arg>
+          <arg>distro=${D}</arg>
+        </testcase>
+      </for>
+    </parallel>
+    <parallel group="LinuxBalloonMaxRange" workers="2">
+      <for iter="D" values="%DISTROS%">
+        <testcase id="xenserver.tc.balloon.TCLinuxMaxRange" name="${D}" sku="${D}" tc="TC-9325">
+          <arg>DISTRO=${D}</arg>
+        </testcase>
+      </for>
+    </parallel>
   </testsequence>
 
 </xenrt>

@@ -4,6 +4,7 @@
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
   </variables>
   <scheduler>
     <resources>memory&gt;=12G/memory&lt;=16G/disk1&gt;=200G</resources>

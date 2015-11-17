@@ -102,6 +102,17 @@ class Guest(xenrt.GenericGuest):
         self.memory = None # Default to template memory.
         self.vcpus = None # Default to template vcpus.
 
+    @xenrt.irregularName
+    def _osParent_ejectIso(self):
+        self.changeCD(None)
+
+    @xenrt.irregularName
+    def _osParent_setIso(self, isoName, isoRepo=None):
+        self.changeCD(isoName)
+
+    def rebootAsync(self):
+        self.host.execdom0("xe vm-reboot uuid=%s >/dev/null 2>&1 </dev/null &" % (self.getUUID()))
+
     def _checkPVAddonsInstalled(self):
         """This is require by waitForAgent to check for host license from Dundee onwards """
         return False
@@ -122,9 +133,12 @@ class Guest(xenrt.GenericGuest):
     def getCLIInstance(self):
         return self.getHost().getCLIInstance()
 
-    def asXapiObject(self):
-        objType = xenrt.lib.xenserver.VM.OBJECT_TYPE
-        return xenrt.lib.xenserver.objectFactory().getObject(objType)(self.getCLIInstance(), objType, self.uuid)
+    @property
+    def xapiObject(self):
+        """Gets a XAPI VM object for this Guest
+        @return: A xenrt.lib.xenserver.VM object for this Guest
+        @rtype: xenrt.lib.xenserver.VM"""
+        return xenrt.lib.xenserver.VM(self.getCLIInstance(), self.uuid)
 
     def getAllowedOperations(self):
 
@@ -285,6 +299,31 @@ class Guest(xenrt.GenericGuest):
                     return True
         return False
 
+    def isNonBalloonablePVLinux(self):
+        """Return True if pv-ops guest cannot balloon above initial dynamic-min.
+        Checks if distro exists in nonBalloonablePvLinux list
+        @return: boolean.
+        """
+        nonBalloonablePvLinux = ["rhel5","rhel6","centos5","centos6","sl5","sl6","oel5","oel6","debian60"]
+        for d in nonBalloonablePvLinux:
+            if re.match(d, self.distro):
+                return True
+        return False
+
+
+    def isUncooperative(self):
+        """Check if guest has been marked uncooperative.
+        Reads xenstore entry memory/uncooperative for the given domain
+        @return: boolean. True if uncooperative, else False
+        """
+        if self.windows:
+            raise xenrt.XRTError("Unimplemented")
+        else:
+            if self.getHost().xenstoreExists("/local/domain/%s/memory/uncooperative" % self.getDomid()):
+                return True
+        return False
+
+
     def install(self,
                 host,
                 start=True,
@@ -368,12 +407,15 @@ class Guest(xenrt.GenericGuest):
                                      "(arch %s)" % (distro, arch))
 
         self.isoname = isoname
-        if self.memory and self.isoname and ([i for i in ["win81","ws12r2"] if i in self.isoname]):
-            if rootdisk == self.DEFAULT:
-                rootdisk = max(32768, 20480 + self.memory)
-            else:
-                rootdisk = max(32768, 20480 + self.memory, rootdisk)
-            xenrt.TEC().logverbose("Increasing root disk to %d" % rootdisk)
+        if self.isoname:
+            minRootDisk = xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.isoname, "MIN_ROOTDISK"], None)
+            minRootDiskDiff = xenrt.TEC().lookup(["GUEST_LIMITATIONS",self.isoname,"MIN_ROOTDISK_MEMORY_DIFF"], 0)
+            if self.memory and minRootDisk:
+                if rootdisk == self.DEFAULT:
+                    rootdisk = max(minRootDisk , minRootDiskDiff + self.memory)
+                else:
+                    rootdisk = max(minRootDisk , minRootDiskDiff + self.memory, rootdisk)
+                xenrt.TEC().logverbose("Increasing root disk to %d" % rootdisk)
 
         if distro:
             self.distro = distro
@@ -898,6 +940,7 @@ users:
         vifs = ((self.managenetwork or self.managebridge)
                 and self.getVIFs(network=self.managenetwork, bridge=self.managebridge).keys()
                 or map(lambda v: v[0], self.vifs))
+        xenrt.TEC().progress("Get all vifs %s" % vifs)
 
         # Look for an IP address on the first interface (if we have any)
         if len(vifs) > 0:
@@ -995,19 +1038,20 @@ users:
                 boottime = 900
                 agentTime = 180
             if not self.windows:
-                try:
-                    self.waitForSSH(boottime, desc="Guest boot")
+                if self.hasSSH:
+                    try:
+                        self.waitForSSH(boottime, desc="Guest boot")
 
-                    # sometimes SSH can be a little temperamental immediately after boot
-                    # a small sleep should help this.
-                    xenrt.sleep(10)
+                        # sometimes SSH can be a little temperamental immediately after boot
+                        # a small sleep should help this.
+                        xenrt.sleep(10)
 
-                except Exception, e:
-                    # Check the VM is still running
-                    if self.getState() != "UP":
-                        self.checkHealth(noreachcheck=True)
-                        raise xenrt.XRTFailure("VM no longer running while waiting for boot")
-                    raise
+                    except Exception, e:
+                        # Check the VM is still running
+                        if self.getState() != "UP":
+                            self.checkHealth(noreachcheck=True)
+                            raise xenrt.XRTFailure("VM no longer running while waiting for boot")
+                        raise
             else:
                 autologonRetryCount = 5
                 for i in range(autologonRetryCount):
@@ -4471,6 +4515,14 @@ exit /B 1
         self.paramSet("platform:parallel", "none")
         self.start()
 
+    def getLowMemory(self):
+        """Returns low memory of the linux guest
+        @return: low memory in MiBs
+        """
+        if self.windows:
+            raise xenrt.XRTError("Unimplemented")
+        else:
+            return int(self.execguest("free -l | grep Low | awk '{print $2}'").strip()) / xenrt.KILO
 
 
 #############################################################################
@@ -4598,7 +4650,10 @@ def createVMFromFile(host,
             guest.importVM(host, "%s/%s" % (d, os.path.basename(filename)), imageIsOnHost=True, sr=sr, vifs=vifs)
             host.execdom0("umount %s" % d)
         else:
-            guest.importVM(host, xenrt.TEC().getFile(filename), vifs=vifs, sr=sr)
+            vmfile = xenrt.TEC().getFile(filename)
+            if not vmfile:
+                raise xenrt.XRTError("Cannot find %s to import" % filename)
+            guest.importVM(host, vmfile, vifs=vifs, sr=sr)
     guest.paramSet("is-a-template", "false")
     guest.reparseVIFs()
     guest.vifs.sort()
@@ -5207,19 +5262,27 @@ class MNRGuest(Guest):
         else:
             return int(self.paramGet("memory-actual"))
 
-    def waitForTarget(self, timeout, desc="Target not reached within timeout"):
+    def waitForTarget(self, timeout, allowedTargetMismatch=0, desc="Target not reached within timeout"):
+        """Waits for memory actual to reach memory target
+        Raise failure if memory actual fails to reach memory target
+        @param timeout: Maximum time for which function should wait for memory actual to reach target
+        @param allowedTargetMismatch: Allowed difference in memory actual and target(beyond 1 percent) in MiBs
+        @param desc: Message to be dislayed in case of failure.
+        @return: None
+        """
+
         startTime = xenrt.util.timenow()
-        cli = self.getCLIInstance()
-        while True:
-            try:
-                cli.execute("vm-memory-target-wait", "uuid=%s" % (self.getUUID()))
-                break
-            except:
-                pass
-            if (xenrt.util.timenow() - startTime) > timeout:
-                data = ("Target %d, actual %d" % (self.getMemoryTarget(),
-                                                  self.getMemoryActual()))
-                raise xenrt.XRTFailure(desc, data=data)
+        while (xenrt.util.timenow() - startTime) < timeout:
+            target = self.getMemoryTarget()
+            actual = self.getMemoryActual()
+            if target != 0:
+                difference = abs(target - actual)
+                difference = min(abs(difference - allowedTargetMismatch ), difference)
+                percentage = float(difference) / float(target)
+                if percentage <= 1:
+                    return
+            xenrt.sleep(30)
+        raise xenrt.XRTFailure("%s. Target=%u. Actual=%u." % (desc, target, actual))
 
     def makeCooperative(self, cooperative, xapiOnly=False):
         """Make a guest (un)cooperative to balloon requests"""
@@ -6206,9 +6269,9 @@ default:
         elif self.distro.startswith("centos"): # CentOS7
             return xenrt.lib.xenserver.docker.CentOSDocker(self.getHost(), self, controller)
         elif self.distro.startswith("ubuntu"): #  Ubuntu 14.04
-            return xenrt.lib.xenserver.docker.UbuntuDocker(self.getHost(), self, controller)
+            return xenrt.lib.xenserver.docker.DebianBasedDocker(self.getHost(), self, controller)
         elif self.distro.startswith("debian"): #  Debian Jessie 8.0
-            return xenrt.lib.xenserver.docker.DebianDocker(self.getHost(), self, controller)
+            return xenrt.lib.xenserver.docker.DebianBasedDocker(self.getHost(), self, controller)
         else:
             raise xenrt.XRTFailure("Docker installation unimplemented on distro %s" % self.distro)
 

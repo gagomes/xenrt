@@ -893,6 +893,7 @@ if aux and not shelllogging:
 # Read in JSON config data
 for cf in glob.glob("%s/data/config/*.json" % (localxenrt.SHAREDIR)):
     config.readFromJSONFile(cf)
+config.doPostLoadProcessing()
 
 def readConfigDir(directory):
     global config
@@ -1690,7 +1691,10 @@ if docgen:
 
 if lookupvar:
     try:
-        print xenrt.TEC().lookup(string.split(lookupvar, "/"))
+        if xenrt.TEC().lookup("OUTPUT_JSON", False, boolean=True):
+            print json.dumps({lookupvar: xenrt.TEC().lookup(string.split(lookupvar, "/"))}, indent=2, separators=(',', ': '), sort_keys=True)
+        else:
+            print xenrt.TEC().lookup(string.split(lookupvar, "/"))
     except:
         sys.stderr.write("Variable %s not found.\n" % (lookupvar))
         sys.exit(1)
@@ -1865,7 +1869,7 @@ if cleanuplocks:
                                 pass
 
                             os.rmdir(path)
-                        if lock[0].startswith("VLAN") or lock[0].startswith("ROUTEDVLAN") or lock[0].startswith("IP4ADDR") or lock[0].startswith("IP6ADDR") or lock[0].startswith("EXT-IP4ADDR"):
+                        if lock[0].startswith("VLAN") or lock[0].startswith("ROUTEDVLAN") or lock[0].startswith("IP4ADDR") or lock[0].startswith("IP6ADDR") or lock[0].startswith("EXT-IP4ADDR") or lock[0].startswith("HBA_LUN"):
                             jobsForMachinePowerOff.append(lock[2]['jobid']) 
                         if lock[0].startswith("GLOBAL"):
                             jobsForGlobalRelease.append(lock[2]['jobid'])
@@ -1940,12 +1944,15 @@ if setupsharedhost:
         addr = sh["ADDRESS"]
         machine = xenrt.PhysicalHost(sharedhost,ipaddr=addr)
 
+        config.setVariable("APPLY_ALL_REQUIRED_HFXS", "yes")
+
         xenrt.TEC().setInputDir(sh["INPUTDIR"])
         hosttype=sh["PRODUCT_VERSION"]
 
         host = xenrt.lib.xenserver.hostFactory(hosttype)(machine,productVersion=hosttype)
         host.install(installSRType="ext")
         host.license()
+        host.applyRequiredPatches()
         sho = xenrt.SharedHost(sharedhost)
 
         macs = [sh['MAC']]
@@ -2111,31 +2118,34 @@ if bootwinpe:
     
 
 if powercontrol:
-    # Setup logdir
-    if forcepdu:
-        powerctltype = "APCPDU"
+    if poweroperation != "off" and os.path.exists("%s/halted" % localxenrt.VARDIR):
+        print "Site is halted"
     else:
-        powerctltype = None
-    if not powerhost in xenrt.TEC().lookup("HOST_CONFIGS", {}).keys():
-        print "Loading %s from Racktables" % powerhost
-        xenrt.readMachineFromRackTables(powerhost)
-    machine = xenrt.PhysicalHost(powerhost, ipaddr="0.0.0.0", powerctltype=powerctltype)
-    h = xenrt.GenericHost(machine)
-    machine.powerctl.setVerbose()
-    machine.powerctl.setAntiSurge(False)
-    if poweroperation == "on":
-        machine.powerctl.on()
-    elif poweroperation == "off":
-        machine.powerctl.off()
-    elif poweroperation == "cycle":
-        if bootdev:
-            machine.powerctl.setBootDev(bootdev)
-            config.setVariable("IPMI_SET_PXE", "no")
-        machine.powerctl.cycle()
-    elif poweroperation == "nmi":
-        machine.powerctl.triggerNMI()
-    elif poweroperation == "status":
-        print "POWERSTATUS: %s" % str(machine.powerctl.status())
+        # Setup logdir
+        if forcepdu:
+            powerctltype = "APCPDU"
+        else:
+            powerctltype = None
+        if not powerhost in xenrt.TEC().lookup("HOST_CONFIGS", {}).keys():
+            print "Loading %s from Racktables" % powerhost
+            xenrt.readMachineFromRackTables(powerhost)
+        machine = xenrt.PhysicalHost(powerhost, ipaddr="0.0.0.0", powerctltype=powerctltype)
+        h = xenrt.GenericHost(machine)
+        machine.powerctl.setVerbose()
+        machine.powerctl.setAntiSurge(False)
+        if poweroperation == "on":
+            machine.powerctl.on()
+        elif poweroperation == "off":
+            machine.powerctl.off()
+        elif poweroperation == "cycle":
+            if bootdev:
+                machine.powerctl.setBootDev(bootdev)
+                config.setVariable("IPMI_SET_PXE", "no")
+            machine.powerctl.cycle()
+        elif poweroperation == "nmi":
+            machine.powerctl.triggerNMI()
+        elif poweroperation == "status":
+            print "POWERSTATUS: %s" % str(machine.powerctl.status())
 
 if mconfig:
     xenrt.tools.machineXML(mconfig)

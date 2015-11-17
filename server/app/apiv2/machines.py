@@ -185,7 +185,7 @@ class _MachineBase(XenRTAPIv2Page):
             ret[rc[0].strip()] = machine
         if len(ret.keys()) == 0:
             if exceptionIfEmpty:
-                raise XenRTAPIError(HTTPNotFound, "Machine not found")
+                raise XenRTAPIError(self, HTTPNotFound, "Machine not found")
 
             return ret
         if len(getExtraData) > 0:
@@ -205,7 +205,7 @@ class _MachineBase(XenRTAPIv2Page):
             try:
                 searchre = re.compile(search, flags=re.IGNORECASE)
             except Exception, e:
-                raise XenRTAPIError(HTTPBadRequest, "Invalid regular expression: %s" % str(e))
+                raise XenRTAPIError(self, HTTPBadRequest, "Invalid regular expression: %s" % str(e))
         else:
             searchre = None
 
@@ -246,11 +246,14 @@ class _MachineBase(XenRTAPIv2Page):
         elif key.lower() == "group":
             key = "mgroup"
 
+        if key.lower() == "aclid" and value == "":
+            value = None
+
         details = machines[machine]['params']
         if key.lower() in ("machine", "comment", "leaseto", "leasereason", "leasefrom"):
-            raise XenRTAPIError(HTTPForbidden, "Can't update this field")
+            raise XenRTAPIError(self, HTTPForbidden, "Can't update this field")
         if key.lower() in ("status", "jobid") and not allowReservedField:
-            raise XenRTAPIError(HTTPForbidden, "Can't update this field")
+            raise XenRTAPIError(self, HTTPForbidden, "Can't update this field")
         if key.lower() in ("site", "cluster", "pool", "status", "resources", "flags", "descr", "jobid", "leasepolicy", "aclid", "prio", "mgroup"):
             cur = db.cursor()
             try:
@@ -299,9 +302,9 @@ class _MachineBase(XenRTAPIv2Page):
 
         leasedTo = machines[machine]['leaseuser']
         if not leasedTo:
-            raise XenRTAPIError(HTTPPreconditionFailed, "Machine is not leased")
+            raise XenRTAPIError(self, HTTPPreconditionFailed, "Machine is not leased")
         elif leasedTo and leasedTo != user and not force:
-            raise XenRTAPIError(HTTPUnauthorized, "Machine is leased to %s" % leasedTo, canForce=canForce)
+            raise XenRTAPIError(self, HTTPUnauthorized, "Machine is leased to %s" % leasedTo, canForce=canForce)
         
         db = self.getDB()
         cur = db.cursor()
@@ -345,7 +348,7 @@ class _MachineBase(XenRTAPIv2Page):
 
         # Only XenRT admins can use admin override
         if adminoverride and not self.getUser(forceReal=True).admin:
-            raise XenRTAPIError(HTTPUnauthorized, "Only XenRT admins can use the admin_override functionality")
+            raise XenRTAPIError(self, HTTPUnauthorized, "Only XenRT admins can use the admin_override functionality")
 
         if duration:
             forever = False 
@@ -371,19 +374,19 @@ class _MachineBase(XenRTAPIv2Page):
                 leaseToTime = time.gmtime(time.time() + (duration * 3600))
                 leaseTo = time.strftime("%Y-%m-%d %H:%M:%S", leaseToTime)
             else:
-                raise XenRTAPIError(HTTPUnauthorized, "The policy for this machine only allows leasing for %d hours, please contact QA if you need a longer lease" % leasePolicy, canForce=False)
+                raise XenRTAPIError(self, HTTPUnauthorized, "The policy for this machine only allows leasing for %d hours, please contact QA if you need a longer lease" % leasePolicy, canForce=False)
         
         leasedTo = machines[machine]['leaseuser']
         if leasedTo and leasedTo != user and not force:
-            raise XenRTAPIError(HTTPUnauthorized, "Machine is already leased to %s" % leasedTo, canForce=True)
+            raise XenRTAPIError(self, HTTPUnauthorized, "Machine is already leased to %s" % leasedTo, canForce=True)
         currentLeaseTime = machines[machine]['leaseto']
         if not forever and currentLeaseTime and time.gmtime(currentLeaseTime) > leaseToTime and not force:
-            raise XenRTAPIError(HTTPNotAcceptable, "Machines is already leased for longer", canForce=True)
+            raise XenRTAPIError(self, HTTPNotAcceptable, "Machines is already leased for longer", canForce=True)
 
         if machines[machine]['aclid'] and not adminoverride:
             result, reason = self.getACLHelper().check_acl(machines[machine]['aclid'], user, [machine], duration, preemptable=preemptable)
             if not result:
-                raise XenRTAPIError(HTTPUnauthorized, "ACL: %s" % reason, canForce=False)
+                raise XenRTAPIError(self, HTTPUnauthorized, "ACL: %s" % reason, canForce=False)
 
         db = self.getDB()
         cur = db.cursor()
@@ -624,7 +627,7 @@ class LeaseMachine(_MachineBase):
             params = json.loads(self.request.body)
             jsonschema.validate(params, self.DEFINITIONS['lease'])
         except Exception, e:
-            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+            raise XenRTAPIError(self, HTTPBadRequest, str(e).split("\n")[0])
         try:
             self.lease(self.request.matchdict['name'], self.getUser().userid, params['duration'], params['reason'], params.get('force', False), params.get('besteffort', False), params.get('preemptable', False), params.get('admin_override', False))
         except:
@@ -676,7 +679,7 @@ class ReturnMachine(_MachineBase):
                 params = {}
             jsonschema.validate(params, self.DEFINITIONS['leasereturn'])
         except Exception, e:
-            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+            raise XenRTAPIError(self, HTTPBadRequest, str(e).split("\n")[0])
         self.return_machine(self.request.matchdict['name'], self.getUser().userid, params.get('force', False))
         return {}
 
@@ -751,7 +754,7 @@ class UpdateMachine(_MachineBase):
             j = json.loads(self.request.body)
             jsonschema.validate(j, self.DEFINITIONS['updatemachine'])
         except Exception, e:
-            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+            raise XenRTAPIError(self, HTTPBadRequest, str(e).split("\n")[0])
         if j.get('params'):
             for p in j['params'].keys():
                 self.updateMachineField(machine, p, j['params'][p], commit=False)
@@ -865,7 +868,7 @@ class NewMachine(_MachineBase):
             j = json.loads(self.request.body)
             jsonschema.validate(j, self.DEFINITIONS['newmachine'])
         except Exception, e:
-            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+            raise XenRTAPIError(self, HTTPBadRequest, str(e).split("\n")[0])
 
         self.addMachine(j.get("name"), j.get("site"), j.get("pool"), j.get("cluster"), j.get("resources", {}), j.get("description"))
 
@@ -956,22 +959,22 @@ class PowerMachine(_MachineBase):
             j = json.loads(self.request.body)
             jsonschema.validate(j, self.DEFINITIONS['powermachine'])
         except Exception, e:
-            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+            raise XenRTAPIError(self, HTTPBadRequest, str(e).split("\n")[0])
         
         adminoverride = j.get('admin_override', False)
         force = j.get('force', False)
 
         if adminoverride and not self.getUser(forceReal=True).admin:
-            raise XenRTAPIError(HTTPUnauthorized, "Only XenRT admins can use the admin_override functionality")
+            raise XenRTAPIError(self, HTTPUnauthorized, "Only XenRT admins can use the admin_override functionality")
 
         if not adminoverride:
             if machine['forbidden']:
-                raise XenRTAPIError(HTTPUnauthorized, "You do not have access to this machine")
+                raise XenRTAPIError(self, HTTPUnauthorized, "You do not have access to this machine")
         if not force:
             if machine['leaseuser'] and not machine['leasecurrentuser']:
-                raise XenRTAPIError(HTTPUnauthorized, "This machine is leased to %s" % machine['leaseuser'])
+                raise XenRTAPIError(self, HTTPUnauthorized, "This machine is leased to %s" % machine['leaseuser'])
             if machine['jobuser'] and not machine['jobcurrentuser']:
-                raise XenRTAPIError(HTTPUnauthorized, "This machine is running a job for %s" % machine['jobuser'])
+                raise XenRTAPIError(self, HTTPUnauthorized, "This machine is running a job for %s" % machine['jobuser'])
 
 
 
@@ -983,7 +986,7 @@ class PowerMachine(_MachineBase):
         r = requests.get("http://%s/xenrt/api/controller/power" % machine['ctrladdr'], params=reqdict)
         r.raise_for_status()
         if r.text.startswith("ERROR"):
-            raise XenRTAPIError(HTTPInternalServerError, r.text)
+            raise XenRTAPIError(self, HTTPInternalServerError, r.text)
         return {"output": r.text.strip()}
 
 class GetMachineResources(_MachineBase):
@@ -1009,7 +1012,7 @@ class GetMachineResources(_MachineBase):
         r = requests.get("http://%s/xenrt/api/controller/listresources" % machine['ctrladdr'], params=reqdict)
         r.raise_for_status()
         if r.text.startswith("ERROR"):
-            raise XenRTAPIError(HTTPInternalServerError, r.text)
+            raise XenRTAPIError(self, HTTPInternalServerError, r.text)
         return r.json()
 
 class ReleaseMachineResource(_MachineBase):
@@ -1040,7 +1043,7 @@ class ReleaseMachineResource(_MachineBase):
         r = requests.get("http://%s/xenrt/api/controller/releaseresources" % machine['ctrladdr'], params=reqdict)
         r.raise_for_status()
         if r.text.startswith("ERROR"):
-            raise XenRTAPIError(HTTPInternalServerError, r.text)
+            raise XenRTAPIError(self, HTTPInternalServerError, r.text)
         return {"output": r.text.strip()}
 
 class LockMachineResource(_MachineBase):
@@ -1087,7 +1090,7 @@ class LockMachineResource(_MachineBase):
             j = json.loads(self.request.body)
             jsonschema.validate(j, self.DEFINITIONS['lockmachineresources'])
         except Exception, e:
-            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+            raise XenRTAPIError(self, HTTPBadRequest, str(e).split("\n")[0])
         machine = self.getMachines(limit=1, machines=[self.request.matchdict['name']], exceptionIfEmpty=True)[self.request.matchdict['name']]
         reqdict = {"machine": machine['name'], "type": j['resource_type']}
         if j['args']:
@@ -1095,7 +1098,7 @@ class LockMachineResource(_MachineBase):
         r = requests.get("http://%s/xenrt/api/controller/getresource" % machine['ctrladdr'], params=reqdict)
         r.raise_for_status()
         if r.json()['result'] != ("OK"):
-            raise XenRTAPIError(HTTPInternalServerError, r.text)
+            raise XenRTAPIError(self, HTTPInternalServerError, r.text)
         return r.json()
 
 class PowerMachineStatus(_MachineBase):
@@ -1121,10 +1124,10 @@ class PowerMachineStatus(_MachineBase):
         r = requests.get("http://%s/xenrt/api/controller/power" % machine['ctrladdr'], params=reqdict)
         r.raise_for_status()
         if r.text.startswith("ERROR"):
-            raise XenRTAPIError(HTTPInternalServerError, r.text)
+            raise XenRTAPIError(self, HTTPInternalServerError, r.text)
         m = re.search("POWERSTATUS: \('(.+)', '(.+)'\)\n", r.text)
         if not m:
-            raise XenRTAPIError(HTTPInternalServerError, r.text)
+            raise XenRTAPIError(self, HTTPInternalServerError, r.text)
         return {"status": m.group(1), "source": m.group(2)}
     
 class NotifyBorrow(_MachineBase):

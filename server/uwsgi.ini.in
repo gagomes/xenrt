@@ -16,3 +16,4 @@ disable-logging = true
 buffer-size = 16384
 reload-on-rss = 350
 evil-reload-on-rss = 450
+env = KRB5_KTNAME=/etc/xenrt/keytab

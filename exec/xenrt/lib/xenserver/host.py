@@ -670,9 +670,12 @@ class Host(xenrt.GenericHost):
                                self.execdom0("md5sum /boot/%s" % imgFile))
         xenrt.TEC().logverbose("initrd has been rebuilt")
 
-    def asXapiObject(self):
-        objType = xenrt.lib.xenserver.XapiHost.OBJECT_TYPE
-        return xenrt.lib.xenserver.objectFactory().getObject(objType)(self.getCLIInstance(), objType, self.uuid)
+    @property
+    def xapiObject(self):
+        """Gets a XAPI Host object for this Host
+        @return: A xenrt.lib.xenserver.XapiHost object for this Host
+        @rtype: xenrt.lib.xenserver.XapiHost"""
+        return xenrt.lib.xenserver.XapiHost(self.getCLIInstance(), self.uuid)
 
     def getPool(self):
         if not self.pool:
@@ -808,7 +811,6 @@ class Host(xenrt.GenericHost):
             self.i_upgrade = upgrade
             self.i_async = async
             self.i_suppackcds = suppackcds
-            self.resetDisk()
 
         if upgrade:
             # Default to existing values if not specified
@@ -1833,8 +1835,17 @@ done
             self.execdom0('xe pif-set-primary-address-type primary_address_type=ipv6 uuid=%s' % pif)
             self.execdom0('xe host-management-reconfigure pif-uuid=%s' % pif)
             self.waitForSSH(300, "%s host-management-reconfigure (IPv6)" % self.getName())
-        
+
         return None
+
+    # Change the timestamp formatting in syslog
+    # For rsyslog (in Dundee):
+    # - TraditionalFileFormat: 1s resolution, default backwards compatible format
+    # - FileFormat: us resolution, useful for precise measurement of events in tests
+    def changeSyslogFormat(self, new="TraditionalFileFormat"):
+        orig="TraditionalFileFormat"
+        self.execdom0("sed -i 's/RSYSLOG_%s/RSYSLOG_%s/' /etc/rsyslog.conf" % (orig, new) )
+        self.execdom0("service rsyslog restart")
 
     def swizzleSymlinksToUseNonDebugXen(self, pathprefix):
             return """
@@ -2150,6 +2161,10 @@ fi
             # Check to ensure that there is a multipath topology if we did multipath boot.
             if not len(self.getMultipathInfo()) > 0 :
                 raise xenrt.XRTFailure("There is no multipath topology found with multipath boot")
+
+        syslogfmt = xenrt.TEC().lookup("DOM0_SYSLOG_FORMAT", None)
+        if syslogfmt:
+            self.changeSyslogFormat(syslogfmt)
 
     def waitForFirstBootScriptsToComplete(self):
         ret = ""
@@ -3359,19 +3374,11 @@ fi
 
     def isSvmHardware(self):
         """Return True if host is HVM compatible and has SVM enabled"""
-        if isinstance(self, xenrt.lib.xenserver.BostonHost):
-            return self.isHvmEnabled() and "svm" in self.getHostParam("cpu_info")
-        else:
-            cpuinfo = self.execdom0("cat /proc/cpuinfo")
-            return self.isHvmEnabled() and re.search(r"svm", cpuinfo)
+        return self.isHvmEnabled() and re.search(r"AuthenticAMD", self.execdom0("cat /proc/cpuinfo"))
 
     def isVmxHardware(self):
         """Return True if host is HVM compatible and has VMX enabled"""
-        if isinstance(self, xenrt.lib.xenserver.BostonHost):
-            return self.isHvmEnabled() and "vmx" in self.getHostParam("cpu_info")
-        else:
-            cpuinfo = self.execdom0("cat /proc/cpuinfo")
-            return self.isHvmEnabled() and re.search(r"vmx", cpuinfo)
+        return self.isHvmEnabled() and re.search(r"GenuineIntel", self.execdom0("cat /proc/cpuinfo"))
 
     def getBridgeWithMapping(self, index):
         """Returns the name of a bridge corresponding to the interface
@@ -6656,13 +6663,11 @@ fi
                         template = self.chooseTemplate(\
                             "TEMPLATE_NAME_SLES_%s_64" % (v))
                     else:
-                        template = self.chooseTemplate(\
-						    "TEMPLATE_NAME_SLES_%s" % (v))
+                        template = self.chooseTemplate("TEMPLATE_NAME_SLES_%s" % (v))
             elif re.search(r"sled\d+", distro):
                 v = re.search(r"sled(\d+)", distro).group(1)
                 if arch and arch == "x86-64":
-                    template = self.chooseTemplate(\
-                            "TEMPLATE_NAME_SLED_%s_64" % (v))
+                    template = self.chooseTemplate("TEMPLATE_NAME_SLED_%s_64" % (v))
                 else:
                     template = self.chooseTemplate("TEMPLATE_NAME_SLED_%s" % (v))
             elif re.search(r"sl7", distro):
@@ -6716,7 +6721,7 @@ fi
                                     (distro))
                 template = self.chooseTemplate("TEMPLATE_NAME_RHEL_5")
             else:
-                raise e
+                raise
 
         return template
 
@@ -8495,7 +8500,7 @@ rm -f /etc/xensource/xhad.conf || true
         args.append("plugin=prepare_host_upgrade.py")
         args.append("fn=main")
         args.append("args:url=%s/xe-phase-1/" % (xenrt.TEC().lookup("FORCE_HTTP_FETCH") + xenrt.TEC().lookup("INPUTDIR")))
-        output = cli.execute("host-call-plugin", string.join(args), timeout=480).strip()
+        output = cli.execute("host-call-plugin", string.join(args), timeout=900).strip()
         if output != "true":
             raise xenrt.XRTFailure("Unexpected output: %s" % (output))
         xenrt.TEC().logverbose("Expected output: %s" % (output))
@@ -12035,6 +12040,10 @@ class DundeeHost(CreedenceHost):
 
         # Without knowing SR, cannot determine whether it requires modification.
         if not sr:
+            return command
+
+        # If NO_XENVMD is defined and set to 'yes' xenvm modification is not required.
+        if xenrt.TEC().lookup("NO_XENVMD", False, boolean=True):
             return command
 
         # If given SR is not an SR instance consider it is a uuid and

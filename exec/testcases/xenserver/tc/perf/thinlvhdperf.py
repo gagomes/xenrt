@@ -68,23 +68,42 @@ class ThinLVHDPerfBase(testcases.xenserver.tc.perf.libperf.PerfTestCase):
         """Create a SR with given parameters"""
 
         if self.srtype=="lvmoiscsi":
-            size = srsize * xenrt.KILO # converting size to MiB
-            lun = xenrt.ISCSITemporaryLun(size)
-            sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, "lvmoiscsi", thin_prov=self.thinprov)
-            sr.create(lun, subtype="lvm", physical_size=size, findSCSIID=True, noiqnset=True)
+            size = srsize * xenrt.GIGA # converting size from GiB to bytes
+            if self.luntype=="default": # xenrt default lun for the host, usually a netapp backend
+                sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, "lvmoiscsi", thin_prov=self.thinprov)
+                sr.create(subtype="lvm", physical_size=size, findSCSIID=True)
+            elif self.luntype.startswith("controller"): # uses a iscsi server vm in the controller
+                lun = xenrt.ISCSITemporaryLun(size)
+                sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, "lvmoiscsi", thin_prov=self.thinprov)
+                sr.create(lun, subtype="lvm", physical_size=size, findSCSIID=True, noiqnset=True)
+            elif self.luntype.startswith("localvm"): # uses a iscsi server vm in the same host as the test vm
+                local_disk = None
+                if len(self.luntype.split(":")) > 1:
+                    local_disk = self.luntype.split(":")[1]
+
+                # create fast lvm sr in dom0 on the chosen dom0 local_disk
+                diskname = self.host.execdom0("basename `readlink -f %s`" % local_disk).strip()
+                sr = xenrt.lib.xenserver.LVMStorageRepository(self.host, 'SR-%s' % diskname)
+                sr.create(local_disk)  # TODO: default to what when local_disk is None?
+
+                # create local iscsi server vm backed by a fast local lvm sr on the chosen dom0 local_disk
+                lun = xenrt.ISCSIVMLun(host=self.host, sruuid=sr.uuid)
+                sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, "lvmoiscsi", thin_prov=self.thinprov)
+                sr.create(lun, subtype="lvm", physical_size=size, findSCSIID=True, noiqnset=True)
+            else:
+                raise xenrt.XRTError("LUN Type: %s not supported in the test" % self.luntype)
+
         elif self.srtype=="lvmohba":
-            fcLun = self.host.lookup("SR_FCHBA", "LUN0")
-            fcSRScsiid = self.host.lookup(["FC", fcLun, "SCSIID"], None)
+            fcLun = xenrt.HBALun([self.host])
             sr = xenrt.lib.xenserver.FCStorageRepository(self.host,  "lvmohba", thin_prov=self.thinprov)
-            sr.create(fcSRScsiid)
+            sr.create(fcLun)
         elif self.srtype=="nfs":
             sr = xenrt.lib.xenserver.NFSStorageRepository(self.host, "nfssr")
             sr.create()
         elif self.srttype =="lvmofcoe":
-            fcLun = self.host.lookup("SR_FCHBA", "LUN0")
-            fcSRScsiid = self.host.lookup(["FC", fcLun, "SCSIID"], None)
+            fcLun = xenrt.HBALun([self.host])
             sr= xenrt.lib.xenserver.FCOEStorageRepository(self.host, "FCOESR")
-            sr.create(fcSRScsiid)
+            sr.create(fcLun)
         else:
             raise xenrt.XRTError("SR Type: %s not supported in the test" % self.srtype)
 
@@ -108,9 +127,11 @@ class ThinLVHDPerfBase(testcases.xenserver.tc.perf.libperf.PerfTestCase):
             self.host = self.pool.master
 
     def postRun(self, arglist=None):
-        if hasattr(self, "createdSRs"):
-            for sr in self.createdSRs:
-                sr.remove()
+        # Do not remove VMs after the test or otherwise we will not be able to collect the logs in it
+        if False: #TODO: perhaps, in the future, add option to remove the SRs
+            if hasattr(self, "createdSRs"):
+                for sr in self.createdSRs:
+                    sr.remove()
 
 
 class TCIOLatency(ThinLVHDPerfBase):
@@ -121,11 +142,16 @@ class TCIOLatency(ThinLVHDPerfBase):
             "arch": ["x86-64", "arch", "ARCH"],
             "srsize": ["100", "srsize", "SRSIZE"],
             "srtype": ["lvmoiscsi", "srtype", "SRTYPE"],
+            "luntype": ["default", "luntype", "LUNTYPE"],  # eg: default, controller, localvm:/dev/sdb
             "thinprov": [False, "thinprov", "THINPROV"],
             "goldvm": ["vm00", "goldvm"],
             "edisks": [1, "edisks"],
+            "vdisize": [2, "vdisize", "VDISIZE"],          # VDI size for the edisks used in the test, default 2GiB: TODO: make this do something
             "bufsize": [512, "bufsize"],
             "groupsize": [1, "groupsize"],
+            "tool": ["fio", "tool"],   # fio or dprofiler
+            "zone": [2097152, "zone"], # for fio: zonesize=bufsize, and zone=zonesize+zoneskip. Ie, write bufsize bytes, then skip (zone - bufsize), until end of srsize
+            "iodepth": [1, "iodepth"], # only in fio this will be >1
     }
 
     def __init__(self, tcid=None):
@@ -134,6 +160,7 @@ class TCIOLatency(ThinLVHDPerfBase):
         self.clones = []
         self.edisk = ( None, 2, False )  # definition of an extra disk of 2GiB.
         self.diskprefix = None  # can be "hd" for KVM or "xvd" for Xen
+        self.logpath = "/tmp/fio" # in the guest
 
     def prepare(self, arglist=[]):
 
@@ -150,7 +177,7 @@ class TCIOLatency(ThinLVHDPerfBase):
 
         # Check if there any golden image.
         existingGuests = self.host.listGuests()
-        if existingGuests:
+        if existingGuests and not self.luntype.startswith("localvm"):
             vm = map(lambda x:self.host.getGuest(x), existingGuests)
             self.goldenVM = vm[0] # if so, pick the first one available.
         else: # Install a one with name 'vm00' with the specified extra disks.
@@ -161,13 +188,25 @@ class TCIOLatency(ThinLVHDPerfBase):
                             distro=self.distro,
                             arch=self.arch,
                             vifs=xenrt.productLib(host=self.host).Guest.DEFAULT,
+                            sr=sr.uuid,
+                            memory=4096,         #4096MB: do not swap during test
                             disks=extraDisks)
 
         self.diskprefix = self.goldenVM.vendorInstallDevicePrefix()
 
-    def collectMetrics(self, guest):
-        """Collect iolatency metrics for a given guest"""
+    def runFio(self, guest):
+        cmd = "/root/fio/fio --name=jobname --direct=1 --filename=/dev/%sb --ioengine=libaio --iodepth=%s --rw=write --bs=%s --zonesize=%s --zoneskip=%s --write_lat_log=%s --write_bw_log=%s --write_iops_log=%s --io_limit=%s" % (self.diskprefix, self.iodepth, self.bufsize, self.bufsize, (self.zone - self.bufsize), self.logpath, self.logpath, self.logpath, (self.bufsize * (self.vdisize * xenrt.GIGA / self.zone)) )
+        xenrt.TEC().logverbose("fio cmd for guest = %s" % (cmd,))
+        results = guest.execguest(cmd)
+        xenrt.TEC().logverbose("fio results for guest = %s" % (results,))
+        self.getLogsFrom(guest, ["%s_lat.1.log"  % (self.logpath,) ] )
+        self.getLogsFrom(guest, ["%s_slat.1.log" % (self.logpath,) ] )
+        self.getLogsFrom(guest, ["%s_clat.1.log" % (self.logpath,) ] )
+        self.getLogsFrom(guest, ["%s_iops.1.log" % (self.logpath,) ] )
+        self.getLogsFrom(guest, ["%s_bw.1.log"   % (self.logpath,) ] )
+        return results
 
+    def runDProfiler(self, guest):
         # This test makes use of the disk profiler tool from performance team
         # to gather the read/write latency of the given block device.
         # The tool opens the block device in O_DIRECT mode.
@@ -194,23 +233,53 @@ class TCIOLatency(ThinLVHDPerfBase):
         f.write("------------------------------------------\n")
         f.close()
 
+    def collectMetrics(self, guest):
+        """Collect iolatency metrics for a given guest"""
+
+        if self.tool == "fio":
+            self.runFio(guest)
+        elif self.tool == "dprofiler":
+            self.runDProfiler(guest)
+        else:
+            raise xenrt.XRTError("unknown tool %s" % (self.tool,))
+
     def cloneStart(self, clone):
         """Start the cloned guest"""
 
         clone.tailored = True
         clone.start()
 
-    def run(self, arglist=None):
+    def installFioOnLinuxGuest(self, guest):
+        disturl = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+        filename = "fio-2.2.7-22-g36870.tar.bz2"
+        fiourl = "%s/performance/support-files/%s" % (disturl, filename)
+        xenrt.TEC().logverbose("Getting fio from %s" % (fiourl,))
+        fiofile = xenrt.TEC().getFile(fiourl,fiourl)
+        sftp = guest.sftpClient()
+        rootfiotar = "/root/%s" % filename
+        sftp.copyTo(fiofile, rootfiotar)
+        guest.execguest('tar xjf %s' % rootfiotar)
+        guest.execguest('cd /root/fio && make')
 
+    def installDProfilerOnLinuxGuest(self, guest):
         # Install disk profiler tool to golden image 'vm00'
-        if self.goldenVM.execcmd('test -e /root/perf-latency/diskprofiler/dprofiler', retval='code') != 0:
-            self.goldenVM.execguest("cd /root && wget '%s/perf-latency.tgz'" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
-            self.goldenVM.execguest("cd /root && tar -xzf perf-latency.tgz")
-            self.goldenVM.execguest("cd /root/perf-latency/diskprofiler && gcc dprofiler.c -o dprofiler && chmod +x dprofiler")
+        if guest.execcmd('test -e /root/perf-latency/diskprofiler/dprofiler', retval='code') != 0:
+            guest.execguest("cd /root && wget '%s/perf-latency.tgz'" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
+            guest.execguest("cd /root && tar -xzf perf-latency.tgz")
+            guest.execguest("cd /root/perf-latency/diskprofiler && gcc dprofiler.c -o dprofiler -lrt && chmod +x dprofiler")
 
         # Check, if installed correctly.
-        if self.goldenVM.execcmd('test -e /root/perf-latency/diskprofiler/dprofiler', retval='code') != 0:
+        if guest.execcmd('test -e /root/perf-latency/diskprofiler/dprofiler', retval='code') != 0:
             raise xenrt.XRTError("Disk profiler tool is not installed correctly.")
+
+    def run(self, arglist=None):
+
+        if self.tool == "fio":
+            self.installFioOnLinuxGuest(self.goldenVM)
+        elif self.tool == "dprofiler":
+            self.installDProfilerOnLinuxGuest(self.goldenVM)
+        else:
+            raise xenrt.XRTError("unknown tool %s" % (self.tool,))
 
         # Shutdown the golden image before proceeding to generate multiple copies.
         self.goldenVM.shutdown()
@@ -255,18 +324,20 @@ class TCIOLatency(ThinLVHDPerfBase):
             raise xenrt.XRTFailure("Failed to run %d / %d io latency tests." % (exceptions, len(results)))
 
     def postRun(self, arglist=None):
-        # Removing all cloned VMs after the test run.
-        errors = []
-        for clone in self.clones:
-            xenrt.TEC().progress("Uninstalling VM %s" % clone.getName())
-            try:
-                clone.uninstall()
-            except Exception, e:
-                errors.append(clone.getName() + ":" + str(e))
+        # Do not remove VMs after the test or otherwise we will not be able to collect the logs in it
+        if False: #TODO: perhaps, in the future, add option to remove the vms
+            # Removing all cloned VMs after the test run.
+            errors = []
+            for clone in self.clones:
+                xenrt.TEC().progress("Uninstalling VM %s" % clone.getName())
+                try:
+                    clone.uninstall()
+                except Exception, e:
+                    errors.append(clone.getName() + ":" + str(e))
 
-        if len(errors) > 1:
-            xenrt.TEC().logverbose("One or many guests failed to uninstall with error messages %s" % errors)
-            raise xenrt.XRTFailure("One or many guests failed to unisntall.")
+            if len(errors) > 1:
+                xenrt.TEC().logverbose("One or many guests failed to uninstall with error messages %s" % errors)
+                raise xenrt.XRTFailure("One or many guests failed to unisntall.")
 
         super(TCIOLatency, self).postRun(arglist)
 
@@ -282,6 +353,7 @@ class TCVDIScalability(ThinLVHDPerfBase):
     ENV_VARS = {"numvms": [100, "numvms", "VMCOUNT"],
             "distro": ["debian70", "distro", "DISTRO"],
             "srtype": ["lvmoiscsi", "srtype", "SRTYPE"],
+            "luntype": ["default", "luntype", "LUNTYPE"],  # eg: default, controller, localvm:/dev/sdb
             "srsize": ["100", "srsize", "SRSIZE"],
             "thinprov": [False, "thinprov", "THINPROV"],
             "outputfile": ["result_vdiscalability.txt", "outputfile", "OUTPUTFILE"],

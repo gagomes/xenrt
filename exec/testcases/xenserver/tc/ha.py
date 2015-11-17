@@ -325,18 +325,21 @@ class TC7829(xenrt.TestCase):
             self.pool = self.getDefaultPool()
 
         if self.USE_ISCSI:
-            # Set up the iscsi guest
-            host = self.pool.master
-            guest = host.createGenericLinuxGuest(allowUpdateKernel=False)
-            self.getLogsFrom(guest)
-            iqn = guest.installLinuxISCSITarget()
-            guest.createISCSITargetLun(0, 1024)
+            srs = self.pool.master.getSRs(type="lvmoiscsi")
+            if len(srs) == 0:
+                # If ISCSI SR is not present, creating one now.
+                # Set up the iscsi guest
+                host = self.pool.master
+                guest = host.createGenericLinuxGuest(allowUpdateKernel=False)
+                self.getLogsFrom(guest)
+                iqn = guest.installLinuxISCSITarget()
+                guest.createISCSITargetLun(0, 1024)
 
-            # Set up the iSCSI SR
-            sr = xenrt.lib.xenserver.ISCSIStorageRepository(host,"test-iscsi")
-            lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" %
-                                          (iqn, guest.getIP()))
-            sr.create(lun,subtype="lvm",findSCSIID=True)
+                # Set up the iSCSI SR
+                sr = xenrt.lib.xenserver.ISCSIStorageRepository(host,"test-iscsi")
+                lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" %
+                                              (iqn, guest.getIP()))
+                sr.create(lun,subtype="lvm",findSCSIID=True)
 
     def run(self, arglist=None):
         # Enable HA
@@ -461,14 +464,10 @@ class _HATest(xenrt.TestCase):
 
             # Configure an SR
             # Try FC first
-            fcsr = master.lookup("SR_FCHBA", "LUN0")
-            scsiid = master.lookup(["FC", fcsr, "SCSIID"], None)
-            if scsiid:
-                # Verify the LUN is available on all hosts (CA-155371)
-                for h in slaves:
-                    if h.lookup(["FC", fcsr, "SCSIID"], None) != scsiid:
-                        scsiid = None
-                        break
+            try:
+                lun = xenrt.HBALun(self.pool.getHosts())
+            except:
+                lun = None
             sr = None
             if self.SF_STORAGE.startswith("nfs"):
                 # use NFS if specified
@@ -486,11 +485,11 @@ class _HATest(xenrt.TestCase):
                 self.sr = sr
                 sr.create(share)
                 pool.addSRToPool(sr)
-            elif (scsiid and self.SF_STORAGE != "iscsi" and not iscsiLun):
+            elif (lun and self.SF_STORAGE != "iscsi" and not iscsiLun):
                 # Use FC
                 sr = xenrt.lib.xenserver.FCStorageRepository(master, "fc", thin_prov=(self.tcsku=="thin"))
                 self.sr = sr
-                sr.create(scsiid)
+                sr.create(lun)
                 pool.addSRToPool(sr)
             elif self.SF_STORAGE != "fc" or iscsiLun:
                 # Use ISCSI
@@ -796,13 +795,12 @@ class TC7935(_HATest):
         self.pool.addSRToPool(self.iscsiSR)
 
         # FC SR (if available)
-        fcsr = self.host.lookup("SR_FCHBA", "LUN0")
-        scsiid = self.host.lookup(["FC", fcsr, "SCSIID"], None)
+        lun = xenrt.HBALun(self.pool.getHosts())
         self.fcSR = None
-        if scsiid:
+        if lun:
             # Use FC
             self.fcSR = xenrt.lib.xenserver.FCStorageRepository(self.host, "fc")
-            self.fcSR.create(scsiid)
+            self.fcSR.create(lun)
             self.pool.addSRToPool(self.fcSR)
 
     def run(self, arglist=None):

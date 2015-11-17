@@ -147,19 +147,19 @@ class LunPerVDI(xenrt.TestCase):
         for lun in self.netAppFiler.getLuns(): 
             # Check 2. Still mapped to iGroup?
             if not lun.isMapped():
-                raise xenrt.XRTError("The LUN %s mapping status changed unexpectedly." % lun.getId())
+                raise xenrt.XRTError("The LUN %s mapping status changed unexpectedly." % lun.getID())
 
             # Check 3. Still Online?
             if not lun.isOnline():
-                raise xenrt.XRTError("The LUN %s online status changed unexpectedly." % lun.getId() )
+                raise xenrt.XRTError("The LUN %s online status changed unexpectedly." % lun.getID() )
 
             # Check 4. Share-state of the lun altered ?
             if (lun.sharedState() != xenrt.StorageArrayLun.ShareState.NotSet): 
-                raise xenrt.XRTError("The LUN %s shared status changed unexpectedly: was %s." % (lun.getId(), str(lun.sharedState())))
+                raise xenrt.XRTError("The LUN %s shared status changed unexpectedly: was %s." % (lun.getID(), str(lun.sharedState())))
 
             # Check 5. Size altered ? (more work to check unless required, for the time being as below.)
             if (lun.size() == 0):
-                raise xenrt.XRTError("The LUN %s size: %d has changed unexpectedly." % (lun.getId(), lun.size()))
+                raise xenrt.XRTError("The LUN %s size: %d has changed unexpectedly." % (lun.getID(), lun.size()))
 
     def createSR(self):
         """Creates Raw LUN SR on the host"""
@@ -269,7 +269,7 @@ class LunPerVDI(xenrt.TestCase):
                                     (vdiuuid, nameLabel, virtualSize, physicalSize, vdiType))
 
             # 1. Verify the default name of each LUN/VDI is set to SCSIID its associated LUN.
-            matchingLun = next((lun for lun in lunList if lun.getId() == nameLabel), None)
+            matchingLun = next((lun for lun in lunList if lun.getID() == nameLabel), None)
             
             if matchingLun == None:
                 raise xenrt.XRTFailure("The VDI does not have an associated SCSI ID %s as name-label." % nameLabel)
@@ -368,10 +368,9 @@ class TC18349(LunPerVDI):
         self.enableLVMBasedStorage()
 
         # Create a lvmoHBA SR on the host using the available static LUN.
-        fcLun = self.hosts[0].lookup("SR_FCHBA", "LUN0")
-        fcSRScsiid = self.hosts[0].lookup(["FC", fcLun, "SCSIID"], None)
+        fcLun = xenrt.HBALun(self.hosts)
         fcSR = xenrt.lib.xenserver.FCStorageRepository(self.hosts[0], "LVHDoHBA")
-        fcSR.create(fcSRScsiid)
+        fcSR.create(fcLun)
         self.hosts[0].addSR(fcSR)
 
         # Create RawHBA SR.
@@ -384,7 +383,7 @@ class TC18349(LunPerVDI):
         for vdi in vdiList:
             vdiNameLabel = self.hosts[0].genParamGet("vdi", vdi, "name-label")
             if vdiNameLabel:
-                if (vdiNameLabel == fcSRScsiid):
+                if (vdiNameLabel == fcLun.getID()):
                     raise xenrt.XRTFailure("LUN/VDI SR includes LUNs used by LVHDoHBA.")
             else:
                 raise xenrt.XRTFailure("The name-label of vdi uuid: %s is reported to be empty." % vdi)
@@ -563,7 +562,7 @@ class TC18357(LunPerVDI):
                                     (vdiNameLabel, list(set(deviceSizeBefore))[0]))
 
             # Deduce the NetApp serial number of the associated LUN of the VDI.
-            targetLun = next(lun for lun in self.netAppFiler.getLuns() if lun.getId() == vdiNameLabel)
+            targetLun = next(lun for lun in self.netAppFiler.getLuns() if lun.getID() == vdiNameLabel)
 
             xenrt.TEC().logverbose("Serial number of the LUN to be resized %s." % targetLun.getNetAppSerialNumber())
 
@@ -888,7 +887,7 @@ class TC20568(LunPerVDI):
             fcName = ("lvmoHBASR%d" % counter)
             fcSR = xenrt.lib.xenserver.FCStorageRepository(self.hosts[0], fcName, thin_prov=(self.tcsku=="thin"))
             self.lvmohbaSRObject.append(fcSR)
-            fcSR.create(lun.getId())
+            fcSR.create(lun)
             counter = counter + 1
 
         xenrt.TEC().logverbose("Time taken to create %d lvmoHBA SR on master %s is %s seconds." % 
@@ -972,9 +971,9 @@ class TC18372(LunPerVDI):
         self.pool.master = self.hosts[0]
 
         step("Creating a lvmohba SR")
-        scsiid = self.hosts[0].lookup(["FC", "LUN0", "SCSIID"], None)
+        lun = xenrt.HBALun(self.hosts)
         hba = xenrt.lib.xenserver.HBAStorageRepository(self.hosts[0], "hbasr")
-        hba.create(scsiid)
+        hba.create(lun)
         self.pool.addSRToPool(hba)
         
         step("Enabling HA on the lvmohba SR")
@@ -996,7 +995,7 @@ class TC18372(LunPerVDI):
 
         step("Cleaning up")  
         self.pool.disableHA()
-        hba.release()
+        hba.remove()
 
 class TC18373(LunPerVDI):
     """Verify whether DR feature works with LUN/VDI SR"""

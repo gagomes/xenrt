@@ -30,7 +30,7 @@ class ReadCacheTestCase(xenrt.TestCase):
         self.vmName = self.parseArgsKeyValue(arglist)["vm"]
         log("Using vm %s" % self.vmName)
         self.vm = self.getGuest(self.vmName)
-        self.srtype = self.vm.asXapiObject().VDI()[0].SR().srType()
+        self.srtype = self.vm.xapiObject.VDIs[0].SR.srType
 
         if self.vm.getState() != "UP":
             self.vm.start()
@@ -141,10 +141,10 @@ class TCRCForSRPlug(ReadCacheTestCase):
         self.__vdis = None
 
     def __storeVDIs(self):
-        self.__vdis = self.vm.asXapiObject().VDI()
+        self.__vdis = self.vm.xapiObject.VDIs
 
     def __plugReplugSR(self):
-        xsr = next((s for s in self.getDefaultHost().asXapiObject().SR() if s.srType() == self.srtype), None)
+        xsr = next((s for s in self.getDefaultHost().xapiObject.localSRs if s.srType == self.srtype), None)
         sr = xenrt.lib.xenserver.NFSStorageRepository.fromExistingSR(self.getDefaultHost(), xsr.uuid)
         sr.forget()
         sr.introduce()
@@ -154,9 +154,9 @@ class TCRCForSRPlug(ReadCacheTestCase):
             raise xenrt.Failure("Cannot find any VDI information. Are they stored before unplug SR?")
 
         # Plug the VDI to the VM
-        xsr = next((s for s in self.getDefaultHost().asXapiObject().SR() if s.srType() == self.srtype), None)
+        xsr = next((s for s in self.getDefaultHost().xapiObject.localSRs if s.srType == self.srtype), None)
         for xvdi in self.__vdis:
-            self.vm.createDisk(sizebytes=xvdi.size(), sruuid=xsr.uuid, vdiuuid=xvdi.uuid, bootable=True)
+            self.vm.createDisk(sizebytes=xvdi.size, sruuid=xsr.uuid, vdiuuid=xvdi.uuid, bootable=True)
 
     def run(self, arglist):
         lowlevel, both = self.getArgs(arglist)

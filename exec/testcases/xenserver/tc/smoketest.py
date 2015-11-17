@@ -137,10 +137,31 @@ class _TCSmokeTest(xenrt.TestCase):
         if self.guest and self.guest.getState() != "DOWN":
             self.guest.shutdown(force=True)
 
+    def checkGuestMemory(self, expected):
+        """Validate the in-guest memory is what we expect (within 4%)"""
+        if expected is None:
+            return
+
+        if not xenrt.TEC().lookup("WORKAROUND_CA188967", True, boolean=True) and not self.guest.windows:
+            guestMemory = self.guest.getGuestMemory()
+            # Take into account any kdump kernel
+            kdumpSize = self.guest.os.getKdumpSize()
+            if kdumpSize:
+                xenrt.TEC().logverbose("Taking into account %uMB of crash kernel" % (kdumpSize / xenrt.MEGA))
+                guestMemory += (kdumpSize / xenrt.MEGA)
+            difference = abs(expected - guestMemory)
+            diffpct = (float(difference) / float(expected)) * 100
+            if diffpct > 4:
+                raise xenrt.XRTFailure("Guest reports %uMB memory, expecting %uMB" % (guestMemory, expected))
+
+
     def setMemory(self):
         self.guest.shutdown()
         self.guest.memset(self.postInstallMemory)
         self.guest.start()
+
+        # Check the in-guest memory matches what we expect
+        self.checkGuestMemory(self.postInstallMemory)
 
     def installOS(self):
 
@@ -163,6 +184,9 @@ class _TCSmokeTest(xenrt.TestCase):
         self.uninstallOnCleanup(self.guest)
         self.getLogsFrom(self.guest)
         self.guest.check()
+
+        # Check the in-guest memory matches what we expect
+        self.checkGuestMemory(self.memory)
 
     def installDrivers(self):
         self.guest.installDrivers()
@@ -308,6 +332,8 @@ class TCSmokeTestMaxMem(_TCSmokeTest):
     def getGuestParams(self):
         if xenrt.is32BitPV(self.distro, self.arch, release=self.host.productVersion):
             hostMaxMem = int(self.host.lookup("MAX_VM_MEMORY_LINUX32BIT"))
+        elif xenrt.is64BitHVM(self.distro, self.arch, release=self.host.productVersion):
+            hostMaxMem = int(self.host.lookup("MAX_VM_MEMORY_HVM"))
         else:
             hostMaxMem = int(self.host.lookup("MAX_VM_MEMORY"))
 
@@ -336,6 +362,10 @@ class TCSmokeTestMaxvCPUs(_TCSmokeTest):
     def getGuestParams(self):
         self.memory = self.getTemplateParams().defaultMemory * 2
         self.vcpus = "MAX"
+
+    def checkGuestMemory(self, expected):
+        xenrt.TEC().logverbose("Not checking guest reported memory in max vCPU tests (CA-187775)")
+        return
 
 class TCSmokeTestMinConfig(_TCSmokeTest):
     # Min vCPUS + memory

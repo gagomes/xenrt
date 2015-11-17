@@ -156,33 +156,22 @@ def chooseSRUuid(site, local_sr, sr_uuid, size):
     assert sr_uuid is None
     return createSR(site, size)
 
-
-def installLinuxVM(site, stationary_vm=False, sr_uuid=None):
-    
-    host = site['pool_master']
-    
-    sr_uuid = chooseSRUuid(site, stationary_vm, sr_uuid, '10GiB')
-    guest_name = randomGuestName()
-    if xenrt.TEC().lookup("USE_DEBIAN50", False, boolean=True):
-        distro = "debian50"
-    else:
-        distro = "generic-linux"
-    guest = host.createBasicGuest(distro, name=guest_name, sr=sr_uuid)
-    guest.reboot()
-    return (guest, 'linux', sr_uuid, distro)
-
-def installWindowsVM(site, stationary_vm=False, sr_uuid=None):
-
-    host = site['pool_master']
-    
+def installGuest(site, stationary_vm=False, sr_uuid=None, vm_type = 'linux'):
+    distro = vm_type == "linux" and "rhel5x" or "ws08sp2-x86"
+    masterVM = "master%sVM" % vm_type
     sr_uuid = chooseSRUuid(site, stationary_vm, sr_uuid, '30GiB')
-    guest_name = randomGuestName()
-    guest = host.createGenericWindowsGuest(name=guest_name, sr=sr_uuid, distro="ws08sp2-x86", memory=1024)
-    guest.unenlightenedShutdown()
-    guest.poll('DOWN')
-    guest.start()
+    if masterVM not in site:
+        if masterVM in site['pool_master'].listGuests():
+            site[masterVM] = site['pool_master'].getGuest(masterVM)
+        else:
+            sr = chooseSRUuid(site, True, None, None)
+            site[masterVM] = site['pool_master'].createBasicGuest(name=masterVM, sr=sr, distro=distro, memory=1024)
+            site[masterVM].shutdown()
+            site[masterVM].distro = distro
 
-    return (guest, 'windows', sr_uuid, 'ws08sp2-x86')
+    guest = site[masterVM].copyVM(name=randomGuestName(), sruuid=sr_uuid)
+    guest.start()
+    return (guest, sr_uuid, distro)
 
 def upgradePool(pool):
     pool_upgrade = xenrt.lib.xenserver.host.RollingPoolUpdate(pool)
@@ -523,7 +512,8 @@ class DRUtils(object):
         vm_start_delay = site['vm_start_delay']
 
         for i in range(site_params['vms_in_an_appliance']):
-            (guest, vm_type, vm_sr_uuid, distro) = installLinuxVM(site, sr_uuid=sr_uuid)
+            vm_type = 'linux'
+            (guest, vm_sr_uuid, distro) = installGuest(site, sr_uuid=sr_uuid, vm_type = vm_type)
             appliance.addVM(guest, vm_type, vm_sr_uuid, distro)
             guest.getHost().genParamSet('vm', guest.getUUID(), 'order', str(i))
             guest.getHost().genParamSet('vm', guest.getUUID(), 'start-delay', str(vm_start_delay))
@@ -551,7 +541,8 @@ class DRUtils(object):
                 sr_uuid = createSR(site, str(sr_size) + 'GiB')
 
             for i in range(site_params['win_vms']):
-                (guest, vm_type, vm_sr_uuid, distro) = installWindowsVM(site, sr_uuid=sr_uuid)
+                vm_type = 'windows'
+                (guest, vm_sr_uuid, distro) = installGuest(site, sr_uuid=sr_uuid, vm_type = vm_type)
                 site['vms'][guest.getName()] = { 'guest'   : guest, 
                                                  'vm_type' : vm_type, 
                                                  'vm_uuid' : guest.getUUID(), 
@@ -567,7 +558,8 @@ class DRUtils(object):
 
             
             for i in range(site_params['lin_vms']):
-                (guest, vm_type, vm_sr_uuid, distro) = installLinuxVM(site, sr_uuid=sr_uuid)
+                vm_type = 'linux'
+                (guest, vm_sr_uuid, distro) = installGuest(site, sr_uuid=sr_uuid, vm_type=vm_type)
                 site['vms'][guest.getName()] = { 'guest'   : guest, 
                                                  'vm_type' : vm_type, 
                                                  'vm_uuid' : guest.getUUID(), 
@@ -576,7 +568,8 @@ class DRUtils(object):
 
         if site_params.has_key('stationary_vms'):
             for i in range(site_params['stationary_vms']):
-                (guest, vm_type, vm_sr_uuid, distro) = installLinuxVM(site, stationary_vm=True)
+                vm_type = 'linux'
+                (guest, vm_sr_uuid, distro) = installGuest(site, stationary_vm=True, vm_type=vm_type)
                 site['stationary_vms'][guest.getName()] = { 'guest'   : guest, 
                                                             'vm_type' : vm_type, 
                                                             'vm_uuid' : guest.getUUID(), 
@@ -624,9 +617,16 @@ class DRUtils(object):
         assert self.sites.has_key(site_name)
         site = self.sites[site_name]
         host = site['pool_master']
-                
-        pbds = host.minimalList("pbd-list",args="sr-uuid=%s" % sr_uuid) 
-        
+
+        # PBD should be unplugged from slaves first and master last.
+        if host.pool:
+            pbds = []
+            for h in host.pool.slaves.values():
+                pbds += host.minimalList("pbd-list",args="sr-uuid=%s host-uuid=%s" % (sr_uuid, h.uuid))
+            pbds += host.minimalList("pbd-list",args="sr-uuid=%s host-uuid=%s" % (sr_uuid, host.uuid))
+        else:
+            pbds = host.minimalList("pbd-list",args="sr-uuid=%s" % sr_uuid)
+
         cli = host.getCLIInstance()
         for pbd in pbds:
             pbd = pbd.strip()
@@ -875,7 +875,8 @@ class DRUtils(object):
         assert site.has_key('pool_master')
 
         host = site['pool_master']
-        
+        #set suspend image SR to SR on which VM resides
+        self.setVMSuspendSR(site)
         for vm in site['vms'].values():
             guest = vm['guest']
             guest.suspend()
@@ -884,10 +885,7 @@ class DRUtils(object):
         return
 
 
-    def setVMSuspendSR(self, site_name):
-        assert self.sites.has_key(site_name)
-        site = self.sites[site_name]
-
+    def setVMSuspendSR(self, site):
         assert site.has_key('vms')
         assert site.has_key('pool_master')
 
@@ -955,19 +953,19 @@ class DRUtils(object):
             return
         
         bad_copy = self.createVDI(site)
-        cli = host.getCLIInstance()
 
         for vm in suspended_vms:
             suspend_vdi = host.genParamGet('vm', vm['vm_uuid'], 'suspend-VDI-uuid')
             good_copy_1 = self.copyVDI(site, suspend_vdi) 
             self.setSuspendVDI(host, vm['vm_uuid'], bad_copy, accept_failure=True)
             self.setSuspendVDI(host, vm['vm_uuid'], good_copy_1, accept_failure=False)
-            cli.execute('vdi-destroy', 'uuid=%s' % suspend_vdi)
+            host.destroyVDI(suspend_vdi)
+            xenrt.sleep(30)
             good_copy_2 = self.copyVDI(site, good_copy_1, sr_uuid=vm['sr_uuid'])
             self.setSuspendVDI(host, vm['vm_uuid'], good_copy_2, accept_failure=False)
-            cli.execute('vdi-destroy', 'uuid=%s' % good_copy_1)
+            host.destroyVDI(good_copy_1)
 
-        cli.execute('vdi-destroy', 'uuid=%s' % bad_copy)
+        host.destroyVDI(bad_copy)
         return
 
     def setupSite(self, site_params):
@@ -1539,7 +1537,7 @@ class DRUtils(object):
             g['guest'].changeCD(None)
             
     def upgradeVMs(self, site_name):
-        
+
         # upgrade guest objects
         assert self.sites.has_key(site_name)
         site = self.sites[site_name]
@@ -1550,21 +1548,19 @@ class DRUtils(object):
             pass
         else:
             return
-        
-        vms = site['vms'].values()
-        
-        for g in vms:
+
+        vms = site['vms']
+        for n,g in vms.iteritems():
+            newGuest = createGuestObject(g['guest'].host, g['vm_uuid'], g['distro'], g['vm_type'])
+            vms[n]['guest'] = newGuest
+
+        for g in vms.values():
             xenrt.TEC().progress("Upgrading VM %s" % (g['guest'].getName()))
             if g['guest'].windows:
                 g['guest'].installDrivers()
             else:
-                # Workaround for CA-78632
-                xenrt.TEC().logverbose("CA-78632 class %s template: %s" % (host.__class__, g['guest'].template))
-                if re.search("Lenny", g['guest'].template) and isinstance(host, xenrt.lib.xenserver.TampaHost):
-                    xenrt.TEC().logverbose("Skipping tools upgrade on %s" % (g['guest'].getName()))
-                else:
-                    g['guest'].installTools()
-        for g in vms:
+                g['guest'].installTools()
+        for g in vms.values():
             g['guest'].checkHealth()
 
 
@@ -1644,7 +1640,6 @@ class _DRBase(xenrt.TestCase):
             self.dr_utils.startVMs('site_A', handle_stationary_vms=True)
             self.dr_utils.upgradeVMs('site_A')
             if self.SUSPEND_VMS:
-                self.dr_utils.setVMSuspendSR('site_A')
                 self.dr_utils.suspendVMs('site_A')
 
         self.dr_utils.createMetadataSRs(site_name='site_A', no_of_srs=site_params['no_of_metadata_srs'])

@@ -2228,7 +2228,7 @@ class TCVerifyLackOfMobility(VGPUOwnedVMsTest):
     def __createSxmMap(self, vm):
         """Here be dragons"""
         #Need a dictionary of pairs where key = vdi uuid and value = sr.uuid for the VDIs to be moved
-        return dict([(vdi.uuid, vdi.SR().uuid) for vdi in vm.asXapiObject().VDI()])
+        return dict([(vdi.uuid, vdi.SR.uuid) for vdi in vm.xapiObject.VDIs])
 
     def __migrateRunningHost(self, host, vm, live = "false", sxm = False):
         if vm.getState() != "UP":
@@ -3376,8 +3376,9 @@ class MixedGPUBootstorm(BootstormBase):
         linuxAllocation = passthroughAllocation - windowsAllocation
 
         linuxMaster = masters[self.LINUX_TYPE]
-
-        self.__configureMasterAndPopulate(linuxMaster, config, linuxAllocation, installer, self.nvidLinvGPU)
+        linuxMaster.setState("DOWN")
+        linPassthroughMaster = linuxMaster.cloneVM(noIP=False)
+        self.__configureMasterAndPopulate(linPassthroughMaster, config, linuxAllocation, installer, self.nvidLinvGPU)
 
         # Branch the windows master, so can use for both passthrough and vGPU
         windowsMaster = masters[self.WINDOWS_TYPE]
@@ -3740,8 +3741,112 @@ class TCSwitchIntelGPUModes(IntelBase):
             log("Caught expected exception: %s" % e)
         else:
             raise xenrt.XRTFailure(error)
+ 
+ 
+class TCM60HVMBase(FunctionalBase):
+    __metaclass__ = ABCMeta
 
+    def prepare(self, arglist):
+        super(TCM60HVMBase, self).prepare(arglist)        
+        step("Creating %d vGPUs configurations." % (len(self.VGPU_CONFIG)))
+        self.vGPUCreator = {}
+        for config in self.VGPU_CONFIG:
+            self.vGPUCreator[config] = VGPUInstaller(self.host, config)
 
+        for distro in self.REQUIRED_DISTROS:
+            osType = self.getOSType(distro)
+            log("Creating Master VM of type %s" % osType)
+            vm = self.createMaster(osType)
+            vm.enlightenedDrivers = True
+            vm.setState("UP")
+            self.masterVMsSnapshot[osType] = vm.snapshot()
+    
+    @abstractmethod
+    def insideRun(self, vm, config):
+        pass
+
+    def run(self, arglist):
+        for config in self.VGPU_CONFIG:
+            for distro in self.REQUIRED_DISTROS:
+                osType = self.getOSType(distro)
+                vm = self.masterVMs[osType]
+                self.insideRun(vm, config)
+                
+class TCNvidiaM60HVMLifeCycle(TCM60HVMBase):
+    """M60 HVM Linux Guests: Test suspend/resume/checkpoint fails for tied VM"""
+    
+    def insideRun(self, vm, config):
+        super(TCNvidiaM60HVMLifeCycle, self).insideRun(vm, config)
+        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
+        self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
+        self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
+        vm.setState("DOWN")
+        
+        vm1 = vm.cloneVM()
+        self.uninstallOnCleanup(vm1)
+        vm1.setState("UP")
+        vm1.shutdown()
+       
+        # start this VM
+        vm1.start(specifyOn=False)
+        # check the lifecycle operations pass / fail appropriately
+        step("Check that suspend fails for this VM")
+        self.lifeCycleTest(vm1.suspend, "suspend")
+                    
+        step("Check that checkpoint fails for this VM")
+        self.lifeCycleTest(vm1.checkpoint, "checkpoint")
+        
+        step("Check that live migrate fails for this VM")
+        self.lifeCycleTest(vm1.migrateVM, "live-migrate", self.host, live="true")
+
+        step("Check that 'dead' migrate fails for this VM")
+        self.lifeCycleTest(vm1.migrateVM, "dead-migrate", self.host, live="false")
+
+        step("Check that snapshot succeeds for this VM")
+        vm1.snapshot()
+    
+        step("Check that shutdown succeeds for this VM")
+        vm1.shutdown()
+        
+    def lifeCycleTest(self,lifeCycle, operation,*args, **kwargs):
+        try:
+            lifeCycle(*args, **kwargs)
+             
+        except Exception as e:
+            xenrt.TEC().logverbose("vm-%s failed as expected: %s" % (operation, str(e)))
+            
+        else: 
+            raise xenrt.XRTFailure("vGPU-bound VM did not fail %s as expected" % operation)
+
+class TCM60ReassignGPU(TCM60HVMBase):
+    """ This testcase will check if assigning a vGPU to a VM already containing a vGPU fails"""
+    def insideRun(self, vm, config):
+        super(TCM60ReassignGPU, self).insideRun(vm, config)
+        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
+        self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
+        self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
+        
+        step("Calling the reassign method to check if vgpu reassign fails")
+        self.reassignGPU(vm)
+            
+    def reassignGPU(self, vm):
+        cli = self.host.getCLIInstance()
+        step("Get the pGPU Uuid of the M60 pGPUs only")
+        self.pGPUs = GPUGroupManager(self.host).getPGPUUuids()
+        
+        step("Get the group Uuid of the M60 pGPUs only")
+        gpu_group_uuid = cli.execute("pgpu-list", "params=gpu-group-uuid, uuid=%s --minimal" % self.pGPUs[0])
+        vm.setState("DOWN")
+        
+        try:
+            cli.execute("vgpu-create", "vm-uuid=%s gpu-group-uuid=%s" % (vm.getUUID(), gpu_group_uuid)) 
+            
+        except xenrt.XRTFailure as e:
+            xenrt.TEC().logverbose("VGPU attach failed to the VM as expected: %s" % str(e))
+        
+        else:
+            raise xenrt.XRTFailure("vGPU-bound VM DID NOT FAIL to attach the  vGPU as expected") 
+ 
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
 
     """

@@ -29,6 +29,10 @@ class Path(object):
             return param
 
     def powerShellType(self, typename, items):
+        if type(typename) is list:
+            # Find the first non-null item in the list
+            typename = filter(lambda t: t != "null", typename)[0]
+
         if typename == "file":
             return "string"
         elif typename == "object":
@@ -224,9 +228,9 @@ class PowerShellBindings(XenRTAPIv2Swagger):
 
 Set-StrictMode -Version Latest
 
-$XenRTCreds = New-Object object |
+$XenRTCreds = New-Object -TypeName PSObject |
     Add-Member -MemberType NoteProperty -Name "ApiKey" -Value "" -Passthru |
-    Add-Member -MemberType NoteProperty -Name "Server" -Value "%s" -Passthru
+    Add-Member -MemberType NoteProperty -Name "Server" -Value "%s" -Passthru |
     Add-Member -MemberType NoteProperty -Name "MasterServer" -Value "%s" -Passthru
 
 function Connect-XenRT {

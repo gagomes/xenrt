@@ -870,7 +870,7 @@ sleep 30
         workdir = xenrt.TEC().getWorkdir()
         # If we want to create the Local SR manually, set up the firstboot script here
         self.firstBootSRInfo = None
-        if self.host.lookup("LOCAL_SR_POST_INSTALL", False, boolean=True): 
+        if self.host.mpathRoot and guestdisks != [primarydisk]: 
             defaultSRType = self.host.lookup("DEFAULT_SR_TYPE", "lvm")
             if installSRType:
                 self.firstBootSRInfo = (guestdisks[0], installSRType)

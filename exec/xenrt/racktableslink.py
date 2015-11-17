@@ -282,9 +282,6 @@ def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
     if not xenrt.TEC().lookupHost(machine, "OPTION_ROOT_MPATH", None):
         if o.getAttribute("Multipath Root Disk") == "Yes":
             xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"OPTION_ROOT_MPATH"], "enabled")
-            if not xenrt.TEC().lookupHost(machine, "LOCAL_SR_POST_INSTALL", None) \
-                    and xenrt.TEC().lookupHost(machine, "OPTION_CARBON_DISKS", None) != xenrt.TEC().lookupHost(machine, "OPTION_GUEST_DISKS", None):
-                xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"LOCAL_SR_POST_INSTALL"], "yes")
 
     # Other config
     comment = o.getComment() or ""

@@ -900,7 +900,6 @@ class TC27246(xenrt.TestCase):
         guest_disks = self.lookup(["UCSISCSI", "GUEST_DISKS"])
         self.override("OPTION_CARBON_DISKS", carbon_disks)
         self.override("OPTION_GUEST_DISKS", guest_disks)
-        self.override("LOCAL_SR_POST_INSTALL", "no")
         self.override("DOM0_EXTRA_ARGS", "use_ibft")
         self.host = xenrt.lib.xenserver.createHost(id=0, installnetwork="NSEC")
 

@@ -215,10 +215,8 @@ def createHost(id=0,
         # If we're multipathed, we'll need to create the local SR after installation, if not then the installer can set it up for us
         if len(iScsiBootNets) > 1:
             xenrt.TEC().config.setVariable(["HOST_CONFIGS",host.getName(),"OPTION_ROOT_MPATH"],"yes")
-            xenrt.TEC().config.setVariable(["HOST_CONFIGS",host.getName(),"LOCAL_SR_POST_INSTALL"],"yes")
         else:
             xenrt.TEC().config.setVariable(["HOST_CONFIGS",host.getName(),"OPTION_ROOT_MPATH"],"no")
-            xenrt.TEC().config.setVariable(["HOST_CONFIGS",host.getName(),"LOCAL_SR_POST_INSTALL"],"no")
 
     if enableAllPorts:
         host.enableAllNetPorts()
@@ -1011,7 +1009,7 @@ class Host(xenrt.GenericHost):
         
         # If we want to create the Local SR manually, set up the firstboot script here
         firstBootSRInfo = None
-        if self.lookup("LOCAL_SR_POST_INSTALL", False, boolean=True): 
+        if self.mpathRoot and guestdisks != [primarydisk]: 
             defaultSRType = self.lookup("DEFAULT_SR_TYPE", "lvm")
             if installSRType:
                 firstBootSRInfo = (guestdisks[0], installSRType)

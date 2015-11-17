@@ -670,7 +670,7 @@ class Host(xenrt.GenericHost):
 
     @property
     def mpathRoot(self):
-        return self.lookup("OPTION_ROOT_MPATH", False, boolean=True) and not self.lookup("FORCE_NO_ROOT_MPATH", False, boolean=True) and not self.lookup("NO_SAN_ROOT", False, boolean=True)
+        return self.lookup("OPTION_ROOT_MPATH", False, boolean=True) and not self.lookup("FORCE_NO_ROOT_MPATH", False, boolean=True) and self.lookup("OVERRIDE_BOOT_TYPE", None) != "NOSAN"
 
     @property
     def xapiObject(self):

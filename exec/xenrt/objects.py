@@ -6829,20 +6829,21 @@ chain tftp://${next-server}/%s
 
         return subnetMask,gateway
 
-    def getChainBoot(self, noSan=False):
-        noSan = noSan or self.lookup("NO_SAN_ROOT", False, boolean=True)
-        ret = None
-        if noSan:
-            ret = self.lookup("PXE_CHAIN_LOCAL_BOOT_NOSAN", None)
+    def getChainBoot(self, overrideBoot=None):
+        if not overrideBoot:
+            overrideBoot = self.lookup("OVERRIDE_BOOT_TYPE", None)
+        if overrideBoot:
+            ret = self.lookup("PXE_CHAIN_LOCAL_BOOT_%s" % overrideBoot, None)
         if not ret:
             ret = self.lookup("PXE_CHAIN_LOCAL_BOOT", None)
         return ret
 
-    def _getDisks(self, var, sdfallback, count, ccissIfAvailable, legacySATA, noSan):
-        noSan = noSan or self.lookup("NO_SAN_ROOT", False, boolean=True)
+    def _getDisks(self, var, sdfallback, count, ccissIfAvailable, legacySATA, overrideBoot):
+        if not overrideBoot:
+            overrideBoot = self.lookup("OVERRIDE_BOOT_TYPE", None)
         disks = None
-        if noSan:
-            varlist = ["%s_NOSAN" % var, var]
+        if overrideBoot:
+            varlist = ["%s_%s" % (var, overrideBoot), var]
         else:
             varlist = [var]
         for v in varlist:
@@ -6874,14 +6875,14 @@ chain tftp://${next-server}/%s
         else:
             return string.split(disks)[:count]
 
-    def _getMainDisks(self, count, ccissIfAvailable, legacySATA, noSan):
-        return self._getDisks("OPTION_CARBON_DISKS", True, count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA, noSan=noSan)
+    def _getMainDisks(self, count, ccissIfAvailable, legacySATA, overrideBoot):
+        return self._getDisks("OPTION_CARBON_DISKS", True, count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA, overrideBoot=overrideBoot)
 
-    def getInstallDisk(self, ccissIfAvailable=False, legacySATA=False, noSan=False):
-        return self._getMainDisks(ccissIfAvailable=ccissIfAvailable, count=1, legacySATA=legacySATA, noSan=noSan)[0]
+    def getInstallDisk(self, ccissIfAvailable=False, legacySATA=False, overrideBoot=None):
+        return self._getMainDisks(ccissIfAvailable=ccissIfAvailable, count=1, legacySATA=legacySATA, overrideBoot=overrideBoot)[0]
 
-    def getGuestDisks(self, count=1, ccissIfAvailable=False, legacySATA=False, noSan=False):
-        disks = self._getDisks("OPTION_GUEST_DISKS", False, count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA, noSan=noSan)
+    def getGuestDisks(self, count=1, ccissIfAvailable=False, legacySATA=False, overrideBoot=None):
+        disks = self._getDisks("OPTION_GUEST_DISKS", False, count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA, overrideBoot=overrideBoot)
         if disks:
             return disks
         else:

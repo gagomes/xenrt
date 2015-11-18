@@ -137,7 +137,7 @@ class SXAgent(object):
 
         return False
 
-    def createEnvironment(self, host=None):
+    def createEnvironment(self, host=None, addToRegistry=True):
         """Create environment with existing agent and XenServer"""
 
         if self.nodeId == None:
@@ -146,8 +146,10 @@ class SXAgent(object):
         if not host:
             host = self.agentVM.host
 
-        self.apiHandler.execute(method="POST", category="providers",
-            params = {"name": xenrt.TEC().lookup("SX_ENVIRONMENT_NAME", "xenrt-%s" % xenrt.TEC().lookup("JOBID", "nojob")),
+        name = xenrt.TEC().lookup("SX_ENVIRONMENT_NAME", "xenrt-%s" % xenrt.TEC().lookup("JOBID", "nojob"))
+
+        p = self.apiHandler.execute(method="POST", category="providers",
+            params = {"name": name,
                 "providercode": "xenserver",
                 "server": "http://" + host.getIP(),
                 "username": "root",
@@ -155,4 +157,7 @@ class SXAgent(object):
                 "agentId": str(self.nodeId)
             }
         )
+
+        if addToRegistry:
+            xenrt.TEC().registry.sxProviderPut(name, p)
 

@@ -455,3 +455,12 @@ class Registry(object):
 
     def srGetAll(self):
         return self.objGetAll("sr")
+
+    def sxProviderPut(self, id, p):
+        self.objPut("sxProvider", id, p)
+
+    def sxProviderGet(self, id):
+        return self.objGet("sxProvider", id)
+
+    def sxProviderGetDefault(self):
+        return self.objGetDefault("sxProvider")

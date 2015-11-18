@@ -26,6 +26,8 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
             self.handleInstanceNode(x, template=False)
         for x in self.data.get("vlans", []):
             self.handleVLANNode(x)
+        for x in self.data.get("blueprints", []):
+            self.handleBlueprintNode(x)
         
         if "multihosts" in self.data:
             self.handleMultiHostNode(self.data['multihosts'])
@@ -573,6 +575,18 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
             self.parent.instances.append(instance)
         return instance
 
+    def handleBlueprintNode(self, node):
+        blueprint = {}
+
+        blueprint["name"] = node["name"]
+        blueprint["version"] = node["version"]
+        blueprint["deploymentProfileTemplateName"] = node["version"]
+        if "templateName" in node:
+            blueprint["template"] = node["templateName"]
+
+        self.parent.blueprints.append(blueprint)
+        return blueprint
+
 
 class PrepareNodeParserXML(PrepareNodeParserBase):
 
@@ -610,6 +624,8 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
                 self.handleInstanceNode(n, template=False)
             elif n.localName == "vlan":
                 self.handleVLANNode(n)
+            elif n.localName == "blueprint":
+                self.handleBlueprintNode(n)
         
         # Do the cloud nodes now the other hosts have been allocated
         for n in self.data.childNodes:
@@ -1049,6 +1065,22 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
             self.parent.instances.append(instance)
         return instance
 
+    def handleBlueprintNode(self, node):
+        blueprint = {}
+        blueprint["name"] = self.expand(node.getAttribute("name"))
+        blueprint["version"] = self.expand(node.getAttribute("version"))
+        blueprint["deploymentProfileTemplateName"] = self.expand(node.getAttribute("deploymentProfileTemplateName"))
+
+        for x in node.childNodes:
+            if x.nodeType == x.ELEMENT_NODE:
+                if x.localName == "templateName":
+                    for a in x.childNodes:
+                        if a.nodeType == a.TEXT_NODE:
+                            blueprint["template"] = self.expand(str(a.data))
+
+        self.parent.blueprints.append(blueprint)
+        return blueprint
+
 class PrepareNode(object):
 
     def __init__(self, toplevel, node, params):
@@ -1069,6 +1101,7 @@ class PrepareNode(object):
         self.preparecount = 0
         self.params = params
         self.containerHosts = []
+        self.blueprints = []
 
         parser = None
         for n in node.childNodes:
@@ -1820,6 +1853,20 @@ class PrepareNode(object):
                 for w in workers:
                     if w.exception:        
                         raise w.exception
+            if len(self.blueprints) > 0:
+                queue = InstallWorkQueue()
+                for b in self.blueprints:
+                    queue.add(b)
+                workers = []
+                for i in range(max(int(xenrt.TEC().lookup("PREPARE_WORKERS", "4")), 4)):
+                    w = BlueprintInstallWorker(queue, name="BPWorker%02u" % (i))
+                    workers.append(w)
+                    w.start()
+                for w in workers:
+                    w.join()
+                for w in workers:
+                    if w.exception:
+                        raise w.exception
 
         except Exception, e:
             sys.stderr.write(str(e))
@@ -2059,4 +2106,16 @@ class InstanceInstallWorker(_InstallWorker):
     def doWork(self, work):
         toolstack = xenrt.TEC().registry.toolstackGetDefault()
         toolstack.createInstance(**work) 
+
+class BlueprintInstallWorker(_InstallWorker):
+    """Worker thread for parallel blueprint installs"""
+    def doWork(self, work):
+        # TODO: Generalise for other hypervisors + multiple pool scenarios etc
+        sxp = xenrt.lib.scalextreme.sxprocess.SXProcess.getByName(work["name"], work["version"], work["deploymentProfileTemplateName"])
+
+        provider = xenrt.TEC().registry.sxProviderGetDefault()
+        template = xenrt.TEC().registry.guestGet(work["template"])
+        host = template.getHost()
+
+        sxp.deploy(provider['providerId'], host, template.getUUID(), template.password)
 

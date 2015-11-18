@@ -28,9 +28,9 @@
         <disk device="0" size="32" />
       </vm>
     </host>
+    <blueprint name="XenApp and XenDesktop Proof of Concept (25)" deploymentProfileTemplateName="xenrt-template">
+      <templateName>Windows Server 2012 R2</templateName>
+    </blueprint>
   </prepare>
-  <testsequence>
-    <testcase id="scalextreme.poc.XDPoc" />
-  </testsequence>
 </xenrt>
 

@@ -173,7 +173,7 @@ class LinuxOS(OS):
     def visibleMemory(self):
         """Memory visible on the guest in MB, including any used by a crash kernel"""
         assert self.parent._osParent_getPowerState() == xenrt.PowerState.up, "OS not running"
-        data = self.execcmd("cat /proc/meminfo")
+        data = self.execSSH("cat /proc/meminfo")
         rc = re.search(r"MemTotal:\s+(\d+)\s+kB", data)
         return (int(rc.group(1)) - self._getKdumpSize()) / xenrt.KILO
 

@@ -12531,6 +12531,7 @@ class Pool(object):
             except xenrt.XRTFailure, e:
                 if not retry:
                     return None
+                xenrt.sleep(10)
 
         if pc.strip() == "master":
             return host

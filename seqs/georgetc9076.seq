@@ -2,6 +2,7 @@
 
   <variables>
     <PRODUCT_VERSION>George</PRODUCT_VERSION>
+    <OVERRIDE_BOOT_TYPE>NOSAN</OVERRIDE_BOOT_TYPE>
   </variables>
 
   <prepare>

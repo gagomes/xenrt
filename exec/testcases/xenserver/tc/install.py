@@ -98,6 +98,17 @@ class TC9352(_HostInstall):
         self.host.addSR(self.fcSR, default=True)
         
         # Create an iSCSI SR
+        if self.ISCSI_SR_MULTIPATHED:
+            self.host.createNetworkTopology("""<NETWORK>
+        <PHYSICAL network="NPRI">
+            <NIC />
+            <MANAGEMENT />
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+            <NIC />
+            <STORAGE />
+        </PHYSICAL>
+    </NETWORK>""")
         self.iscsiSR = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, "iscsi TC9352")
         self.iscsiSR.create(subtype="lvm", multipathing=self.ISCSI_SR_MULTIPATHED)
         self.host.addSR(self.iscsiSR)

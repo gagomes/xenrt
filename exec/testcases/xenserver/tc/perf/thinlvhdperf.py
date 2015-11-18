@@ -100,7 +100,7 @@ class ThinLVHDPerfBase(testcases.xenserver.tc.perf.libperf.PerfTestCase):
         elif self.srtype=="nfs":
             sr = xenrt.lib.xenserver.NFSStorageRepository(self.host, "nfssr")
             sr.create()
-        elif self.srttype =="lvmofcoe":
+        elif self.srtype =="lvmofcoe":
             fcLun = xenrt.HBALun([self.host])
             sr= xenrt.lib.xenserver.FCOEStorageRepository(self.host, "FCOESR")
             sr.create(fcLun)

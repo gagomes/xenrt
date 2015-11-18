@@ -5686,7 +5686,7 @@ class GenericHost(GenericPlace):
         serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
         serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
         pxe.setSerial(serport, serbaud)
-        chain = self.lookup("PXE_CHAIN_LOCAL_BOOT", None)
+        chain = self.getChainBoot()
         if chain:
             pxe.addEntry("local", boot="chainlocal", options=chain)
         else:
@@ -5820,7 +5820,7 @@ class GenericHost(GenericPlace):
         serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
         serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
         pxe.setSerial(serport, serbaud)
-        chain = self.lookup("PXE_CHAIN_LOCAL_BOOT", None)
+        chain = self.getChainBoot()
         if chain:
             pxe.addEntry("local", boot="chainlocal", options=chain)
         else:
@@ -5975,7 +5975,7 @@ exit 0
         # Construct a PXE target
         pxe = xenrt.PXEBoot()
         pxe.setSerial(serport, serbaud)
-        chain = self.lookup("PXE_CHAIN_LOCAL_BOOT", None)
+        chain = self.getChainBoot()
         if chain:
             pxe.addEntry("local", boot="chainlocal", options=chain)
         else:
@@ -6829,46 +6829,68 @@ chain tftp://${next-server}/%s
 
         return subnetMask,gateway
 
-    def _getDisks(self, var, sdfallback, count, ccissIfAvailable, legacySATA):
+    def getChainBoot(self, overrideBoot=None):
+        ret = None
+        if not overrideBoot:
+            overrideBoot = self.lookup("OVERRIDE_BOOT_TYPE", None)
+        if overrideBoot:
+            ret = self.lookup("PXE_CHAIN_LOCAL_BOOT_%s" % overrideBoot, None)
+        if not ret:
+            ret = self.lookup("PXE_CHAIN_LOCAL_BOOT", None)
+        return ret
+
+    def _getDisks(self, var, sdfallback, count, ccissIfAvailable, legacySATA, overrideBoot):
+        if not overrideBoot:
+            overrideBoot = self.lookup("OVERRIDE_BOOT_TYPE", None)
         disks = None
-        try:
-            if ccissIfAvailable:
-                disks = self.lookup([var, "CCISS"])
-            else:
-                disks = self.lookup([var, "SCSI"])
-        except:
-            pass
-        try:
-            if legacySATA:
-                disks = self.lookup([var, "LEGACY_SATA"])
-            else:
-                disks = self.lookup([var, "SATA"])
-        except:
-            pass
-        if not disks:
-            disks = self.lookup(var, None)
-            # REQ-35: (Better) temp fix until we fix all of the config files
-            if not legacySATA and disks and "scsi-SATA" in "".join(disks):
-                disks = None
+        if overrideBoot:
+            varlist = ["%s_%s" % (var, overrideBoot), var]
+        else:
+            varlist = [var]
+        for v in varlist:
+            try:
+                if ccissIfAvailable:
+                    disks = self.lookup([v, "CCISS"])
+                else:
+                    disks = self.lookup([v, "SCSI"])
+            except:
+                pass
+            try:
+                if legacySATA:
+                    disks = self.lookup([v, "LEGACY_SATA"])
+                else:
+                    disks = self.lookup([v, "SATA"])
+            except:
+                pass
+            if not disks:
+                disks = self.lookup(v, None)
+                # REQ-35: (Better) temp fix until we fix all of the config files
+                if not legacySATA and disks and "scsi-SATA" in "".join(disks):
+                    disks = None
+            if disks:
+                break
         if not disks and sdfallback:
             disks = string.join(map(lambda x:"sd"+chr(97+x), range(count)))
         if not disks:
             return []
         else:
-            return string.split(disks)[:count]
+            ret = string.split(disks)[:count]
+            if legacySATA:
+                ret = [xenrt.convertToLegacySATA(x) for x in ret]
+            return ret
 
-    def _getMainDisks(self, count, ccissIfAvailable, legacySATA):
-        return self._getDisks("OPTION_CARBON_DISKS", True, count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA)
+    def _getMainDisks(self, count, ccissIfAvailable, legacySATA, overrideBoot):
+        return self._getDisks("OPTION_CARBON_DISKS", True, count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA, overrideBoot=overrideBoot)
 
-    def getInstallDisk(self, ccissIfAvailable=False, legacySATA=False):
-        return self._getMainDisks(ccissIfAvailable=ccissIfAvailable, count=1, legacySATA=legacySATA)[0]
+    def getInstallDisk(self, ccissIfAvailable=False, legacySATA=False, overrideBoot=None):
+        return self._getMainDisks(ccissIfAvailable=ccissIfAvailable, count=1, legacySATA=legacySATA, overrideBoot=overrideBoot)[0]
 
-    def getGuestDisks(self, count=1, ccissIfAvailable=False, legacySATA=False):
-        disks = self._getDisks("OPTION_GUEST_DISKS", False, count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA)
+    def getGuestDisks(self, count=1, ccissIfAvailable=False, legacySATA=False, overrideBoot=None):
+        disks = self._getDisks("OPTION_GUEST_DISKS", False, count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA, overrideBoot=overrideBoot)
         if disks:
             return disks
         else:
-            return self._getMainDisks(count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA)
+            return self._getMainDisks(count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA, overrideBoot=overrideBoot)
 
     def getContainerHost(self):
         container = self.lookup("CONTAINER_HOST", None)

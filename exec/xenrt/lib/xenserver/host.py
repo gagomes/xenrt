@@ -214,11 +214,9 @@ def createHost(id=0,
             host.bootNics = [host.listSecondaryNICs("NPRI")[0]]
         # If we're multipathed, we'll need to create the local SR after installation, if not then the installer can set it up for us
         if len(iScsiBootNets) > 1:
-            xenrt.TEC().config.setVariable(["HOST_CONFIGS",host.getName(),"OPTION_ROOT_MPATH"],"enabled")
-            xenrt.TEC().config.setVariable(["HOST_CONFIGS",host.getName(),"LOCAL_SR_POST_INSTALL"],"yes")
+            xenrt.TEC().config.setVariable(["HOST_CONFIGS",host.getName(),"OPTION_ROOT_MPATH"],"yes")
         else:
-            xenrt.TEC().config.setVariable(["HOST_CONFIGS",host.getName(),"OPTION_ROOT_MPATH"],"")
-            xenrt.TEC().config.setVariable(["HOST_CONFIGS",host.getName(),"LOCAL_SR_POST_INSTALL"],"no")
+            xenrt.TEC().config.setVariable(["HOST_CONFIGS",host.getName(),"OPTION_ROOT_MPATH"],"no")
 
     if enableAllPorts:
         host.enableAllNetPorts()
@@ -680,6 +678,10 @@ class Host(xenrt.GenericHost):
         xenrt.TEC().logverbose("initrd has been rebuilt")
 
     @property
+    def mpathRoot(self):
+        return self.lookup("OPTION_ROOT_MPATH", False, boolean=True) and not self.lookup("FORCE_NO_ROOT_MPATH", False, boolean=True) and self.lookup("OVERRIDE_BOOT_TYPE", None) != "NOSAN"
+
+    @property
     def xapiObject(self):
         """Gets a XAPI Host object for this Host
         @return: A xenrt.lib.xenserver.XapiHost object for this Host
@@ -1014,9 +1016,9 @@ class Host(xenrt.GenericHost):
         interfaceconfig = ""
         otherconfigs = ""
         
-        # If we want to create the Local SR manually, set up the firstboot script here
+        # If we use multipathed root disk, but want to put the local SR on a local disk, we need to set this up manually
         firstBootSRInfo = None
-        if self.lookup("LOCAL_SR_POST_INSTALL", False, boolean=True): 
+        if self.mpathRoot and guestdisks != [primarydisk]: 
             defaultSRType = self.lookup("DEFAULT_SR_TYPE", "lvm")
             if installSRType:
                 firstBootSRInfo = (guestdisks[0], installSRType)
@@ -1653,7 +1655,7 @@ done
             pxe.setSerial(serport, serbaud)
         if self.lookup("PXE_NO_PROMPT", False, boolean=True):
             pxe.setPrompt("0")
-        chain = self.lookup("PXE_CHAIN_LOCAL_BOOT", None)
+        chain = self.getChainBoot()
         if chain:
             pxe.addEntry("local", boot="chainlocal", options=chain)
         else:
@@ -1777,10 +1779,8 @@ done
         #    # Enable SSH into the installer to aid debug if installations fail
         #    pxecfg.mbootArgsModule1Add("sshpassword=%s" % self.password)
         
-        optionRootMpath = self.lookup("OPTION_ROOT_MPATH", None)
-        
-        if optionRootMpath != None and len(optionRootMpath) > 0:
-            pxecfg.mbootArgsModule1Add("device_mapper_multipath=%s" % optionRootMpath)
+        if self.mpathRoot:
+            pxecfg.mbootArgsModule1Add("device_mapper_multipath=enabled")
 
         # Set up PXE for installer boot
         pxefile = pxe.writeOut(self.machine)
@@ -2165,8 +2165,7 @@ fi
         if xenrt.TEC().lookup("HOST_POST_INSTALL_REBOOT", False, boolean=True):
             self.reboot()
 
-        optionRootMpath = self.lookup("OPTION_ROOT_MPATH", None)
-        if optionRootMpath != None and len(optionRootMpath) > 0:
+        if self.mpathRoot:
             # Check to ensure that there is a multipath topology if we did multipath boot.
             if not len(self.getMultipathInfo()) > 0 :
                 raise xenrt.XRTFailure("There is no multipath topology found with multipath boot")
@@ -11395,7 +11394,7 @@ done
             pxe.setSerial(serport, serbaud)
         if self.lookup("PXE_NO_PROMPT", False, boolean=True):
             pxe.setPrompt("0")
-        chain = self.lookup("PXE_CHAIN_LOCAL_BOOT", None)
+        chain = self.getChainBoot()
         if chain:
             pxe.addEntry("local", boot="chainlocal", options=chain)
         else:
@@ -11459,10 +11458,8 @@ done
             xenrt.TEC().warning("Using installer user extra Dom0 boot args %s"
                                 % (dom0_extra_args_user))
 
-        optionRootMpath = self.lookup("OPTION_ROOT_MPATH", None)
-        
-        if optionRootMpath != None and len(optionRootMpath) > 0:
-            pxecfg.mbootArgsModule1Add("device_mapper_multipath=%s" % optionRootMpath)
+        if self.mpathRoot:
+            pxecfg.mbootArgsModule1Add("device_mapper_multipath=enabled")
         
         # Set up PXE for installer boot
         pxefile = pxe.writeOut(self.machine)

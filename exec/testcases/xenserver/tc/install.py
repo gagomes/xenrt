@@ -80,7 +80,16 @@ class TC9352(_HostInstall):
 
     ISCSI_SR_MULTIPATHED = True
 
+    def prepare(self, arglist=None):
+        xenrt.TEC().config.setVariable("FORCE_NO_ROOT_MPATH", "yes") 
+
     def postInstall(self):
+        # Release all of the current iSCSI and FC locks
+        for x in xenrt.GEC().registry.centralResourceGetAll():
+            if x.lockid.startswith("HBA_LUN") or x.lockid.startswith("ISCSI_LUN"):
+                x.release()
+                xenrt.GEC().registry.centralResourceDelete(x.lockid)
+
         # Create a FC SR on another LUN
         self.fcLun = xenrt.HBALun([self.host])
         self.fcSRScsiid = self.fcLun.getID()
@@ -89,6 +98,17 @@ class TC9352(_HostInstall):
         self.host.addSR(self.fcSR, default=True)
         
         # Create an iSCSI SR
+        if self.ISCSI_SR_MULTIPATHED:
+            self.host.createNetworkTopology("""<NETWORK>
+        <PHYSICAL network="NPRI">
+            <NIC />
+            <MANAGEMENT />
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+            <NIC />
+            <STORAGE />
+        </PHYSICAL>
+    </NETWORK>""")
         self.iscsiSR = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, "iscsi TC9352")
         self.iscsiSR.create(subtype="lvm", multipathing=self.ISCSI_SR_MULTIPATHED)
         self.host.addSR(self.iscsiSR)
@@ -131,7 +151,7 @@ class TC9352(_HostInstall):
         else:
             raise xenrt.XRTError("Unkown device mapping mode",
                                  data = deviceinfo)
-        if not dvendor in ["DGC", "NETAPP"]:
+        if not dvendor in ["DGC", "NETAPP", "ZVAULT"]:
             raise xenrt.XRTError("Installation primary disk is not a SAN LUN",
                                  "%s -> %s is '%s'" %
                                  (primarydisk, pddev, dvendor))
@@ -367,7 +387,7 @@ class TC12209(TC9352):
     ISCSI_SR_MULTIPATHED = False
     
     def prepare(self, arglist=None):
-        xenrt.TEC().config.setVariable("OPTION_ROOT_MPATH", "") 
+        xenrt.TEC().config.setVariable("FORCE_NO_ROOT_MPATH", "yes") 
 
     def postInstall(self):
         self.scsiid = string.split(self.host.lookup("OPTION_CARBON_DISKS", None), "scsi-")[1]
@@ -900,7 +920,6 @@ class TC27246(xenrt.TestCase):
         guest_disks = self.lookup(["UCSISCSI", "GUEST_DISKS"])
         self.override("OPTION_CARBON_DISKS", carbon_disks)
         self.override("OPTION_GUEST_DISKS", guest_disks)
-        self.override("LOCAL_SR_POST_INSTALL", "no")
         self.override("DOM0_EXTRA_ARGS", "use_ibft")
         self.host = xenrt.lib.xenserver.createHost(id=0, installnetwork="NSEC")
 

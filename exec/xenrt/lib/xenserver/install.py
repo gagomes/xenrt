@@ -723,7 +723,7 @@ sleep 30
             pxe.setSerial(serport, serbaud)
         if self.host.lookup("PXE_NO_PROMPT", False, boolean=True):
             pxe.setPrompt("0")
-        chain = self.host.lookup("PXE_CHAIN_LOCAL_BOOT", None)
+        chain = self.host.getChainBoot()
         if chain:
             pxe.addEntry("local", boot="chainlocal", options=chain)
         else:
@@ -839,10 +839,8 @@ sleep 30
         #    # Enable SSH into the installer to aid debug if installations fail
         #    pxecfg.mbootArgsModule1Add("sshpassword=%s" % self.host.password)
         
-        optionRootMpath = self.host.lookup("OPTION_ROOT_MPATH", None)
-        
-        if optionRootMpath != None and len(optionRootMpath) > 0:
-            pxecfg.mbootArgsModule1Add("device_mapper_multipath=%s" % optionRootMpath)
+        if self.host.mpathRoot:
+            pxecfg.mbootArgsModule1Add("device_mapper_multipath=enabled")
 
         # Set up PXE for installer boot
         pxefile = pxe.writeOut(self.host.machine)
@@ -870,9 +868,9 @@ sleep 30
         otherconfigs = ""
         
         workdir = xenrt.TEC().getWorkdir()
-        # If we want to create the Local SR manually, set up the firstboot script here
+        # If we use multipathed root disk, but want to put the local SR on a local disk, we need to set this up manually
         self.firstBootSRInfo = None
-        if self.host.lookup("LOCAL_SR_POST_INSTALL", False, boolean=True): 
+        if self.host.mpathRoot and guestdisks != [primarydisk]: 
             defaultSRType = self.host.lookup("DEFAULT_SR_TYPE", "lvm")
             if installSRType:
                 self.firstBootSRInfo = (guestdisks[0], installSRType)

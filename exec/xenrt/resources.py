@@ -1297,7 +1297,7 @@ class ISCSILun(_ISCSILunBase):
         self.secAddrs = {}
 
     def release(self, atExit=False):
-        if xenrt.util.keepSetup():
+        if xenrt.util.keepSetup() and atExit:
             xenrt.TEC().logverbose("Not disconnecting from iSCSI %s:%s" %
                                    (self.getServer(),
                                     self.getTargetName()))
@@ -1521,7 +1521,7 @@ class HBALun(CentralResource):
         return self.mpclaim
 
     def release(self, atExit=False):
-        if xenrt.util.keepSetup():
+        if xenrt.util.keepSetup() and atExit:
             xenrt.TEC().logverbose("Not releasing LUN %s" % self.scsiid)
             return
         

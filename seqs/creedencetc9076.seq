@@ -4,6 +4,7 @@
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OVERRIDE_BOOT_TYPE>NOSAN</OVERRIDE_BOOT_TYPE>
   </variables>
 
   <prepare>

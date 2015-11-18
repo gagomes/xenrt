@@ -3458,9 +3458,9 @@ class Config(object):
         if type(s) == type(""):
             v = re.sub(r"\$\{([\w:]+)\}", self.lookupHelper, s)
             if boolean:
-                if string.lower(v[0]) in ("1", "y", "t"):
+                if string.lower(v[0]) in ("1", "y", "t", "e"):
                     return True
-                if string.lower(v[0]) in ("0", "n", "f"):
+                if string.lower(v[0]) in ("0", "n", "f", "d"):
                     return False
                 if string.lower(v) == "on":
                     return True

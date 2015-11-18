@@ -2083,7 +2083,7 @@ exit /B 1
                 # See if we already have a CD device (insert or <EMPTY>), don;t
                 # care
                 empty = self.getHost().parseListForOtherParam("vbd-list",
-                                                              "device", 
+                                                              "device",
                                                               device,
                                                               "empty",
                                                               "vm-uuid=%s" %
@@ -2117,26 +2117,16 @@ exit /B 1
     def removeCD(self, device=None):
         """Remove the CD device from the VM."""
         cli = self.getCLIInstance()
-        if device:
-            vbds = self.getHost().minimalList("vbd-list",
-                                              "uuid",
-                                              "vm-uuid=%s type=CD device=%s" %
-                                              (self.getUUID(), device))
-        else:
-            vbds = self.getHost().minimalList("vbd-list",
-                                              "uuid",
-                                              "vm-uuid=%s type=CD" %
-                                              (self.getUUID()))
-        try:
-            args = []
-            args.append("uuid=%s" % (self.getUUID()))
-            cli.execute("vm-cd-eject", string.join(args))
-        except:
-            pass
-        for vbd in vbds:
-            args = []
-            args.append("uuid=%s" % (vbd))
-            cli.execute("vbd-destroy", string.join(args))
+        
+        cdvbds = self.getHost().minimalList("vbd-list","empty","vm-uuid=%s type=CD" % (self.getUUID()))
+        if cdvbds:
+            if cdvbds[0] == "false":
+                args = []
+                args.append("uuid=%s" % (self.getUUID()))
+                cli.execute("vm-cd-eject", string.join(args))
+        
+       
+        
 
     def createVIF(self, eth=None, bridge=None, mac=None, plug=False):
         if bridge:
@@ -4120,14 +4110,8 @@ exit /B 1
         self.enlightenedDrivers=True
         self.execguest("umount /mnt")
         xenrt.sleep(10)
-        try:
-            self.removeCD(device=device)
-        except xenrt.XRTFailure as e:
-            # In case of Linux on HVM, vbd-destroy on CD may fail.
-            if "vbd-destroy" in e.reason:
-                pass
-            else:
-                raise
+        self.removeCD(device=device)
+        
         if reboot or ((self.distro and (self.distro.startswith("centos4") or self.distro.startswith("rhel4"))) and updateKernel):
             # RHEL/CentOS 4.x update the kernel, so need to be rebooted
             self.reboot()

@@ -1,6 +1,7 @@
 import xenrt
 import string
 import socket
+import re
 from xenrt.lib.opsys import OS,OSNotDetected
 
 

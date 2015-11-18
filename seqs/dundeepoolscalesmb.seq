@@ -23,8 +23,7 @@
     <pool>
 
       <!-- SMB SR using the share provided by NetApp SC04-FAS2554 -->
-      <storage type="smb" name="smb1" default="true" />
-      <storage type="smb" name="smb2" />
+      <storage type="smb" name="smbsr" default="true" />
 
       <allhosts />
 
@@ -34,11 +33,6 @@
           <NIC />
           <MANAGEMENT />
           <VMS />
-        </PHYSICAL>
-        <PHYSICAL network="NSEC">
-          <NIC />
-          <NIC />
-          <STORAGE />
         </PHYSICAL>
       </NETWORK>
 
@@ -52,19 +46,7 @@
         <network device="0" />
         <vcpus>2</vcpus>
         <memory>1024</memory>
-        <storage>smb1</storage>
-      </vm>
-      <vm name="gold1">
-        <distro>${DISTRO}</distro>
-        <postinstall action="installDrivers" />
-        <postinstall action="preCloneTailor" />
-        <postinstall action="xenDesktopTailor" />
-        <postinstall action="shutdown" />
-        <postinstall action="removeCD" />
-        <network device="0" />
-        <vcpus>2</vcpus>
-        <memory>1024</memory>
-        <storage>smb2</storage>
+        <storage>smbsr</storage>
       </vm>
       <vm name="XenCenter">
         <distro>win7sp1-x86</distro>

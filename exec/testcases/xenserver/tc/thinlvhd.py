@@ -1367,6 +1367,9 @@ class TCSRUpgrade(_ThinLVHDBase):
             raise xenrt.XRTFailure("Size of VDI is not increased as expected. Expected: %d, Allocated: %d, Margin: %d" %
                     (expected, increased, margin))
 
+        step("Deleting all VDIs and SR.")
+        self.sr.remove()
+
     def run(self, arglist=[]):
 
         self.runSubcase("rollBackTest", (), "SRUpgrade", "roll back")

@@ -13,9 +13,9 @@
     <host id="0"/>
   </prepare>
   
-  <testsequence group="Memory Alerts">
+  <!--<testsequence group="Memory Alerts">
     <testcase id="testcases.xenserver.tc.alert.MemoryAlerts" tc="TC-18682" prio="1"/>
-  </testsequence>
+  </testsequence>-->
 
   <testsequence group="AlertsafterUpgrade">
     <testcase id="testcases.xenserver.tc.alert.MemoryAlertsonUpgrade" tc="TC-19083" prio="1"/>

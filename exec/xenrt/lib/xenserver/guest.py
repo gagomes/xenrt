@@ -3288,6 +3288,7 @@ exit /B 1
         g.mainip = None
         g.vifs = []
 
+        xenrt.TEC().registry.guestPut(name, g)
 
         # Get the new VIFs:
         g.reparseVIFs()

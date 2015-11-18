@@ -4468,6 +4468,7 @@ exit /B 1
     def getDeploymentRecord(self):
         ret = super(Guest, self).getDeploymentRecord()
         ret['networks'] = {}
+        ret['hypervisor_id'] = self.uuid
         try:
             os = self.paramGet("os-version")
             if os and os != "<not in database>":

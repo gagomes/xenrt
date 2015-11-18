@@ -1,6 +1,13 @@
 import xenrt
 from zope.interface import implements, providedBy
-from abc import abstractproperty
+from abc import abstractproperty, abstractmethod, ABCMeta
+
+class abstractstatic(staticmethod):
+    __slots__ = ()
+    def __init__(self, function):
+        super(abstractstatic, self).__init__(function)
+        function.__isabstractmethod__ = True
+    __isabstractmethod__ = True
 
 oslist = []
 
@@ -9,7 +16,7 @@ class OSNotDetected(Exception):
         self.msg = msg
 
 class OS(object):
-    implements(xenrt.interfaces.OS)
+    __metaclass__ = ABCMeta
 
     _allInstallMethods = {xenrt.interfaces.InstallMethodPV: xenrt.InstallMethod.PV,
                           xenrt.interfaces.InstallMethodIso: xenrt.InstallMethod.Iso,
@@ -27,8 +34,54 @@ class OS(object):
 
     @abstractproperty
     def canonicalDistroName(self):
+        """Canonical distro name"""
+        pass
+
+    @abstractproperty
+    def defaultRootdisk(self):
+        """Default rootdisk size"""
+        pass
+
+    @abstractproperty
+    def defaultVcpus(self):
+        """Default number of vCPUs"""
+        pass
+
+    @abstractproperty
+    def defaultMemory(self):
+        """Default memory size"""
+        pass
+
+    @abstractproperty
+    def tcpCommunicationPorts(self):
+        """TCP ports needed for inbound communication, of type {name:port}"""
+        pass
+
+    @abstractmethod
+    def waitForBoot(self, timeout):
+        """Wait for the OS to boot"""
         pass
     
+    @abstractstatic
+    def testInit(parent):
+        """Instantiate a dummy version for unit testing"""
+        pass
+
+    @abstractmethod
+    def reboot(self):
+        """Perform an OS-initiated reboot"""
+        pass
+
+    @abstractmethod
+    def shutdown(self):
+        """Perform an OS-initiated shutdown"""
+        pass
+
+    @abstractmethod
+    def assertHealthy(self, quick):
+        """(Quickly) verifies that the OS is in a healthy state"""
+        pass
+
     def findPassword(self):
         """Try some passwords to determine which to use"""
         return
@@ -40,10 +93,12 @@ class OS(object):
         return self.parent._osParent_getPort(trafficType) or self.tcpCommunicationPorts[trafficType]
 
     def populateFromExisting(self):
+        """Populate class members from an existing OS installation"""
         pass
 
     @property
     def installMethod(self):
+        """Selected installation method"""
         return self.__installMethod
 
     @installMethod.setter
@@ -95,9 +150,6 @@ class OS(object):
         Raise OSNotDetected if OS is not detected"""
         pass
 
-    def assertHealthy(self, quick=False):
-        raise xenrt.XRTError("Not implemented")
-
     def getLogs(self, path):
         pass
 
@@ -140,3 +192,4 @@ from xenrt.lib.opsys.windowspackages import *
 from xenrt.lib.opsys.rhel import *
 from xenrt.lib.opsys.sles import *
 from xenrt.lib.opsys.xs import *
+from xenrt.lib.opsys.coreos import *

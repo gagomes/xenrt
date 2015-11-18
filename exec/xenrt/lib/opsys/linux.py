@@ -1,6 +1,7 @@
 import xenrt
 import string
 import socket
+import re
 from xenrt.lib.opsys import OS,OSNotDetected
 
 
@@ -11,6 +12,15 @@ class LinuxOS(OS):
 
     def __init__(self, distro, parent, password=None):
         super(LinuxOS, self).__init__(distro, parent, password)
+
+    @staticmethod
+    def testInit(cls, parent): raise NotImplementedError()
+
+    @property
+    def canonicalDistroName(self): raise NotImplementedError()
+
+    @property
+    def waitForBoot(self): raise NotImplementedError()
 
     def execSSH(self,
                 command,
@@ -160,6 +170,14 @@ class LinuxOS(OS):
     def defaultMemory(self):
         return 256
 
+    @property
+    def visibleMemory(self):
+        """Memory visible on the guest in MB, including any used by a crash kernel"""
+        assert self.parent._osParent_getPowerState() == xenrt.PowerState.up, "OS not running"
+        data = self.execSSH("cat /proc/meminfo")
+        rc = re.search(r"MemTotal:\s+(\d+)\s+kB", data)
+        return (int(rc.group(1)) - self._getKdumpSize()) / xenrt.KILO
+
     def assertHealthy(self, quick=False):
         if self.parent._osParent_getPowerState() == xenrt.PowerState.up:
             # Wait for basic SSH access
@@ -185,8 +203,8 @@ class LinuxOS(OS):
         else:
             detectionState.password = obj.password
 
-    def getKdumpSize(self):
-        """Returns the size (in bytes) of any crashdump kernel present on the OS"""
+    def _getKdumpSize(self):
+        """Returns the size (in kB) of any crashdump kernel present on the OS"""
         size = int(self.execSSH("[ -e /sys/kernel/kexec_crash_size ] && cat /sys/kernel/kexec_crash_size || echo 0").strip())
-        return size or None
+        return size / xenrt.KILO
 

@@ -734,7 +734,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             self.checkHealth()
             raise
    
-    def getMemory(complete, unit):
+    def getMemory(self, complete, unit):
         return self._xmlrpc().getMemory(complete, unit)
 
     def getCPUs(self):
@@ -1366,6 +1366,11 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
         else:
             start = time.mktime(startTime)
         return time.time() - start
+
+    @property
+    def visibleMemory(self):
+        assert self.parent._osParent_getPowerState() == xenrt.PowerState.up, "OS not running"
+        return self.getMemory(False, xenrt.MEGA)
 
     @classmethod
     def detect(cls, parent, detectionState):

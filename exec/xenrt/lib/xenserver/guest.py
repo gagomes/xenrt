@@ -1155,8 +1155,8 @@ users:
             macs.append(vif[0])
         return macs 
 
-    def getDomainMemory(self, unit=xenrt.MEGA):
-        return self.getHost().getGuestMemory(self, unit=unit)
+    def getDomainMemory(self):
+        return self.getHost().getGuestMemory(self)
 
     def getDomainVCPUs(self):
         return self.getHost().getGuestVCPUs(self)

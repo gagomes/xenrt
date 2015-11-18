@@ -85,7 +85,7 @@ class Workload(object):
                                                             self.workdir))
         try:
             xenrt.TEC().logverbose("Memory details: %s" % 
-                                   (self.guest.getMyMemory(complete=True)))
+                                   (self.guest.getMyMemory()))
         except:
             pass
         time.sleep(5)

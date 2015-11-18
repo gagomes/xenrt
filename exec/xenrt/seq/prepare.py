@@ -1158,6 +1158,7 @@ class PrepareNode(object):
         xenrt.TEC().logverbose("Cloud Spec:\n" + pprint.pformat(self.cloudSpec))
         xenrt.TEC().logverbose("Templates:\n" + pprint.pformat(self.templates))
         xenrt.TEC().logverbose("Instances:\n" + pprint.pformat(self.instances))
+        xenrt.TEC().logverbose("Blueprints:\n" + pprint.pformat(self.blueprints))
 
     def getAllPoolHostsForMaster(self, host):
         ret = [host]

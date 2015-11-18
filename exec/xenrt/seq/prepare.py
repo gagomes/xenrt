@@ -2118,5 +2118,5 @@ class BlueprintInstallWorker(_InstallWorker):
         template = xenrt.TEC().registry.guestGet(work["template"])
         host = template.getHost()
 
-        sxp.deploy(provider['providerId'], host, template.getUUID(), template.password)
+        sxp.deploy(provider['id'], host, template.getUUID(), template.password)
 

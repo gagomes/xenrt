@@ -2,21 +2,6 @@
 import xenrt
 from xenrt.lib.scalextreme import SXProcess
 
-class SXDeployTest(xenrt.TestCase):
-
-    def run(self, arglist):
-
-        # Find the Debian template
-        template = self.getGuest("Debian Wheezy 7.0")
-        host = template.getHost()
-        sxp = SXProcess("57994", "1", "2947")
-
-        # Find our providerId (TODO: we should store this in the registry)
-        providerName = "xenrt-%d" % xenrt.GEC().jobid()
-        providerId = [x['providerId'] for x in sxp.apiHandler.execute(category="providers") if x['providerName'] == providerName][0]
-        
-        sxp.deploy(providerId, host, template.getUUID(), template.password)
-
 class XDPoc(xenrt.TestCase):
 
     def run(self, arglist):
@@ -25,12 +10,9 @@ class XDPoc(xenrt.TestCase):
         template = self.getGuest("Windows Server 2012 R2")
         host = template.getHost()
         sxp = SXProcess.getByName("XenApp and XenDesktop Proof of Concept (25)", templateDeploymentProfile="xenrt-template")
-        # sxp = SXProcess("58687", "2", "2937")
 
-        # Find our providerId (TODO: we should store this in the registry)
-        providerName = "xenrt-%d" % xenrt.GEC().jobid()
-        providerId = [x['providerId'] for x in sxp.apiHandler.execute(category="providers") if x['providerName'] == providerName][0]
+        provider = xenrt.TEC().registry.sxProviderGetDefault()
 
-        sxp.deploy(providerId, host, template.getUUID(), template.password)
+        sxp.deploy(provider['id'], host, template.getUUID(), template.password)
 
         # TODO: Check the correct VMs etc have been deployed

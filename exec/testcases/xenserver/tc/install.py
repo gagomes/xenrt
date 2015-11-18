@@ -84,6 +84,12 @@ class TC9352(_HostInstall):
         xenrt.TEC().config.setVariable("FORCE_NO_ROOT_MPATH", "yes") 
 
     def postInstall(self):
+        # Release all of the current iSCSI and FC locks
+        for x in xenrt.GEC().registry.centralResourceGetAll():
+            if x.lockid.startswith("HBA_LUN") or x.lockid.startswith("ISCSI_LUN"):
+                x.release()
+                xenrt.GEC().registry.centralResourceDelete(x.lockid)
+
         # Create a FC SR on another LUN
         self.fcLun = xenrt.HBALun([self.host])
         self.fcSRScsiid = self.fcLun.getID()

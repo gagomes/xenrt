@@ -134,8 +134,7 @@ class _TCSmokeTest(xenrt.TestCase):
             return
 
     def postRun(self):
-        if self.guest and self.guest.getState() != "DOWN":
-            self.guest.shutdown(force=True)
+        self.host.uninstallGuestByName(self.guestName)
 
     def checkGuestMemory(self, expected):
         """Validate the in-guest memory is what we expect (within 4%)"""
@@ -169,8 +168,9 @@ class _TCSmokeTest(xenrt.TestCase):
         if self.ROOTDISK:
             disks = [("0", self.ROOTDISK, False)] 
 
+        self.guestName = xenrt.randomGuestName(self.distro, self.arch)
         self.guest = xenrt.lib.xenserver.guest.createVM(self.host,
-                    xenrt.randomGuestName(self.distro, self.arch),
+                    self.guestName,
                     self.distro,
                     vcpus = self.vcpus,
                     corespersocket = self.cps,
@@ -181,7 +181,6 @@ class _TCSmokeTest(xenrt.TestCase):
                     notools = self.distro.startswith("solaris"),
                     disks=disks)
         
-        self.uninstallOnCleanup(self.guest)
         self.getLogsFrom(self.guest)
         self.guest.check()
 

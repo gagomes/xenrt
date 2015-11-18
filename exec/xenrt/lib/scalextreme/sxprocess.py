@@ -17,6 +17,32 @@ class SXProcess(object):
         self.__credential = xenrt.TEC().lookup("SXA_CREDENTIAL", None)
         self.__api = None
 
+    @staticmethod
+    def getByName(name, version=None, templateDeploymentProfile=None):
+        """Creates an SXProcess object for the named blueprint"""
+        # First instantiate an 'empty' object which we can fill in
+        p = SXProcess(None, version)
+        api = p.apiHandler
+        blueprints = api.execute(category="process", method="GET", params={"type":"purchased"})
+        matchedBlueprints = filter(lambda b: b['processName'] == name, blueprints)
+        if len(matchedBlueprints) != 1:
+            raise xenrt.XRTError("Found %d matching blueprints (expected 1)" % len(matchedBlueprints))
+        b = matchedBlueprints[0]
+        p.__processId = b['processId']
+        if not version:
+            # Find the latest version
+            versions = api.execute(category="process", command="versions", method="GET")
+            p.__processVersion = max(map(lambda v: int(v['version']), versions))
+        if templateDeploymentProfile:
+            # Find the id of this profile
+            profiles = api.execute(category="deploymentprofile", command="list", method="POST", params={"processId": b['processId'], "processVersion": b['processVersion']})
+            matchedProfiles = filter(lambda dp: dp['deploymentProfileName'] == templateDeploymentProfile, profiles)
+            if len(matchedProfiles) != 1:
+                raise xenrt.XRTError("Found %d matching deployment profiles (expected 1)" % len(matchedProfiles))
+            p.__templateDeploymentProfileId = matchedProfiles[0]['deploymentProfileId']
+
+        return p
+
     @property
     def processId(self):
         return self.__processId

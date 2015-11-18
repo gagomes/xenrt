@@ -177,7 +177,7 @@ class StorageArrayLun(StorageElement):
     def destroy(self, force): pass
 
     @abstractmethod
-    def getId(self): pass
+    def getID(self): pass
 
     @abstractmethod
     def map(self, initiatorGroup, force): pass
@@ -204,7 +204,7 @@ class StorageArrayLun(StorageElement):
     def size(self): pass
 
     def __str__(self):
-        return self.getId()
+        return self.getID()
 
 class StorageArray(xenrt.resources.CentralResource):
     __metaclass__ = ABCMeta
@@ -238,7 +238,7 @@ class StorageArray(xenrt.resources.CentralResource):
         xenrt.TEC().logverbose("Looking for LUN %s in %s" % (lunId, str(self._luns)))
         targetLun = None
         try:
-            targetLun = next(lun for lun in self._luns if lun.getId() == lunId)
+            targetLun = next(lun for lun in self._luns if lun.getID() == lunId)
         except: 
             pass
 
@@ -278,11 +278,11 @@ class StorageArray(xenrt.resources.CentralResource):
         self._initiatorGroup = None
 
     def __destroySingleLun(self, lun):
-        xenrt.TEC().logverbose("Unmap LUN %s" % lun.getId())
+        xenrt.TEC().logverbose("Unmap LUN %s" % lun.getID())
         self.__bestEffort(lun.unmap, self._initiatorGroup)
-        xenrt.TEC().logverbose("Destroying LUN %s" % lun.getId())
+        xenrt.TEC().logverbose("Destroying LUN %s" % lun.getID())
         if not self.__bestEffort(lun.destroy, False):
-            xenrt.TEC().logverbose("Gentle destroy failed - forcing destroy for LUN %s" % lun.getId())
+            xenrt.TEC().logverbose("Gentle destroy failed - forcing destroy for LUN %s" % lun.getID())
             self.__bestEffort(lun.destroy, True)    
 
     def destroyLuns(self):
@@ -391,7 +391,7 @@ class NetAppStorageArray(StorageArray):
             lunPath = ("%s%d") % (partialLunPath, count)
             newLun = self.lunClass(self._server, lunPath, lunSizeMB, self.thinlyProvisioned)
             self._luns.append(newLun)
-            newLunIds.append(newLun.getId())
+            newLunIds.append(newLun.getID())
 
         # Add WWPN as initiators to iGroup.
         for hostip in hostInitiators.keys():
@@ -400,7 +400,7 @@ class NetAppStorageArray(StorageArray):
 
         xenrt.TEC().logverbose("Number of LUNs to map: %d" % len(self._luns))
         for lun in filter(lambda l : not l.isMapped(), self._luns):
-            xenrt.TEC().logverbose("Attempting map of %s with init %s" % (lun.getId(), self._initiatorGroup.name()))
+            xenrt.TEC().logverbose("Attempting map of %s with init %s" % (lun.getID(), self._initiatorGroup.name()))
             try:
                 lun.map(self._initiatorGroup.name(), False)
             except: pass
@@ -635,7 +635,7 @@ class NetAppLun(StorageArrayLun):
         verbose = "The LUN at %s is destroyed" % self.__path
         self._raiseApiFailure(NetAppStatus(results), verbose)
 
-    def getId(self):
+    def getID(self):
         results = self._server.invoke('lun-get-serial-number', 'path', self.__path)
 
         verbose = "The serial number of the specified LUN @ %s is obtained" % self.__path
@@ -646,7 +646,7 @@ class NetAppLun(StorageArrayLun):
         return self.__netAppSerialToSCSIId(serialNumber)
 
     def getNetAppSerialNumber(self):
-        return self.__scsiIDToNetAppSerial(self.getId())
+        return self.__scsiIDToNetAppSerial(self.getID())
 
     def map(self, initiatorGroup, force):
         """Maps the LUN to all the initiators in the specified initiator group."""
@@ -762,7 +762,7 @@ class NetAppISCSILun(NetAppLun):
     def getISCSILunObj(self):
         obj = xenrt.ISCSIIndividualLun(None,
                                        None,
-                                       scsiid = self.getId(),
+                                       scsiid = self.getID(),
                                        server = self._server.server,
                                        targetname = self.getISCSIIQN())
         return obj

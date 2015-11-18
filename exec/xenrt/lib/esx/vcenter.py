@@ -37,7 +37,7 @@ class VCenter(object):
             self.dvs = "yes"
 
         if xenrt.TEC().lookup("CMD_VIA_WINRM", True, boolean=True):
-            xenrt.TEC().warning("Enforcing execCmd via WinRM")
+            xenrt.TEC().warning("Enforcing cmdExec via WinRM")
             self.vc.os.enableWinRM()
             self.useWinrm = True
 
@@ -156,7 +156,7 @@ LS_URL=\"https://%s:7444/lookupservice/sdk\" \
         pwrCliCmd += "\n" + r"""Connect-ViServer -Server %s -User %s -Password %s """ % (self.address, self.username, self.password)
         pwrCliCmd += "\n" + r"""echo "XenRT Output:" """
         pwrCliCmd += "\n" + command
-        data = self.vc.os.execCmd(pwrCliCmd,
+        data = self.vc.os.cmdExec(pwrCliCmd,
                             level=level,
                             desc=desc,
                             returndata=returndata,
@@ -175,7 +175,7 @@ LS_URL=\"https://%s:7444/lookupservice/sdk\" \
             return data
 
     def isVCenterInstalled(self):
-        services = self.vc.os.execCmd("get-service -displayname VMware* | where-object {$_.Status -eq 'Running'}", returndata=True, powershell=True, winrm=self.useWinrm).strip()
+        services = self.vc.os.cmdExec("get-service -displayname VMware* | where-object {$_.Status -eq 'Running'}", returndata=True, powershell=True, winrm=self.useWinrm).strip()
         if "VMware VirtualCenter Server" in services:
             return True
         return False
@@ -193,7 +193,7 @@ LS_URL=\"https://%s:7444/lookupservice/sdk\" \
 
     def addHost(self, host, dc, cluster):
         with self.lock:
-            xenrt.TEC().logverbose(self.vc.os.execCmd("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware\\addhost.ps1 %s %s %s %s %s %s %s %s %s" % (
+            xenrt.TEC().logverbose(self.vc.os.cmdExec("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware\\addhost.ps1 %s %s %s %s %s %s %s %s %s" % (
                                                         self.address,
                                                         self.username,
                                                         self.password,
@@ -216,7 +216,7 @@ LS_URL=\"https://%s:7444/lookupservice/sdk\" \
             if not myhost['LicenseKey'].replace("-", "").replace("0",""):
                 # Now get the list of licenses
 
-                self.vc.os.execCmd("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware\\listlicenses.ps1 %s %s %s" % (
+                self.vc.os.cmdExec("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware\\listlicenses.ps1 %s %s %s" % (
                                         self.address,
                                         self.username,
                                         self.password), winrm=self.useWinrm)
@@ -233,7 +233,7 @@ LS_URL=\"https://%s:7444/lookupservice/sdk\" \
                 if liclist:
                     lic = random.choice(liclist)['LicenseKey']
                     xenrt.TEC().logverbose("Using license %s" % lic)
-                    xenrt.TEC().logverbose(self.vc.os.execCmd("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware\\assignlicense.ps1 %s %s %s %s %s" % (
+                    xenrt.TEC().logverbose(self.vc.os.cmdExec("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware\\assignlicense.ps1 %s %s %s %s %s" % (
                                                                     self.address,
                                                                     self.username,
                                                                     self.password,
@@ -256,7 +256,7 @@ LS_URL=\"https://%s:7444/lookupservice/sdk\" \
 
     def listDataCenters(self):
         with self.lock:
-            self.vc.os.execCmd("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware\\listdatacenters.ps1 %s %s %s" % (
+            self.vc.os.cmdExec("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware\\listdatacenters.ps1 %s %s %s" % (
                                     self.address,
                                     self.username,
                                     self.password))
@@ -267,7 +267,7 @@ LS_URL=\"https://%s:7444/lookupservice/sdk\" \
 
     def removeDataCenter(self, dc):
         with self.lock:
-            xenrt.TEC().logverbose(self.vc.os.execCmd("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware\\removedatacenter.ps1 %s %s %s %s" % (
+            xenrt.TEC().logverbose(self.vc.os.cmdExec("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware\\removedatacenter.ps1 %s %s %s %s" % (
                                                         self.address,
                                                         self.username,
                                                         self.password,

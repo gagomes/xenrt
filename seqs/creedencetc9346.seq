@@ -13,7 +13,7 @@
 
   <testsequence>
     <serial group="TC9346">
-      <testcase id="xenserver.tc.host.TC9350" />
+      <!--<testcase id="xenserver.tc.host.TC9350" />-->
       <testcase id="xenserver.tc.host.TC9347" />
       <testcase id="xenserver.tc.host.TC9348" />
     </serial>

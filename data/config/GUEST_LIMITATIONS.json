@@ -155,14 +155,14 @@
     },
     "debian80": {
       "MAXMEMORY": "65536",
-      "MAXMEMORY64": "131072",
+      "MAXMEMORY64": "16777216",
       "MAX_VM_VCPUS": "32",
       "MAX_VM_VCPUS64": "32",
       "MINMEMORY": "256",
     },
     "debiantesting": {
       "MAXMEMORY": "65536",
-      "MAXMEMORY64": "131072",
+      "MAXMEMORY64": "16777216",
       "MAX_VM_VCPUS": "32",
       "MAX_VM_VCPUS64": "32",
       "MINMEMORY": "256",
@@ -228,17 +228,17 @@
       "MINMEMORY": "512"
     },
     "oel62": {
-      "MAXMEMORY": "16384",
+      "MAXMEMORY": "8192",
       "MAXMEMORY64": "131072",
       "MINMEMORY": "512"
     },
     "oel63": {
-      "MAXMEMORY": "16384",
+      "MAXMEMORY": "8192",
       "MAXMEMORY64": "131072",
       "MINMEMORY": "512"
     },
     "oel64": {
-      "MAXMEMORY": "16384",
+      "MAXMEMORY": "8192",
       "MAXMEMORY64": "131072",
       "MINMEMORY": "512"
     },
@@ -490,7 +490,7 @@
     },
     "sles12": {
       "MAXMEMORY": "16384",
-      "MAXMEMORY64": "524288",
+      "MAXMEMORY64": "4194304",
       "MINMEMORY": "4096",
     },
     "sles92": {
@@ -526,14 +526,14 @@
     },
     "ubuntu1404": {
       "MAXMEMORY": "65536",
-      "MAXMEMORY64": "131072",
+      "MAXMEMORY64": "16777216",
       "MAX_VM_VCPUS": "8",
       "MAX_VM_VCPUS64": "16",
       "MINMEMORY": "512"
     },
     "ubuntudevel": {
       "MAXMEMORY": "32768",
-      "MAXMEMORY64": "131072",
+      "MAXMEMORY64": "16777216",
       "MAX_VM_VCPUS": "8",
       "MAX_VM_VCPUS64": "16",
       "MINMEMORY": "256"
@@ -653,7 +653,7 @@
       "MINMEMORY": "128"
     },
     "win10-x64": {
-      "MAXMEMORY": "131072",
+      "MAXMEMORY": "2097152",
       "MAXSOCKETS": "2",
       "MAX_VM_VCPUS": "16",
       "MINMEMORY": "2048",
@@ -693,7 +693,7 @@
       "MINMEMORY": "1024"
     },
     "win8-x64": {
-      "MAXMEMORY": "131072",
+      "MAXMEMORY": "524288",
       "MAXSOCKETS": "2",
       "MAX_VM_VCPUS": "16",
       "MINMEMORY": "2048"
@@ -705,7 +705,7 @@
       "MINMEMORY": "1024"
     },
     "win81-x64": {
-      "MAXMEMORY": "131072",
+      "MAXMEMORY": "524288",
       "MAXSOCKETS": "2",
       "MAX_VM_VCPUS": "16",
       "MINMEMORY": "2048",
@@ -801,19 +801,19 @@
       "MINMEMORY": "512"
     },
     "ws12-x64": {
-      "MAXMEMORY": "524288",
+      "MAXMEMORY": "4194304",
       "MAXSOCKETS": "64",
       "MAX_VM_VCPUS": "16",
       "MINMEMORY": "1024"
     },
     "ws12core-x64": {
-      "MAXMEMORY": "524288",
+      "MAXMEMORY": "4194304",
       "MAXSOCKETS": "64",
       "MAX_VM_VCPUS": "16",
       "MINMEMORY": "2048"
     },
     "ws12r2-x64": {
-      "MAXMEMORY": "524288",
+      "MAXMEMORY": "4194304",
       "MAXSOCKETS": "64",
       "MAX_VM_VCPUS": "16",
       "MINMEMORY": "1024",
@@ -821,7 +821,7 @@
       "MIN_ROOTDISK_MEMORY_DIFF": "20480"
     },
     "ws12r2core-x64": {
-      "MAXMEMORY": "524288",
+      "MAXMEMORY": "4194304",
       "MAXSOCKETS": "64",
       "MAX_VM_VCPUS": "16",
       "MINMEMORY": "2048"

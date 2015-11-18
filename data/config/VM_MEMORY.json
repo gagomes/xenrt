@@ -16,56 +16,67 @@
       "MIN_VM_MEMORY": "128",
       "MAX_VM_MEMORY": "131072",
       "MAX_VM_MEMORY_LINUX32BIT": "65536",
+      "MAX_VM_MEMORY_HVM": "131072",
     },
     "BostonXCP": {
       "MIN_VM_MEMORY": "128",
       "MAX_VM_MEMORY": "131072",
       "MAX_VM_MEMORY_LINUX32BIT": "65536",
+      "MAX_VM_MEMORY_HVM": "131072",
     },
     "Sanibel": {
       "MIN_VM_MEMORY": "128",
       "MAX_VM_MEMORY": "131072",
       "MAX_VM_MEMORY_LINUX32BIT": "65536",
+      "MAX_VM_MEMORY_HVM": "131072",
     },
     "SanibelCC": {
       "MIN_VM_MEMORY": "128",
       "MAX_VM_MEMORY": "131072",
       "MAX_VM_MEMORY_LINUX32BIT": "65536",
+      "MAX_VM_MEMORY_HVM": "131072",
     },
     "Tampa": {
       "MIN_VM_MEMORY": "128",
       "MAX_VM_MEMORY": "131072",
       "MAX_VM_MEMORY_LINUX32BIT": "65536",
+      "MAX_VM_MEMORY_HVM": "131072",
     },
     "TampaXCP": {
       "MIN_VM_MEMORY": "128",
       "MAX_VM_MEMORY": "131072",
       "MAX_VM_MEMORY_LINUX32BIT": "65536",
+      "MAX_VM_MEMORY_HVM": "131072",
     },
     "Tallahassee": {
       "MIN_VM_MEMORY": "128",
       "MAX_VM_MEMORY": "131072",
       "MAX_VM_MEMORY_LINUX32BIT": "65536",
+      "MAX_VM_MEMORY_HVM": "131072",
     },
     "Clearwater": {
       "MIN_VM_MEMORY": "128",
       "MAX_VM_MEMORY": "131072",
       "MAX_VM_MEMORY_LINUX32BIT": "65536",
+      "MAX_VM_MEMORY_HVM": "131072",
     },
     "Creedence": {
       "MIN_VM_MEMORY": "128",
       "MAX_VM_MEMORY": "131072",
       "MAX_VM_MEMORY_LINUX32BIT": "65536",
+      "MAX_VM_MEMORY_HVM": "131072",
     },
     "Cream": {
       "MIN_VM_MEMORY": "128",
       "MAX_VM_MEMORY": "131072",
       "MAX_VM_MEMORY_LINUX32BIT": "65536",
+      "MAX_VM_MEMORY_HVM": "131072",
     },
     "Dundee": {
       "MIN_VM_MEMORY": "128",
       "MAX_VM_MEMORY": "131072",
       "MAX_VM_MEMORY_LINUX32BIT": "65536",
+      "MAX_VM_MEMORY_HVM": "1572864",
     }
   }
 }

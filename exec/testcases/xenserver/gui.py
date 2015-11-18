@@ -538,18 +538,18 @@ class CUnitTestMechanism(_UnitTestMechanism):
         return self._runner.execguest("cd %s && ./%s https://%s root xenroot" % (self.__TEST_CODE_PATH, self.__currentTest, self._host.getIP()))
 
     def runTests(self):
-        localSrName = next(sr for sr in self._host.asXapiObject().SR() if sr.isLocal()).name()
+        localSrName = next(sr for sr in self._host.xapiObject.localSRs if sr.isLocalStorage).name
         try:
             self.__results[self.__currentTest] = self.__runVmOps(localSrName)
             self.__results[self.__currentTest] = self.__runGetRecords()
         except xenrt.XRTFailure, e:
             log("Test failed: %s" % e)
-            self.__results[self.__currentTest]=(e.data)
+            self.__results[self.__currentTest] = (e.data)
 
     def triageTestOutput(self):
         for bad in self.__BADNESS:
             if bad in self.results:
-                log("Found the horror: %s in the output" %bad)
+                log("Found the horror: %s in the output" % bad)
                 raise xenrt.XRTFailure("A failure message was found in the output")
 
         if self.__vmCount + 1 != len(self._host.listGuests()):
@@ -722,12 +722,6 @@ class TC8300(_PowerShellSnapTest):
     """PowerShell Snap-In test on Windows Server 2003 EE SP2"""
 
     DISTRO = "w2k3eesp2"
-
-
-class TC8301(_PowerShellSnapTest):
-    """PowerShell Snap-In test on Windows Server 2003 EE SP2 x64"""
-
-    DISTRO = "w2k3eesp2-x64"
 
 
 class TC8302(_PowerShellSnapTest):

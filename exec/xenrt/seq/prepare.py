@@ -1126,6 +1126,13 @@ class PrepareNode(object):
         xenrt.TEC().logverbose("Templates:\n" + pprint.pformat(self.templates))
         xenrt.TEC().logverbose("Instances:\n" + pprint.pformat(self.instances))
 
+    def getAllPoolHostsForMaster(self, host):
+        ret = [host]
+        for p in self.pools:
+            if host.getName() == p['master']:
+                ret = [xenrt.TEC().registry.hostGet(x) for x in self.hosts if x['pool'] == p['name']]
+        return ret
+
     def runThis(self):
         self.preparecount = self.preparecount + 1
         xenrt.TEC().logdelimit("Sequence setup")
@@ -1479,18 +1486,8 @@ class PrepareNode(object):
                             mp = True
                         else:
                             mp = None
-                        fcsr = None
-                        if s.has_key("options") and s["options"]:
-                            for opt in s["options"].split(","):
-                                if opt != "thin":
-                                    fcsr = opt
-                        if not fcsr:
-                            fcsr = host.lookup("SR_FC", "yes")
-                            if fcsr == "yes":
-                                fcsr = "LUN0"
-
-                        scsiid = host.lookup(["FC", fcsr, "SCSIID"], None)
-                        sr.create(scsiid, multipathing=mp, smconf=smconf)
+                        lun = xenrt.HBALun(self.getAllPoolHostsForMaster(host)) 
+                        sr.create(lun, multipathing=mp, smconf=smconf)
                     elif s["type"] == "cvsmnetapp":
                         minsize = int(host.lookup("SR_NETAPP_MINSIZE", 40))
                         maxsize = int(host.lookup("SR_NETAPP_MAXSIZE", 1000000))
@@ -1656,18 +1653,9 @@ class PrepareNode(object):
                             mp = True
                         else:
                             mp = None
-                        fcoesr = None
-                        if s.has_key("options") and s["options"]:
-                            for opt in s["options"].split(","):
-                                if opt != "thin":
-                                    fcoesr = opt
-                        if not fcoesr:
-                            fcoesr = host.lookup("SR_FC", "yes")
-                            if fcoesr == "yes":
-                                fcoesr = "LUN0"
-
-                        scsiid = host.lookup(["FC", fcoesr, "SCSIID"], None)
-                        sr.create(scsiid, multipathing=mp)
+                        
+                        lun = xenrt.HBALun(self.getAllPoolHostsForMaster(host)) 
+                        sr.create(lun, multipathing=mp)
                     elif s['type'] == "smapiv3shared" or s['type'] == "rawnfs":
                         if s["network"]:
                             network = s["network"]

@@ -342,59 +342,43 @@ class TCXenServerInstall(xenrt.TestCase):
             if not fcsr:
                 fcsr = host.lookup("SR_FC", None)
             if fcsr:
-                if fcsr == "yes":
-                    fcsr = "LUN0"
-                scsiid = host.lookup(["FC", fcsr, "SCSIID"], None)
+                lun = xenrt.HBALun([host])
                 multipathing = host.lookup("USE_MULTIPATH",
                                            False,
                                            boolean=True)
-                if not scsiid:
-                    raise xenrt.XRTError("No FC SCSIID found")
                 sr = xenrt.lib.xenserver.FCStorageRepository(host, "xenrtfc")
-                sr.create(scsiid, multipathing=multipathing)
+                sr.create(lun, multipathing=multipathing)
                 sr.check()
                 host.addSR(sr, default=True)
             if not fcoesr:
                 fcoesr = host.lookup("SR_FCOE", None)
             if fcoesr:
-                if fcoesr == "yes":
-                    fcoesr = "LUN0"
-                scsiid = host.lookup(["FC", fcoesr, "SCSIID"], None)
+                lun = xenrt.HBALun([host])
                 multipathing = host.lookup("USE_MULTIPATH",
                                            False,
                                            boolean=True)
-                if not scsiid:
-                    raise xenrt.XRTError("No FCOE SCSIID found")
                 sr = xenrt.lib.xenserver.FCOEStorageRepository(host, "xenrtfcoe")
-                sr.create(scsiid, multipathing=multipathing)
+                sr.create(lun, multipathing=multipathing)
                 sr.check()
                 host.addSR(sr, default=True)
                 
             if not sassr:
                 sassr = host.lookup("SR_SAS", None)
             if sassr:
-                if sassr == "yes":
-                    sassr = "LUN0"
-                scsiid = host.lookup(["SAS", sassr, "SCSIID"], None)
-                if not scsiid:
-                    raise xenrt.XRTError("No SAS SCSIID found")
+                lun = xenrt.HBALun([host])
                 sr = xenrt.lib.xenserver.SharedSASStorageRepository(host,
                                                                     "xenrtsas")
-                sr.create(scsiid)
+                sr.create(lun)
                 sr.check()
                 host.addSR(sr, default=True)
 
             if not iscsihbasr:
                 iscsihbasr = host.lookup("SR_ISCSIHBA", None)
             if iscsihbasr:
-                if iscsihbasr == "yes":
-                    iscsihbasr = "LUN0"
-                scsiid = host.lookup(["ISCSIHBA", iscsihbasr, "SCSIID"], None)
-                if not scsiid:
-                    raise xenrt.XRTError("No ISCSI HBA SCSIID found")
+                lun = xenrt.HBALun([host])
                 sr = xenrt.lib.xenserver.ISCSIHBAStorageRepository(host,
                                                                    "xenrthba")
-                sr.create(scsiid)
+                sr.create(lun)
                 sr.check()
                 host.addSR(sr, default=True)
 
@@ -1471,16 +1455,15 @@ class TCDLVMSourceCheck(SourceISOCheck): # TC-17999
             self.APPLIANCE_NAME, "NO_TEMPLATE",
             password=xenrt.TEC().lookup("DEFAULT_PASSWORD"))
         xenrt.TEC().registry.guestPut(self.APPLIANCE_NAME, g)
+        self.vpx_os_version = xenrt.TEC().lookup("VPX_OS_VERSION", "CentOS5")
         g.host = self.host
-        self.demolinuxvm = xenrt.DemoLinuxVM(g)
+        self.demolinuxvm = xenrt.DLVMApplianceFactory().create(g, self.vpx_os_version)
         g.importVM(self.host, xenrt.TEC().getFile("xe-phase-1/dlvm.xva"))
         g.windows = False
-        g.lifecycleOperation("vm-start",specifyOn=True)
-        # Wait for the VM to come up.
-        xenrt.TEC().progress("Waiting for the VM to enter the UP state")
-        g.poll("UP", pollperiod=5)
-        # Wait VM to boot up
-        time.sleep(300)
+        g.hasSSH = False # here we should support both old (CentOS5) and new (CentOS7) DLVM, disable sshcheck
+        g.tailored = True
+        g.start()
+
         self.demolinuxvm.doFirstbootUnattendedSetup()
         self.demolinuxvm.doLogin()
         self.demolinuxvm.installSSH()

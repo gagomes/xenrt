@@ -116,13 +116,8 @@ class DundeeInstaller(object):
         else:
             raise xenrt.XRTError("Unknown install source method '%s'." %
                                  (source))
-        # Split ISO layout
-        self.packdir.copyIn("%s/packages.*" % (mountpoint))
-
-        # If there's an XS-REPOSITORY-LIST, copy it in
-        self.packdir.copyIn("%s/XS-REPOSITORY-LIST" % (mountpoint))
-        dstfile = "%s/XS-REPOSITORY-LIST" % self.packdir.dir
-        os.chmod(dstfile, os.stat(dstfile)[stat.ST_MODE]|stat.S_IWUSR)
+        # Copy ISO layout
+        self.packdir.copyIn("%s/*" % (mountpoint))
 
         self.setupExtraInstallPackages(extracds, suppackcds)
 
@@ -559,9 +554,12 @@ sleep 30
         if suppackcds or supptarballs or suppdirs:
             repofile = "%s/XS-REPOSITORY-LIST" % (workdir)
             repo = file(repofile, "w")
-            f = file("%s/XS-REPOSITORY-LIST" % (self.packdir.dir), "r")
-            repo.write(f.read())
-            f.close()
+            dstfile = "%s/XS-REPOSITORY-LIST" % self.packdir.dir
+            if os.path.exists(dstfile):
+                os.chmod(dstfile, os.stat(dstfile)[stat.ST_MODE]|stat.S_IWUSR)
+                f = file(dstfile, "r")
+                repo.write(f.read())
+                f.close()
             if supptarballs:
                 for supptar in supptarballs.split(","):
                     tarball = xenrt.TEC().getFile(supptar)

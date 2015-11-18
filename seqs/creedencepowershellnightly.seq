@@ -19,7 +19,6 @@
       <testcase id="xenserver.gui.TC8305" />
       <testcase id="xenserver.gui.TC19252" />
       <testcase id="xenserver.gui.TC17780" />
-      <testcase id="xenserver.gui.TC8301" />
       <testcase id="xenserver.gui.TC19253" />
       <testcase id="xenserver.gui.TC19254" />
       <testcase id="xenserver.gui.TC8302" />

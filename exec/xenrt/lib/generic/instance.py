@@ -30,7 +30,13 @@ class Instance(object):
         self.special = {}
 
     @property
-    def hypervisorType(self):
+    @xenrt.irregularName
+    def _osParent_name(self):
+        return self.name
+
+    @property
+    @xenrt.irregularName
+    def _osParent_hypervisorType(self):
         return self.toolstack.instanceHypervisorType(self)
 
     @property
@@ -53,7 +59,8 @@ class Instance(object):
         self.toolstack.discoverInstanceAdvancedNetworking(self)
         self.os.populateFromExisting()
 
-    def poll(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
+    @xenrt.irregularName
+    def _osParent_pollPowerState(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
         """Poll for reaching the specified state"""
         deadline = xenrt.timenow() + timeout
         while 1:
@@ -65,22 +72,15 @@ class Instance(object):
                           (self.name, state), level)
             xenrt.sleep(15, log=False)
 
-    def getPort(self, trafficType):
+    @xenrt.irregularName
+    def _osParent_getPort(self, trafficType):
         if self.inboundmap.has_key(trafficType):
             return self.inboundmap[trafficType][1]
         else:
             return self.os.tcpCommunicationPorts[trafficType] 
 
-    def getIPAndPort(self, trafficType, timeout=600, level=xenrt.RC_ERROR):
-        if self.inboundmap.has_key(trafficType):
-            return self.inboundmap[trafficType]
-        elif self.inboundip:
-            return (self.inboundip, self.os.tcpCommunicationPorts[trafficType])
-        else:
-            return (self.getMainIP(timeout, level), self.os.tcpCommunicationPorts[trafficType])
-        
-
-    def getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
+    @xenrt.irregularName
+    def _osParent_getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
         if trafficType:
             if trafficType == "OUTBOUND":
                 if self.outboundip:
@@ -101,14 +101,26 @@ class Instance(object):
             return self.mainip
         return self.toolstack.getInstanceIP(self, timeout, level)
 
-    def setIP(self, ip):
+    @xenrt.irregularName
+    def _osParent_setIP(self, ip):
         raise xenrt.XRTError("Not implemented")
 
-    def start(self, on=None, timeout=600):
+    @xenrt.irregularName
+    def _osParent_start(self):
+        self.toolstackStart()
+
+    @xenrt.irregularName
+    def _osParent_stop(self):
+        self.stop()
+
+    def toolstackStart(self, on=None):
         xenrt.xrtAssert(self.getPowerState() == xenrt.PowerState.down, "Power state before starting must be down")
         self.toolstack.startInstance(self, on)
-        self.os.waitForBoot(timeout)
         xenrt.xrtCheck(self.getPowerState() == xenrt.PowerState.up, "Power state after start should be up")
+
+    def start(self, on=None, timeout=600):
+        self.toolstackStart(on)
+        self.os.waitForBoot(timeout)
 
     def reboot(self, force=False, timeout=600, osInitiated=False):
         xenrt.xrtAssert(self.getPowerState() == xenrt.PowerState.up, "Power state before rebooting must be up")
@@ -124,7 +136,7 @@ class Instance(object):
         xenrt.xrtAssert(self.getPowerState() == xenrt.PowerState.up, "Power state before shutting down must be up")
         if osInitiated:
             self.os.shutdown()
-            self.poll(xenrt.PowerState.down)
+            self._osParent_pollPowerState(xenrt.PowerState.down)
         else:
             self.toolstack.stopInstance(self, force)
         xenrt.xrtCheck(self.getPowerState() == xenrt.PowerState.down, "Power state after shutdown should be down")
@@ -177,8 +189,20 @@ class Instance(object):
     def getPowerState(self):
         return self.toolstack.getInstancePowerState(self)
 
+    @xenrt.irregularName
+    def _osParent_getPowerState(self):
+        return self.getPowerState()
+
+    @xenrt.irregularName
+    def _osParent_setIso(self, isoName, isoRepo=None):
+        return self.setIso(isoName, isoRepo)
+
     def setIso(self, isoName, isoRepo=None):
         return self.toolstack.setInstanceIso(self, isoName, isoRepo)
+
+    @xenrt.irregularName
+    def _osParent_ejectIso(self):
+        return self.ejectIso()
 
     def ejectIso(self):
         return self.toolstack.ejectInstanceIso(self)

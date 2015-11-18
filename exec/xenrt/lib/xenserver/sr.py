@@ -94,6 +94,9 @@ class StorageRepository(object):
         self.dconf = None
         self.content_type = ""
 
+        # Recorded by smconf property for possible future use by introduce
+        self.__smconf = {}
+
     @classmethod
     def fromExistingSR(cls, host, sruuid):
         """
@@ -106,20 +109,34 @@ class StorageRepository(object):
         @return: an instance of the class with the SR metadata populated
         @rtype: StorageRepository or decendent
         """
-        xsr = next((sr for sr in host.asXapiObject().SR(False) if sr.uuid == sruuid), None)
+        xsr = next((sr for sr in host.xapiObject.SRs if sr.uuid == sruuid), None)
 
         if not xsr:
             raise ValueError("Could not find sruuid %s on host %s" %(sruuid, host))
 
-        instance = cls(host, xsr.name())
-        instance.uuid = xsr.uuid
-        instance.srtype = xsr.srType()
-        instance.host = host
+        instance = xenrt.GEC().registry.srGet(sruuid)
+        if instance:
+            xenrt.TEC().logverbose("Found SR in registry")
+        else:
+            instance = cls(host, xsr.name)
+            instance.uuid = xsr.uuid
+            instance.srtype = xsr.srType
+            instance.host = host
 
-        xpbd = next((p for p in xsr.PBD() if p.host() == host.asXapiObject()), None)
-        instance.dconf = xpbd.deviceConfig()
-        instance.content_type = xsr.contentType()
+            xpbd = next((p for p in xsr.PBDs if p.host == host.xapiObject), None)
+            instance.dconf = xpbd.deviceConfig
+            instance.content_type = xsr.contentType
+            xenrt.GEC().registry.srPut(instance.uuid, instance)
         return instance
+
+    def __backupSMConf(self):
+        """
+        Store current sm-config. This can be reused when SR is reintroduced
+        after forget/destroy.
+        """
+
+        # Back up smconf for future usage.
+        self.__smconf = self.smconf
 
     @property
     def smconf(self):
@@ -130,12 +147,13 @@ class StorageRepository(object):
         """
         confstr = self.host.genParamGet("sr", self.uuid, "sm-config")
         conf = {}
-        for item in confstr.split(";"):
-            key, val = item.split(":", 1)
-            conf[key.strip()] = val.strip()
+        if confstr.strip():
+            for item in confstr.strip().split(";"):
+                key, val = item.split(":", 1)
+                conf[key.strip()] = val.strip()
 
         return conf
-    
+
     @property
     def smconfig(self):
         return self.smconf
@@ -210,8 +228,12 @@ class StorageRepository(object):
         args.append("name-label=\"%s\"" % (self.name))
         if self.SHARED:
             args.append("shared=true")
+
+        if "allocation" in self.__smconf:
+            args.append("sm-config:allocation=\"%s\"" % self.__smconf["allocation"])
+
         cli.execute("sr-introduce", string.join(args))
-        self.createPBDs()
+        self.createPBDs() 
 
     def unplugPBDs(self):
         """Unplug all PBDs associated with this SR."""
@@ -232,11 +254,23 @@ class StorageRepository(object):
 
     def forget(self):
         """Forget this SR (but keep the details in this object)"""
+
+        xenrt.TEC().logverbose("Trying forget SR: %s." % self.uuid)
+
+        self.__backupSMConf()
+        xenrt.TEC().logverbose("Backed up smconf before forget: %s" % self.__smconf)
+
         self.unplugPBDs()
         self.host.getCLIInstance().execute("sr-forget", "uuid=%s" % (self.uuid))
 
     def destroy(self):
         """Destroy this SR (but keep the details in this object)"""
+
+        xenrt.TEC().logverbose("Trying destroy SR: %s." % self.uuid)
+
+        self.__backupSMConf()
+        xenrt.TEC().logverbose("Backed up smconf before destroy: %s" % self.__smconf)
+
         self.unplugPBDs()
         self.host.getCLIInstance().execute("sr-destroy", "uuid=%s" % (self.uuid))
         self.isDestroyed = True
@@ -281,6 +315,7 @@ class StorageRepository(object):
         self.srtype = srtype
         self.dconf = actualDeviceConfiguration
         self.content_type = content_type
+        xenrt.GEC().registry.srPut(self.uuid, self)
 
     def check(self):
         self.checkCommon(self.srtype)
@@ -417,12 +452,10 @@ class StorageRepository(object):
         """
         pass
 
-    def physicalSizeMB(self):
-        """Returns the physical size of this SR in MB."""
-        return int(self.paramGet("physical-size"))/xenrt.MEGA
-
-    def release(self):
-        self.remove()
+    @property
+    def physicalSize(self):
+        """Returns the physical size of this SR."""
+        return int(self.paramGet("physical-size"))
 
     def messageCreate(self, name, body, priority=1):
         self.host.messageGeneralCreate("sr",
@@ -802,7 +835,6 @@ class NFSStorageRepository(StorageRepository):
         self.server = server
         self.path = path
 
-
     def create(self, server=None, path=None, physical_size=0, content_type="", nosubdir=False):
         self.getServerAndPath(server, path)
         dconf = {}
@@ -985,10 +1017,10 @@ class SMBStorageRepository(StorageRepository):
         #else:
         dconf['username'] = share.user
         dconf['password'] = share.password
-        self._create("cifs", dconf)
+        self._create("smb", dconf)
 
     def check(self):
-        StorageRepository.checkCommon(self, "cifs")
+        StorageRepository.checkCommon(self, "smb")
         if self.host.pool:
             self.checkOnHost(self.host.pool.master)
             for slave in self.host.pool.slaves.values():
@@ -1304,32 +1336,33 @@ class HBAStorageRepository(StorageRepository):
     THIN_PROV_KEYWORD = "xlvhd"
 
     def create(self,
-               scsiid,
+               lun,
                physical_size="0",
                content_type="",
                multipathing=False,
                smconf={}):
         self.multipathing = multipathing
+        self.lun = lun
         if multipathing:
-            device = "/dev/mapper/%s" % (scsiid)
-            prepdevice = "/dev/disk/by-id/scsi-%s" % (scsiid)
+            device = "/dev/mapper/%s" % (lun.getID())
+            prepdevice = "/dev/disk/by-id/scsi-%s" % (lun.getID())
             self.host.enableMultipathing()
         else:
-            device = "/dev/disk/by-id/scsi-%s" % (scsiid)
+            device = "/dev/disk/by-id/scsi-%s" % (lun.getID())
             prepdevice = device
         try:
             blockdevice = self.host.execdom0("readlink -f %s" % prepdevice).strip()
             if len(blockdevice.split('/')) !=3:
-                raise xenrt.XRTFailure("The block device %s is not detected by the host." % scsiid)
+                raise xenrt.XRTFailure("The block device %s is not detected by the host." % lun.getID())
 
             self.host.execdom0("test -x /opt/xensource/bin/diskprep && /opt/xensource/bin/diskprep -f %s || dd if=/dev/zero of=%s bs=4096 count=10" % (blockdevice, blockdevice))
 
         except:
-            xenrt.TEC().warning("Error erasing disk on %s" % (scsiid))
+            xenrt.TEC().warning("Error erasing disk on %s" % (lun.getID()))
         
         dconf = {}
         dconf["device"] = device
-        dconf["SCSIid"] = scsiid
+        dconf["SCSIid"] = lun.getID()
         self._create("lvmohba",
                      dconf,
                      physical_size=physical_size,
@@ -1344,6 +1377,24 @@ class HBAStorageRepository(StorageRepository):
         if self.multipathing:
             slave.enableMultipathing()
 
+    def destroy(self, release=True):
+        super(HBAStorageRepository, self).destroy()
+        if release and self.lun:
+            self.lun.release()
+            self.lun = None
+
+    def forget(self, release=True):
+        super(HBAStorageRepository, self).forget()
+        if release and self.lun:
+            self.lun.release()
+            self.lun = None
+
+    def remove(self, release=True):
+        super(HBAStorageRepository, self).remove()
+        if release and self.lun:
+            self.lun.release()
+            self.lun = None
+
 class FCOEStorageRepository(StorageRepository):
     """Models a fiber channel or iSCSI via HBA SR"""
 
@@ -1351,31 +1402,32 @@ class FCOEStorageRepository(StorageRepository):
     SHARED = True
 
     def create(self,
-               scsiid,
+               lun,
                physical_size="0",
                content_type="",
                multipathing=False):
         self.multipathing = multipathing
+        self.lun = lun
         if multipathing:
-            device = "/dev/mapper/%s" % (scsiid)
-            prepdevice = "/dev/disk/by-id/scsi-%s" % (scsiid)
+            device = "/dev/mapper/%s" % (lun.getID())
+            prepdevice = "/dev/disk/by-id/scsi-%s" % (lun.getID())
             self.host.enableMultipathing()
         else:
-            device = "/dev/disk/by-id/scsi-%s" % (scsiid)
+            device = "/dev/disk/by-id/scsi-%s" % (lun.getID())
             prepdevice = device
         try:
             blockdevice = self.host.execdom0("readlink -f %s" % prepdevice).strip()
             if len(blockdevice.split('/')) !=3:
-                raise xenrt.XRTFailure("The block device %s is not detected by the host." % scsiid)
+                raise xenrt.XRTFailure("The block device %s is not detected by the host." % lun.getID())
 
             self.host.execdom0("test -x /opt/xensource/bin/diskprep && /opt/xensource/bin/diskprep -f %s || dd if=/dev/zero of=%s bs=4096 count=10" % (blockdevice, blockdevice))
 
         except:
-            xenrt.TEC().warning("Error erasing disk on %s" % (scsiid))
+            xenrt.TEC().warning("Error erasing disk on %s" % (lun.getID()))
         
         dconf = {}
         dconf["device"] = device
-        dconf["SCSIid"] = scsiid
+        dconf["SCSIid"] = lun.getID()
         self._create("lvmofcoe",
                      dconf,
                      physical_size=physical_size,
@@ -1388,7 +1440,25 @@ class FCOEStorageRepository(StorageRepository):
     def prepareSlave(self, master, slave, special=None):
         if self.multipathing:
             slave.enableMultipathing()
-            
+
+    def destroy(self, release=True):
+        StorageRepository.destroy(self)
+        if release and self.lun:
+            self.lun.release()
+            self.lun = None
+
+    def forget(self, release=True):
+        StorageRepository.forget(self)
+        if release and self.lun:
+            self.lun.release()
+            self.lun = None
+
+    def remove(self, release=True):
+        StorageRepository.remove(self)
+        if release and self.lun:
+            self.lun.release()
+            self.lun = None
+
 class FCStorageRepository(HBAStorageRepository):
     pass
 

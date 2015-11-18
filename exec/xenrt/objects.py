@@ -22,6 +22,8 @@ import xml.etree.ElementTree as ET
 from xenrt.lazylog import log, warning, step
 from xenrt.linuxanswerfiles import *
 
+from zope.interface import implements
+
 #Dummy import of _strptime module
 #This is done to import this module before the threads do this - which causes CA-137801 - because _strptime is not threadsafe
 time.strptime('2014-06-12','%Y-%m-%d')
@@ -29,7 +31,8 @@ time.strptime('2014-06-12','%Y-%m-%d')
 
 __all__ = ["GenericPlace", "GenericHost", "NetPeerHost", "GenericGuest", "productLib",
            "RunOnLocation", "ActiveDirectoryServer", "PAMServer", "CVSMServer", "WlbApplianceFactory",
-           "WlbApplianceServer", "WlbApplianceServerHVM", "DemoLinuxVM", "ConversionManagerApplianceFactory",
+           "WlbApplianceServer", "WlbApplianceServerHVM", "DLVMApplianceFactory", "DemoLinuxVM", 
+           "DemoLinuxVMHVM", "ConversionManagerApplianceFactory",
            "ConversionApplianceServer", "ConversionApplianceServerHVM", "EventObserver",
            "XenMobileApplianceServer", "_WinPEBase"]
 
@@ -160,6 +163,7 @@ class GenericPlace(object):
         self.host = None
         self.memory = None
         self.vcpus = None
+        self._os = None
 
     def populateSubclass(self, x):
         x.password = self.password
@@ -172,6 +176,7 @@ class GenericPlace(object):
         x.extraLogsToFetch = self.extraLogsToFetch
         x.logFetchExclude = self.logFetchExclude
         x.vifstem = self.vifstem
+        x._os = self._os
 
     def compareConfig(self, other):
         """Compare the configuration of this place to another place. This
@@ -184,6 +189,22 @@ class GenericPlace(object):
                                                     str(self.windows),
                                                     other.getName(),
                                                     str(other.windows)))
+
+    @property
+    def os(self):
+        if not self._os:
+            if self.distro:
+                if self.windows or not self.arch:
+                    osdistro = self.distro
+                else:
+                    osdistro = "%s_%s" % (self.distro, self.arch)
+
+                self._os = xenrt.lib.opsys.osFactory(osdistro, self, self.password)
+            else:
+                self._os = xenrt.lib.opsys.osFromExisting(self, self.password)
+                self.password = self._os.password
+                self.distro = self._os.distro
+        return self._os
 
     def _clearObjectCache(self):
         """Remove cached object data."""
@@ -561,6 +582,13 @@ class GenericPlace(object):
             return self.xmlrpcIsAlive()
 
     def _xmlrpc(self, impatient=False, patient=False, reallyImpatient=False, ipoverride=None):
+        try:
+            if not isinstance(self.os, xenrt.xenrt.lib.opsys.WindowsOS):
+                xenrt.TEC().warning("OS is not Windows - self.os is of type %s" % str(self.os.__class__))
+                [xenrt.TEC().logverbose(x) for x in traceback.format_stack()]
+        except Exception, e:
+            xenrt.TEC().warning("Error creating OS: %s" % str(e))
+            [xenrt.TEC().logverbose(x) for x in traceback.format_stack()]
         if reallyImpatient:
             trans = MyReallyImpatientTrans()
         elif impatient:
@@ -4416,6 +4444,7 @@ class RunOnLocation(GenericPlace):
         return self.address
 
 class GenericHost(GenericPlace):
+    implements(xenrt.interfaces.OSParent)
 
     # Domain states
     STATE_UNKNOWN  = 0
@@ -4451,7 +4480,6 @@ class GenericHost(GenericPlace):
         self.ipv6_mode = None
         self.controller = None
         self.containerHost = None
-        self.os = None
         self.jobTests = []
 
         xenrt.TEC().logverbose("Creating %s instance." % (self.__class__.__name__))
@@ -4487,18 +4515,69 @@ class GenericHost(GenericPlace):
             ret['access']['password'] = self.password
         return ret
 
-    def getOS(self):
-        if not self.os:
-            if self.windows or not self.arch:
-                osdistro = self.distro
-            else:
-                osdistro = "%s_%s" % (self.distro, self.arch)
+    ##### Methods from OSParent #####
 
-            wrapper = xenrt.lib.generic.HostWrapper(self)
-            self.os = xenrt.lib.opsys.osFactory(osdistro, wrapper)
-            wrapper.os = self.os
-            self.os.tailor()
-        return self.os
+    @property
+    @xenrt.irregularName
+    def _osParent_name(self):
+        return self.getName()
+
+    @property
+    @xenrt.irregularName
+    def _osParent_hypervisorType(self):
+        # This refers to the Hypervisor type of the control domain, which for most purposes can assumed to be Native
+        return xenrt.HypervisorType.native
+
+    @xenrt.irregularName
+    def _osParent_getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
+        if self.machine and self.use_ipv6:
+            return self.machine.ipaddr6
+        elif self.machine:
+            return self.machine.ipaddr
+        return None
+
+    @xenrt.irregularName
+    def _osParent_getPort(self, trafficType):
+        return None
+
+    @xenrt.irregularName
+    def _osParent_setIP(self,ip):
+        if self.machine:
+            obj = IPy.IP(ip)
+            if IPy.IP(ip).version() == 6:
+                self.machine.ipaddr6 = ip
+            else:
+                self.machine.ipaddr = ip
+        else:
+            raise xenrt.XRTError("No host Object Found")
+
+    @xenrt.irregularName
+    def _osParent_start(self):
+        self.machine.powerctl.on()
+
+    @xenrt.irregularName
+    def _osParent_stop(self):
+        self.machine.powerctl.off()
+
+    @xenrt.irregularName
+    def _osParent_ejectIso(self):
+        # TODO implement this with Virtual Media
+        raise xenrt.XRTError("Not implemented")
+
+    @xenrt.irregularName
+    def _osParent_setIso(self, isoName, isoRepo=None):
+        # TODO implement this with Virtual Media
+        raise xenrt.XRTError("Not implemented")
+
+    @xenrt.irregularName
+    def _osParent_pollPowerState(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
+        """Poll for reaching the specified state"""
+        raise xenrt.XRTError("Not supported")
+
+    @xenrt.irregularName
+    def _osParent_getPowerState(self):
+        """Get the current power state"""
+        raise xenrt.XRTError("Not supported")
 
     def registerJobTest(self, jt):
         try:
@@ -4676,6 +4755,13 @@ class GenericHost(GenericPlace):
         @param useThread: If C{True} then run the SSH command in a thread to
                         guard against hung SSH sessions
         """
+        try:
+            if not isinstance(self.os, xenrt.xenrt.lib.opsys.LinuxOS):
+                xenrt.TEC().warning("OS is not Linux - self.os is of type %s" % str(self.os.__class__))
+                [xenrt.TEC().logverbose(x) for x in traceback.format_stack()]
+        except Exception, e:
+            xenrt.TEC().warning("Error creating OS: %s" % str(e))
+            [xenrt.TEC().logverbose(x) for x in traceback.format_stack()]
         if not username:
             if self.windows:
                 username = "Administrator"
@@ -5013,6 +5099,8 @@ class GenericHost(GenericPlace):
             elif "58523" in buildNumber:
                 name = "SanibelCC"
             if name == "Creedence" and self.execdom0("grep XS65ESP1 /var/patch/applied/*", retval="code") == 0:
+                name = "Cream"
+            elif name == "Creedence" and not "90233" in buildNumber:
                 name = "Cream"
 
             xenrt.TEC().logverbose("Found: Version Name: %s, Version Number: %s" % (name, version))
@@ -5356,6 +5444,7 @@ class GenericHost(GenericPlace):
             else:
                 self.xenstoreWrite("/local/logconsole/@", "")
             if persist:
+                self.execdom0("echo 'mkdir -p %s' >> /etc/rc.d/rc.local" % (self.guestconsolelogs))
                 self.execdom0("echo 'xenstore-write /local/logconsole/@ "
                               "%s/console.%%d.log' >> /etc/rc.d/rc.local" %
                               (self.guestconsolelogs))
@@ -5377,6 +5466,7 @@ class GenericHost(GenericPlace):
         if persist:
             self.execdom0("echo 'rm -f %s/.run' >> /etc/rc.d/rc.local" %
                           (self.guestconsolelogs))
+            self.execdom0("echo 'mkdir -p %s' >> /etc/rc.d/rc.local" % (self.guestconsolelogs))
             self.execdom0("echo '%s' >> /etc/rc.d/rc.local" % (cmd))
 
     def guestConsoleLogTail(self, domid, lines=20):
@@ -6584,16 +6674,6 @@ chain tftp://${next-server}/%s
                 portCount = portCount + 1
         return portCount
 
-    def getNumOfFCLUNs(self):
-        """Obtain the number of attached fibre channel LUNs"""
-        lunCount = 0
-        fckeys = self.lookup(["FC"], {}).keys()
-        for k in fckeys:
-            m = re.match("LUN(\d+)", k)
-            if m:
-                lunCount = lunCount + 1
-        return lunCount
-
     def enableFCPort(self, hba):
         """Enable the FC port to which the specified HBA is connected."""
         cmd = self.lookup(["FC", "CMD_HBA%u_ENABLE" % (hba)], None)
@@ -6963,7 +7043,15 @@ class NetPeerHost(GenericHost):
 
 class GenericGuest(GenericPlace):
     """Encapsulates a single guest VM."""
+    implements(xenrt.interfaces.OSParent)
 
+    STATE_MAPPING = {
+        xenrt.PowerState.down: "DOWN",
+        xenrt.PowerState.up: "UP",
+        xenrt.PowerState.paused: "PAUSED",
+        xenrt.PowerState.suspended: "SUSPENDED"
+    }
+    
     def __init__(self, name, host=None, reservedIP=None):
         GenericPlace.__init__(self)
         self.host = host
@@ -7030,6 +7118,59 @@ class GenericGuest(GenericPlace):
         else:
             ret['host'] = None
         return ret
+
+    ##### Methods from OSParent #####
+
+    @property
+    @xenrt.irregularName
+    def _osParent_name(self):
+        return self.name
+
+    @property
+    @xenrt.irregularName
+    def _osParent_hypervisorType(self):
+        return xenrt.HypervisorType.unknown
+
+    @xenrt.irregularName
+    def _osParent_getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
+        # TODO add arp sniffing capabilities here
+        return self.mainip
+
+    @xenrt.irregularName
+    def _osParent_getPort(self, trafficType):
+        return None
+
+    @xenrt.irregularName
+    def _osParent_setIP(self,ip):
+        self.mainip = ip
+
+    @xenrt.irregularName
+    def _osParent_start(self):
+        self.lifecycleOperation("vm-start")
+
+    @xenrt.irregularName
+    def _osParent_stop(self):
+        self.lifecycleOperation("vm-shutdown")
+
+    @xenrt.irregularName
+    def _osParent_ejectIso(self):
+        # TODO implement this with ISO SRs
+        raise xenrt.XRTError("Not implemented")
+
+    @xenrt.irregularName
+    def _osParent_setIso(self, isoName, isoRepo=None):
+        # TODO implement this with ISO SRs
+        raise xenrt.XRTError("Not implemented")
+
+    @xenrt.irregularName
+    def _osParent_pollPowerState(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
+        """Poll for reaching the specified state"""
+        self.poll(self.STATE_MAPPING[state], timeout, level, pollperiod)
+
+    @xenrt.irregularName
+    def _osParent_getPowerState(self):
+        """Get the current power state"""
+        return [x for x in self.STATE_MAPPING.keys() if self.STATE_MAPPING[x] == self.getState()][0]
 
     def setHost(self, host):
         if host and host.replaced:
@@ -7522,6 +7663,13 @@ class GenericGuest(GenericPlace):
         @param level:   Exception level to use if appropriate.
         @param nolog:   If C{True} then don't log the output of the command
         """
+        try:
+            if not isinstance(self.os, xenrt.xenrt.lib.opsys.LinuxOS):
+                xenrt.TEC().warning("OS is not Linux - self.os is of type %s" % str(self.os.__class__))
+                [xenrt.TEC().logverbose(x) for x in traceback.format_stack()]
+        except Exception, e:
+            xenrt.TEC().warning("Error creating OS: %s" % str(e))
+            [xenrt.TEC().logverbose(x) for x in traceback.format_stack()]
         if not self.mainip:
             raise xenrt.XRTError("Unknown IP address to SSH to %s" %
                                  (self.name))
@@ -11220,12 +11368,30 @@ class CVSMServer(object):
         data = self.cli('host-list')
         return uuid in data
 
-class DemoLinuxVM(object):
+class DemoLinuxBase(object):
+    """Base DLVM Appliance Class for PV DLVM Appliance and HVM DLVM Appliance"""
+
+    def __init__(self, place, password):
+        self.place = place
+        self.password = password
+        if self.place:
+            self.place.password = self.password
+
+    def doFirstbootUnattendedSetup(self):
+        pass
+
+    def doLogin(self):
+        pass
+
+    def installSSH(self):
+        pass
+
+class DemoLinuxVM(DemoLinuxBase):
     """An object to represent a Centos 5.7 based Citrix Demonstration Linux Virtual Machine"""
 
     def __init__(self, place):
-        self.place = place
-        self.password = xenrt.TEC().lookup("DEFAULT_PASSWORD")
+        password = xenrt.TEC().lookup("DEFAULT_PASSWORD")
+        super(DemoLinuxVM, self).__init__(place, password)
 
     def doFirstbootUnattendedSetup(self):
         # choose root passwd: 'xensource'
@@ -11244,6 +11410,20 @@ class DemoLinuxVM(object):
     def installSSH(self):
         self.place.writeToConsole("yum -y install openssh-server\\n")
         xenrt.sleep(360)
+
+class DemoLinuxVMHVM(DemoLinuxBase):
+    """An object to represent a Centos 7.* based Citrix Demonstration Linux Virtual Machine"""
+
+    def __init__(self, place):
+        password = xenrt.TEC().lookup("VPX_DEFAULT_PASSWORD", "citrix") # by default vpx root's password
+        super(DemoLinuxVMHVM, self).__init__(place, password)
+
+    def doFirstbootUnattendedSetup(self):
+        command = "/sbin/chkconfig rootpassword off"
+        self.place.execguest(command)
+        xenrt.sleep(60)
+        self.place.lifecycleOperation("vm-reboot", force=True)
+        self.place.waitReadyAfterStart()
 
 class ApplianceFactory(object):
     def create(self, guest, version="CentOS7"):
@@ -11271,6 +11451,13 @@ class ConversionManagerApplianceFactory(ApplianceFactory):
 
     def _createLegacy(self, guest):
         return ConversionApplianceServer(guest)
+
+class DLVMApplianceFactory(ApplianceFactory):
+    def _createHVM(self, guest):
+        return DemoLinuxVMHVM(guest)
+
+    def _createLegacy(self, guest):
+        return DemoLinuxVM(guest)
 
 class WlbApplianceBase(object):
     """Base WLB Appliance Class for PV WLB Appliance Server and HVM WLB Appliance Server"""

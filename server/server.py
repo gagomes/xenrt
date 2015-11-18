@@ -83,6 +83,7 @@ class PageFactory(object):
                     raise HTTPInternalServerError(body=json.dumps({"reason": str(e), "traceback": traceback.format_exc()}), content_type="application/json")
                 else:
                     raise HTTPInternalServerError(body="Internal Server error:\n\n%s" % traceback.format_exc(), content_type="text/plain")
+        request.response.headerlist.extend(page.responseHeaders)
         if request.params.get("plain") == "true":
             request.response.content_type == "text/plain"
         elif self.contentType:

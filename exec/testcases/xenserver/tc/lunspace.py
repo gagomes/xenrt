@@ -35,7 +35,7 @@ class TC21547(xenrt.TestCase):
         self.lun = self.netAppFiler.getLuns()[0]
         step("The lun is %s" %self.lun)
         self.fcSR = xenrt.lib.xenserver.FCStorageRepository(self.host,"lvmoHBASR", thin_prov=(self.tcsku=="thin"))
-        self.fcSR.create(self.lun.getId())
+        self.fcSR.create(self.lun)
         
     def run(self, arglist=[]):
 
@@ -54,7 +54,7 @@ class TC21547(xenrt.TestCase):
             self.lun.resize(newSizeBytes/xenrt.MEGA,False)
             self.fcSR.scan()
             step("After resizing the lun size is %s "%self.lun.size())
-            currentsize=self.fcSR.physicalSizeMB()
+            currentsize=self.fcSR.physicalSize/xenrt.MEGA
             expectednewsize = newSizeBytes/xenrt.MEGA - 12
             
             if currentsize == expectednewsize:
@@ -250,7 +250,7 @@ class TrimFuncNetAppFC(NetappTrimSupportBase):
 
     def createSR(self):
         sr = xenrt.lib.xenserver.FCStorageRepository(self.host, self.SRNAME, thin_prov=self.THINPROVISION)
-        sr.create(self.lun.getId())
+        sr.create(self.lun)
         return sr
 
 class TrimFunctionalTestSSD(xenrt.TestCase):

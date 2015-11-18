@@ -135,17 +135,13 @@ class _VSwitch(xenrt.TestCase):
         self.pool_map = []
 
     def poolwideVswitchDisable(self):
-        self.enterMaintenanceMode()
         for host in self.pool_map:
             host.disablevswitch()
-        self.exitMaintenanceMode()
-
+            
     def poolwideVswitchEnable(self):
-        self.enterMaintenanceMode()
         for host in self.pool_map:
             host.enablevswitch()
-        self.exitMaintenanceMode()
-
+            
     def checkNetwork(self, guests, tag):
         try:
             self.prepareGuests(guests)
@@ -192,8 +188,6 @@ class _VSwitch(xenrt.TestCase):
             for guest in self.guests:
                 guest.shutdown()
         operation(*args, **kwargs)
-        xenrt.TEC().logverbose("Enabling host after operation.")
-        host.enable()
         self._restore(host, resident)
 
     def _restore(self, host, guests):

@@ -94,6 +94,7 @@ __all__ = ["timenow",
            "isWindows",
            "isDevLinux",
            "is32BitPV",
+           "is64BitHVM",
            "checkXMLDomSubset",
            "getUpdateDistro",
            "getLinuxRepo",
@@ -1591,6 +1592,25 @@ def is32BitPV(distro, arch=None, release=None, config=None):
 
     # We've got this far, so it must be 32 bitPV
     return True
+
+def is64BitHVM(distro, arch=None, release=None, config=None):
+    if not arch:
+        (distro, arch) = getDistroAndArch(distro)
+
+    if arch != "x86-64":
+        return False
+        
+    # Windows isn't PV
+    if isWindows(distro):
+        return True
+
+    if not config:
+        config = xenrt.TEC()
+
+    if release and distro in config.lookup(["VERSION_CONFIG", release, "HVM_LINUX"], "").split(","):
+        return True
+
+    return False
 
 def checkXMLDomSubset(superset, subset):
     if subset.localName != superset.localName:

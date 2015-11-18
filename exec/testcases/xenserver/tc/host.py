@@ -952,6 +952,8 @@ class TC8309(xenrt.TestCase):
         # Wait for it to boot
         host.waitForSSH(600, desc="Host boot after hard power cycle")
 
+        xenrt.sleep(180)
+
         # Check if stamp still exists
         if host.execdom0("ls /var/lock/subsys/TEST.STAMP", retval="code") == 0:
             raise xenrt.XRTFailure("Test lockfile stamp remained after power "

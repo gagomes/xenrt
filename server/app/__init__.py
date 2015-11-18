@@ -3,6 +3,7 @@ import app.db
 import app.ad
 import app.acl
 import app.user
+import app.httpauth
 import config
 import time
 from pyramid.httpexceptions import *
@@ -22,6 +23,8 @@ class XenRTPage(Page):
         self._ad = None
         self._acl = None
         self._user = {}
+        self.offerNegotiate = True
+        self.responseHeaders = []
 
     def matchdict(self, param):
         return self.request.matchdict[param].replace("%2F", "/")
@@ -62,7 +65,11 @@ class XenRTPage(Page):
                 user = None
             else:
                 user = app.user.User(self, user.split("@")[0])
-        
+        if not user:
+            auth = app.httpauth.HTTPAuth(lcheaders.get("authorization"), self)
+            userid = auth.getUser()
+            if userid:
+                user = app.user.User(self, userid)
         if not user:
             return None
 
@@ -72,7 +79,7 @@ class XenRTPage(Page):
                 if fakeUser.valid or True:
                     self._user[forceReal] = fakeUser
                     return fakeUser
-            raise HTTPForbidden()
+            raise HTTPForbidden(headers=self.responseHeaders)
 
         self._user[forceReal] = user
         return user
@@ -112,7 +119,10 @@ class XenRTPage(Page):
         if (not user or user.disabled) and (self.REQUIRE_AUTH or (self.REQUIRE_AUTH_IF_ENABLED and config.auth_enabled == "yes")):
             if user and user.disabled:
                 return HTTPUnauthorized("Your account is disabled")
-            return HTTPUnauthorized()
+            if self.offerNegotiate:
+                return HTTPUnauthorized(headers=[("WWW-Authenticate", "Basic realm=\"%s\"" % config.basic_auth_realm), ("WWW-Authenticate", "Negotiate")])
+            else:
+                return HTTPUnauthorized(headers=[("WWW-Authenticate", "Basic realm=\"%s\"" % config.basic_auth_realm)])
         try:
             ret = self.render()
             return ret

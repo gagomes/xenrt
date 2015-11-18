@@ -89,12 +89,12 @@ class StartSuite(_SuiteStartBase):
 
     def render(self):
         if not app.db.isDBMaster():
-            raise XenRTAPIError(HTTPBadRequest, "This request must be made on the master node")
+            raise XenRTAPIError(self, HTTPBadRequest, "This request must be made on the master node")
         try: 
             params = json.loads(self.request.body)
             jsonschema.validate(params, self.DEFINITIONS['startsuite'])
         except Exception, e:
-            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+            raise XenRTAPIError(self, HTTPBadRequest, str(e).split("\n")[0])
         
         restrict = None
 
@@ -118,7 +118,7 @@ class StartSuite(_SuiteStartBase):
                     allow=True
                     break
             if not allow:
-                raise XenRTAPIError(HTTPForbidden, "You do not have permission to run this suite - only members of %s can run this suite" % ",".join(restrict))
+                raise XenRTAPIError(self, HTTPForbidden, "You do not have permission to run this suite - only members of %s can run this suite" % ",".join(restrict))
 
         token = self.startSuite(params)
 

@@ -83,6 +83,7 @@ class HypervisorType(Enum):
     simulator = "simulator"
     other = "other"
     lxc = "lxc"
+    unknown = "unknown"
 
 class InstallMethod(Enum):
     PV = "PV"

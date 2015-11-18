@@ -1,0 +1,50 @@
+<xenrt>
+  <default name="GUESTVCPUS" value="2" />
+  <default name="GUESTDISTRO" value="generic-linux" />
+  <default name="GUESTARCH" value="x86-64" />
+  <default name="GUESTMEMORY" value="1024" />
+  <default name="VDICOUNT" value="800" />
+  <default name="VDISIZE" value="2" /> <!-- in GiB -->
+  <default name="ITERATION" value="1" />
+  <default name="NUMWORKER" value="20" />
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <LINUX_ISCSI_TARGET>LIO</LINUX_ISCSI_TARGET>
+    <PREPARE_WORKERS>5</PREPARE_WORKERS>
+  </variables>
+
+  <scheduler>
+    <pool>VMX</pool>
+    <param>MACHINES_REQUIRED=16</param>
+  </scheduler>
+
+  <prepare>
+    <pool>
+      <allhosts />
+      <storage type="lvmoiscsi" name="iscsisr" size="4096" default="true" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <!-- more aggresive test required. so using pattern.py
+    <testcase id="testcases.xenserver.tc.thinlvhdstress.TCParallelWriting" tc="TC-27240" name="InGuestSeqWriting">
+      <arg>vms=yes</arg>
+      <arg>iteration=${ITERATION}</arg>
+      <arg>vdicount=${VDICOUNT}</arg>
+      <arg>vdisize=${VDISIZE}</arg>
+      <arg>numworker=${NUMWORKER}</arg>
+    </testcase>
+    -->
+    <testcase id="testcases.xenserver.tc.thinlvhdstress.TCParallelWriting" tc="TC-27241" name="InGuestPtnWriting">
+      <arg>vms=yes</arg>
+      <arg>iteration=${ITERATION}</arg>
+      <arg>vdicount=${VDICOUNT}</arg>
+      <arg>vdisize=${VDISIZE}</arg>
+      <arg>sequential=no</arg>
+      <arg>numworker=${NUMWORKER}</arg>
+    </testcase>
+  </testsequence>
+</xenrt>

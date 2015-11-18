@@ -78,7 +78,7 @@ class SetupSRsFC(SetupSRsBase):
 
     def createSR(self, lun, name):
         sr = xenrt.lib.xenserver.FCStorageRepository(self.pool.master, name)
-        sr.create(lun.getId())
+        sr.create(lun)
 
     def getInitiators(self):
         return dict(zip(self.pool.getHosts(), [h.getFCWWPNInfo() for h in self.pool.getHosts()]))

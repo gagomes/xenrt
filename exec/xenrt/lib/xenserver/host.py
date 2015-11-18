@@ -635,6 +635,15 @@ class Host(xenrt.GenericHost):
         
         self.installationCookie = "%012x" % xenrt.random.randint(0,0xffffffffffff)
 
+    def uninstallGuestByName(self, name):
+        cli = self.getCLIInstance()
+        try:
+            cli.execute("vm-shutdown", "vm=\"%s\" --force" % name)
+        except Exception, ex:
+            xenrt.TEC().logverbose(str(ex))
+        cli.execute("vm-uninstall", "vm=\"%s\" --force" % name)
+
+    
     def getUptime(self):
         return float(self.execdom0("cat /proc/uptime").split()[0])
 
@@ -670,9 +679,12 @@ class Host(xenrt.GenericHost):
                                self.execdom0("md5sum /boot/%s" % imgFile))
         xenrt.TEC().logverbose("initrd has been rebuilt")
 
-    def asXapiObject(self):
-        objType = xenrt.lib.xenserver.XapiHost.OBJECT_TYPE
-        return xenrt.lib.xenserver.objectFactory().getObject(objType)(self.getCLIInstance(), objType, self.uuid)
+    @property
+    def xapiObject(self):
+        """Gets a XAPI Host object for this Host
+        @return: A xenrt.lib.xenserver.XapiHost object for this Host
+        @rtype: xenrt.lib.xenserver.XapiHost"""
+        return xenrt.lib.xenserver.XapiHost(self.getCLIInstance(), self.uuid)
 
     def getPool(self):
         if not self.pool:
@@ -1841,7 +1853,7 @@ done
     # - FileFormat: us resolution, useful for precise measurement of events in tests
     def changeSyslogFormat(self, new="TraditionalFileFormat"):
         orig="TraditionalFileFormat"
-        self.execdom0("sed -i 's/RSYSLOG_%s/RSYSLOG_%s' /etc/rsyslog.conf" % (orig, new) )
+        self.execdom0("sed -i 's/RSYSLOG_%s/RSYSLOG_%s/' /etc/rsyslog.conf" % (orig, new) )
         self.execdom0("service rsyslog restart")
 
     def swizzleSymlinksToUseNonDebugXen(self, pathprefix):
@@ -3371,19 +3383,11 @@ fi
 
     def isSvmHardware(self):
         """Return True if host is HVM compatible and has SVM enabled"""
-        if isinstance(self, xenrt.lib.xenserver.BostonHost):
-            return self.isHvmEnabled() and "svm" in self.getHostParam("cpu_info")
-        else:
-            cpuinfo = self.execdom0("cat /proc/cpuinfo")
-            return self.isHvmEnabled() and re.search(r"svm", cpuinfo)
+        return self.isHvmEnabled() and re.search(r"AuthenticAMD", self.execdom0("cat /proc/cpuinfo"))
 
     def isVmxHardware(self):
         """Return True if host is HVM compatible and has VMX enabled"""
-        if isinstance(self, xenrt.lib.xenserver.BostonHost):
-            return self.isHvmEnabled() and "vmx" in self.getHostParam("cpu_info")
-        else:
-            cpuinfo = self.execdom0("cat /proc/cpuinfo")
-            return self.isHvmEnabled() and re.search(r"vmx", cpuinfo)
+        return self.isHvmEnabled() and re.search(r"GenuineIntel", self.execdom0("cat /proc/cpuinfo"))
 
     def getBridgeWithMapping(self, index):
         """Returns the name of a bridge corresponding to the interface
@@ -6668,13 +6672,11 @@ fi
                         template = self.chooseTemplate(\
                             "TEMPLATE_NAME_SLES_%s_64" % (v))
                     else:
-                        template = self.chooseTemplate(\
-						    "TEMPLATE_NAME_SLES_%s" % (v))
+                        template = self.chooseTemplate("TEMPLATE_NAME_SLES_%s" % (v))
             elif re.search(r"sled\d+", distro):
                 v = re.search(r"sled(\d+)", distro).group(1)
                 if arch and arch == "x86-64":
-                    template = self.chooseTemplate(\
-                            "TEMPLATE_NAME_SLED_%s_64" % (v))
+                    template = self.chooseTemplate("TEMPLATE_NAME_SLED_%s_64" % (v))
                 else:
                     template = self.chooseTemplate("TEMPLATE_NAME_SLED_%s" % (v))
             elif re.search(r"sl7", distro):
@@ -6728,7 +6730,7 @@ fi
                                     (distro))
                 template = self.chooseTemplate("TEMPLATE_NAME_RHEL_5")
             else:
-                raise e
+                raise
 
         return template
 
@@ -12517,28 +12519,33 @@ class Pool(object):
             raise xenrt.XRTFailure("Unable to determine pool master")
 
     def _getPoolMaster(self, host):
-        try:
-            if self.haEnabled and not (host.getMyHostUUID() in self.haLiveset):
-                # Don't trust anything this host knows about, as it's dead!
-                return None
-            pc = host.execdom0("cat /etc/xensource/pool.conf",timeout=10)
-            if pc.strip() == "master":
-                return host
-            elif pc.strip().startswith("slave:"):
-                l = pc.strip().split(":")
-                masterip = l[1].strip()
-                for h in self.getHosts():
-                    if h.getIP() == masterip:
-                        return h
-                raise xenrt.XRTError("Pool master (%s) is not a known host" %
-                                     (masterip))
-            else:
-                raise xenrt.XRTError("Unknown entry in pool.conf: %s" % 
-                                     (pc.strip()))
-        except xenrt.XRTFailure, e:
+        if self.haEnabled and not (host.getMyHostUUID() in self.haLiveset):
+            # Don't trust anything this host knows about, as it's dead!
             return None
-            
-            
+
+        #Retrying multiple times to get status to avoid intermittent network issues
+        for retry in [1,0]:
+            try:
+                pc = host.execdom0("cat /etc/xensource/pool.conf",timeout=10)
+                break
+            except xenrt.XRTFailure, e:
+                if not retry:
+                    return None
+                xenrt.sleep(10)
+
+        if pc.strip() == "master":
+            return host
+        elif pc.strip().startswith("slave:"):
+            l = pc.strip().split(":")
+            masterip = l[1].strip()
+            for h in self.getHosts():
+                if h.getIP() == masterip:
+                    return h
+            raise xenrt.XRTError("Pool master (%s) is not a known host" %
+                                 (masterip))
+        else:
+            raise xenrt.XRTError("Unknown entry in pool.conf: %s" %
+                                 (pc.strip()))
 
     def recoverSlaves(self):          
         cli = self.getCLIInstance()

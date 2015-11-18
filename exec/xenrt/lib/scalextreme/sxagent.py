@@ -21,11 +21,18 @@ class SXAgent(object):
     def __getAgentURL(self):
         """Get the URL to download agent using Rest API"""
         info = self.apiHandler.execute(category="download", command="info")
-        if not "data" in info or not "deb64" in info["data"]:
-            raise xenrt.XRTError("Cannot retrieve download URL.")
 
-        url = info["data"]["deb64"].replace("\\", "")
-        return url
+        if "data" in info and type(info["data"]) is list:
+            deb64 = filter(lambda d: d["arch"] == "deb64", info["data"])
+            if len(deb64) != 1:
+                raise xenrt.XRTError("Could not find deb64 entry in download info")
+            return deb64[0]["link"]
+
+        elif "data" in info and type(info["data"]) is dict and "deb64" in info["data"]:
+            return info["data"]["deb64"].replace("\\", "")
+
+        else:
+            raise xenrt.XRTError("Cannot retrieve download URL.")
 
     def __executeOnAgent(self, command):
         """Execute a command on agent Linux VM via SSH"""
@@ -88,13 +95,24 @@ class SXAgent(object):
         self.__agentVM.setState("UP")
 
         url = self.__getAgentURL()
-        try:
+        if url.endswith(".deb"):
             self.__executeOnAgent("wget %s -O agent.deb" % url)
-            self.__executeOnAgent("dpkg -i agent.deb")
-        except:
-            # SSH command failure can be ignored.
-            # installation will be verified in code below.
-            pass
+            try:
+                self.__executeOnAgent("dpkg -i agent.deb")
+            except:
+                # SSH command failure can be ignored.
+                # installation will be verified in code below.
+                pass
+        elif url.endswith(".bin"):
+            self.__executeOnAgent("wget %s -O agent.bin" % url)
+            try:
+                self.__executeOnAgent("chmod +x agent.bin; ./agent.bin")
+            except:
+                # SSH command failure can be ignored.
+                # installation will be verified in code below.
+                pass
+        else:
+            raise xenrt.XRTError("Unknown agent format")
 
         # Try and find the nodeid (this may take some time)
         starttime = xenrt.util.timenow()

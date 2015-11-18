@@ -1,4 +1,4 @@
-﻿import xenrt
+import xenrt
 from xenrt.lib.xenserver.dotnetagentlicensing import *
 from xenrt.enum import XenServerLicenseSKU
 from xenrt.lib.xenserver.licensing import LicenseManager, XenServerLicenseFactory
@@ -76,9 +76,9 @@ class DotNetAgentAdapter(object):
         elif guest.getInstance().os.fileExists("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\managementagentx86.msi"):
             guest.getInstance().os.removeFile("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\managementagentx86.msi")
 
-class NonCryptoMSI(object):
+class NonCryptoMSIHandler(object):
 
-    def installed(guest):
+    def installed(self, guest):
         os = guest.getInstance().os
         arch = os.getArch()
         if "64" in arch:
@@ -93,7 +93,7 @@ class NonCryptoMSI(object):
         else:
             return False
 
-    def getMSIs(server):
+    def getMSIs(self, server):
         server.guest.execguest("wget '%s/citrixguestagent-Noncrypto.tgz'"%(xenrt.TEC().lookup("TEST_TARBALL_BASE")))
         server.guest.execguest("tar -xf citrixguestagent-Noncrypto.tgz")
         server.guest.execguest("mv citrixguestagent-Noncrypto/managementagentx64.msi managementagentx64.msi")
@@ -386,7 +386,8 @@ class NonCryptoMSI(DotNetAgentTestCases):
     def run(self, arglist):
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
         server.createCatalog("99.0.0.0")
-        NonCryptoMSI().getMSIs(server)
+        msiHandler = NonCryptoMSIHandler()
+        msiHandler.getMSIs(server)
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.enable()
@@ -394,7 +395,7 @@ class NonCryptoMSI(DotNetAgentTestCases):
         self.agent.restartAgent()
         xenrt.sleep(200)
         assertions.assertNotNone(autoupdate.checkDownloadedMSI(),"msi has not downloaded")
-        assertions.assertFalse(NonCryptoMSI.installed(self.win1),"Non cryprographically signed msi installed")
+        assertions.assertFalse(msiHandler.installed(self.win1),"Non cryprographically signed msi installed")
 
 class NoServerSurvive(DotNetAgentTestCases):
 

@@ -227,12 +227,12 @@
     <xs:sequence>
       <xs:element name="blueprint" minOccurs="0" maxOccurs="unbounded">
         <xs:complexType>
-          <xs:attribute name="name" use="required" type="xs:string" />
-          <xs:attribute name="version" use="optional" type="xs:string" />
-          <xs:attribute name="deploymentProfileTemplateName" use="optional" type="xs:string"/>
           <xs:choice minOccurs="0" maxOccurs="unbounded">
             <xs:element name="templateName" minOccurs="0" maxOccurs="1" type="xs:string"/>
           </xs:choice>
+          <xs:attribute name="name" use="required" type="xs:string" />
+          <xs:attribute name="version" use="optional" type="xs:string" />
+          <xs:attribute name="deploymentProfileTemplateName" use="optional" type="xs:string"/>
         </xs:complexType>
       </xs:element>
     </xs:sequence>

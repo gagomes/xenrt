@@ -58,28 +58,28 @@
   </prepare>
 
   <testsequence>
-    <testcase id="xenserver.tc.scalability.TCXenDesktopCloneVMs" tc="TC-18701" sku="smbreduced">
+    <testcase id="xenserver.tc.scalability.TCXenDesktopCloneVMs" tc="TC-18701" sku="nfsreduced">
       <arg>vmsperhost=${VMSPERHOST}</arg>
       <arg>threads=${THREADS}</arg>
     </testcase>
-    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart" tc="TC-18703" sku="smbreduced">
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart" tc="TC-18703" sku="nfsreduced">
       <arg>threads=${THREADS}</arg>
     </testcase>
-    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopReboot" tc="TC-18705" sku="smbreduced">
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopReboot" tc="TC-18705" sku="nfsreduced">
       <arg>threads=${THREADS}</arg>
       <arg>iterations=2</arg>
     </testcase>
-    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopShutdown" tc="TC-18707" sku="smbreduced">
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopShutdown" tc="TC-18707" sku="nfsreduced">
       <arg>threads=${THREADS}</arg>
     </testcase>
-    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart" name="Start2" tc="TC-18709" sku="smbreduced">
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart" name="Start2" tc="TC-18709" sku="nfsreduced">
       <arg>threads=${THREADS}</arg>
     </testcase>
-    <testcase id="xenserver.tc.scalability.TCStbltyMasterReboot" tc="TC-18808" sku="smbreduced" />
-    <testcase id="xenserver.tc.scalability.TCStbltySlaveReboot" tc="TC-18817" sku="smbreduced" />
-    <testcase id="xenserver.tc.scalability.TCStbltySRReboot" tc="TC-18789" sku="smbreduced" />
-    <testcase id="xenserver.tc.scalability.TCStbltyAllReboot" tc="TC-18818" sku="smbreduced" />
-    <testcase id="xenserver.tc.scalability.TCStbltyMSlaveReboot" tc="TC-21462" sku="smbreduced">
+    <testcase id="xenserver.tc.scalability.TCStbltyMasterReboot" tc="TC-18808" sku="nfsreduced" />
+    <testcase id="xenserver.tc.scalability.TCStbltySlaveReboot" tc="TC-18817" sku="nfsreduced" />
+    <testcase id="xenserver.tc.scalability.TCStbltySRReboot" tc="TC-18789" sku="nfsreduced" />
+    <testcase id="xenserver.tc.scalability.TCStbltyAllReboot" tc="TC-18818" sku="nfsreduced" />
+    <testcase id="xenserver.tc.scalability.TCStbltyMSlaveReboot" tc="TC-21462" sku="nfsreduced">
       <arg>numberOfSlavesToReboot=${NUMBEROFSLAVESTOREBOOT}</arg>
     </testcase>
   </testsequence>

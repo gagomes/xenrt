@@ -144,7 +144,7 @@ class _TCSmokeTest(xenrt.TestCase):
         guestMemory = self.guest.os.visibleMemory
         difference = abs(expected - guestMemory)
         diffpct = (float(difference) / float(expected)) * 100
-        if diffpct > 4:
+        if diffpct > 4 and difference > 30:
             raise xenrt.XRTFailure("Guest reports %uMB memory, expecting %uMB" % (guestMemory, expected))
 
     def setMemory(self):

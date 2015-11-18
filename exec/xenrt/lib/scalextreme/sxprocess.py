@@ -32,7 +32,7 @@ class SXProcess(object):
         if not version:
             # Find the latest version
             versions = api.execute(category="process", sid=p['processId'], command="versions", method="GET")
-            p.__processVersion = max(map(lambda v: int(v['version']), versions))
+            p.__processVersion = str(max(map(lambda v: int(v['version']), versions)))
         if templateDeploymentProfile:
             # Find the id of this profile
             profiles = api.execute(category="deploymentprofile", command="list", method="POST", params={"processId": p['processId'], "processVersion": p['processVersion']})

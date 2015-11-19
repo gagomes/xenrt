@@ -393,8 +393,8 @@ class _VDIPerVM(xenrt.TestCase):
     cli = None
     DISTRO = "generic-linux"
     
-    def __init__(self):
-        xenrt.TestCase.__init__(self)
+    def __init__(self,tcid = None):
+        xenrt.TestCase.__init__(self,tcid=tcid)
         self.vdis = []
         self.cli = None
         

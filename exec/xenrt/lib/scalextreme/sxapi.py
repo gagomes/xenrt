@@ -1,18 +1,23 @@
 import xenrt
 import requests
+import json
+import urllib
 
 __all__ = [ "SXAPI" ]
 
 class SXAPI(object):
     """ScaleXtreme Rest API handler class"""
 
-    def __init__(self, apikey, credential, server="https://lifecycle.cloud.com", version="v0"):
+    def __init__(self, apikey, credential, server=None, version="v0"):
         """Constructor.
         SXAPI always gets authenticated and stores access key.
         """
         self.apikey = apikey
         self.credential = credential
-        self.server = server
+        if server:            
+            self.server = server
+        else:
+            self.server = xenrt.TEC().lookup("SXAPI_SERVER", "https://lifecycle.cloud.com")
         self.version = version
         self.accessToken = None
         self.authenticate()
@@ -22,7 +27,7 @@ class SXAPI(object):
 
         def addifexist(L, var):
             if var:
-                L.append(var)
+                L.append(str(var))
 
         uri = [self.server, self.version]
         addifexist(uri, category)
@@ -50,12 +55,18 @@ class SXAPI(object):
             tries -= 1
             xenrt.TEC().logverbose("Running URI: %s" % uri)
             if authFilter:
-                r = requests.request(method, uri, auth=(self.apikey, self.credential), params=params, verify=False)
+                if method == "POST":                    
+                    r = requests.post(uri, auth=(self.apikey, self.credential), data=urllib.urlencode(params), headers={"Content-type": "application/x-www-form-urlencoded"}, verify=False)
+                else:
+                    r = requests.request(method, uri, auth=(self.apikey, self.credential), params=params, verify=False)
             else:
-                r = requests.request(method, uri, params=params, verify=False)
+                if method == "POST":
+                    r = requests.post(uri, data=urllib.urlencode(params), headers={"Content-type": "application/x-www-form-urlencoded"}, verify=False)
+                else:
+                    r = requests.request(method, uri, params=params, verify=False)
             xenrt.TEC().logverbose("%d: %s" % (r.status_code, r.text))
             if r.status_code == 200:
-                return eval(r.text)
+                return json.loads(r.text)
             if r.status_code == 400:
                 xenrt.TEC().logverbose(r.text)
                 raise xenrt.XRTError("Bad input parameter or error message: %s" % params)
@@ -79,7 +90,7 @@ class SXAPI(object):
         companies = self.execute(command="companies", params={"client_id": self.apikey})
         if len(companies) < 1:
             raise xenrt.XRTError("Expected at least 1 company but received %d" % len(companies))
-        self.companyId = companies[0]["companyId"]
+        self.companyId = companies[-1]["companyId"]
 
         self.roles = self.execute(command="roles", params={"client_id": self.apikey, "company_id": self.companyId})
         if "Admin" not in self.roles:

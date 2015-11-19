@@ -1,0 +1,36 @@
+<xenrt>
+  <variables>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+  <scheduler>
+    <resources>memory&gt;=32G/disk1&gt;=200G</resources>
+  </scheduler>
+  <prepare>
+    <host id="0">
+      <vm name="SX_Agent">
+        <distro>debian70</distro>
+        <arch>x86-64</arch>
+        <memory>256</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="createScaleXtremeEnvironment" />
+        <network device="0" />
+        <disk device="0" size="8" />
+      </vm>
+      <vm name="Windows Server 2012 R2">
+        <distro>ws12r2-x64</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <postinstall action="convertToTemplate" />
+        <network device="0" />
+        <disk device="0" size="32" />
+      </vm>
+    </host>
+    <blueprint name="XenApp and XenDesktop Proof of Concept (25)" deploymentProfileTemplateName="xenrt-template">
+      <templateName>Windows Server 2012 R2</templateName>
+    </blueprint>
+  </prepare>
+</xenrt>
+

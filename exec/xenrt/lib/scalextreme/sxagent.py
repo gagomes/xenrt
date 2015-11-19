@@ -21,14 +21,18 @@ class SXAgent(object):
     def __getAgentURL(self):
         """Get the URL to download agent using Rest API"""
         info = self.apiHandler.execute(category="download", command="info")
-        if not "data" in info or not "deb64" in info["data"]:
-            raise xenrt.XRTError("Cannot retrieve download URL.")
 
-        url = info["data"]["deb64"].replace("\\", "")
-        # Rest API returns a url that requires authentication.
-        # Using url from web interface.
-        # Todo: Check with SX whether this is expected.
-        return url.replace("https://lifecycle.cloud.com/store", "https://manage-mon.citrix.com")
+        if "data" in info and type(info["data"]) is list:
+            deb64 = filter(lambda d: d["arch"] == "deb64", info["data"])
+            if len(deb64) != 1:
+                raise xenrt.XRTError("Could not find deb64 entry in download info")
+            return deb64[0]["link"]
+
+        elif "data" in info and type(info["data"]) is dict and "deb64" in info["data"]:
+            return info["data"]["deb64"].replace("\\", "")
+
+        else:
+            raise xenrt.XRTError("Cannot retrieve download URL.")
 
     def __executeOnAgent(self, command):
         """Execute a command on agent Linux VM via SSH"""
@@ -91,30 +95,51 @@ class SXAgent(object):
         self.__agentVM.setState("UP")
 
         url = self.__getAgentURL()
-        try:
+        if url.endswith(".deb"):
             self.__executeOnAgent("wget %s -O agent.deb" % url)
-            self.__executeOnAgent("dpkg -i agent.deb")
-        except:
-            # SSH command failure can be ignored.
-            # installation will be verified in code below.
-            pass
+            try:
+                self.__executeOnAgent("dpkg -i agent.deb")
+            except:
+                # SSH command failure can be ignored.
+                # installation will be verified in code below.
+                pass
+        elif url.endswith(".bin"):
+            self.__executeOnAgent("wget %s -O agent.bin" % url)
+            try:
+                self.__executeOnAgent("chmod +x agent.bin; ./agent.bin")
+            except:
+                # SSH command failure can be ignored.
+                # installation will be verified in code below.
+                pass
+        else:
+            raise xenrt.XRTError("Unknown agent format")
 
-        # Give some time to ScaleXtremem to get connected to this agent.
-        xenrt.sleep(30)
-
-        nodes = self.apiHandler.execute(category="nodes")
+        # Try and find the nodeid (this may take some time)
+        starttime = xenrt.util.timenow()
         nodeid = None
-        for node in nodes:
-            for attr in node["nodeAttrList"]:
-                if attr["attributeName"] == "ip" and attr["attributeValue"] == self.agentIP:
-                    nodeid = node["nodeId"]
+        while nodeid is None:
+            if (xenrt.util.timenow() - starttime) > 600:
+                raise xenrt.XRTError("Cannot find connector in node API after 10 minutes")
+            xenrt.sleep(30)
+            nodes = []
+            offset = 0
+            while True:
+                newnodes = self.apiHandler.execute(category="nodes", params={'offset':offset, 'status': 'online'})
+                nodes.extend(newnodes)                
+                if len(newnodes) < 100:
+                    # We get max 100 per request, so if we got less than 100 we know we've now run out of nodes
                     break
-            else:
-                continue
-            break
+                offset += 100
+                xenrt.sleep(5) # This is to avoid spamming SX with requests
+            for node in nodes:
+                for attr in node["nodeAttrList"]:
+                    if attr["attributeName"] == "ip" and attr["attributeValue"] == self.agentIP:
+                        nodeid = node["nodeId"]
+                        break
+                else:
+                    continue
+                break
 
-        if nodeid == None:
-            raise xenrt.XRTError("Cannot find node of agent installed. Is it installed and running?")
         self.__nodeid = nodeid
 
     def setAsGateway(self):
@@ -130,7 +155,7 @@ class SXAgent(object):
 
         return False
 
-    def createEnvironment(self, host=None):
+    def createEnvironment(self, host=None, addToRegistry=True):
         """Create environment with existing agent and XenServer"""
 
         if self.nodeId == None:
@@ -139,8 +164,10 @@ class SXAgent(object):
         if not host:
             host = self.agentVM.host
 
-        self.apiHandler.execute(method="POST", category="providers",
-            params = {"name": xenrt.TEC().lookup("SX_ENVIRONMENT_NAME", "xenrt-%s" % xenrt.TEC().lookup("JOBID", "nojob")),
+        name = xenrt.TEC().lookup("SX_ENVIRONMENT_NAME", "xenrt-%s" % xenrt.TEC().lookup("JOBID", "nojob"))
+
+        p = self.apiHandler.execute(method="POST", category="providers",
+            params = {"name": name,
                 "providercode": "xenserver",
                 "server": "http://" + host.getIP(),
                 "username": "root",
@@ -148,4 +175,7 @@ class SXAgent(object):
                 "agentId": str(self.nodeId)
             }
         )
+
+        if addToRegistry:
+            xenrt.TEC().registry.sxProviderPut(name, p)
 

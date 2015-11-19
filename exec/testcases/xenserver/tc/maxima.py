@@ -415,7 +415,6 @@ class _VDIPerVM(xenrt.TestCase):
         self.uninstallOnCleanup(self.guest)
         xenrt.TEC().logverbose("...VM installed successfully")
         self.cli = self.host.getCLIInstance()
-        self.vbdTypeCDDestroy()
         if self.MAX == True:
             self.MAX_SIZE = int(xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"),"MAX_VDI_SIZE_%s" % (self.SR_TYPE)]))
         else:

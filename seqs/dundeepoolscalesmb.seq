@@ -1,7 +1,7 @@
 <xenrt>
 
-  <default name="VMSPERHOST" value="20" />
-  <default name="THREADS" value="20" />
+  <default name="VMSPERHOST" value="135" />
+  <default name="THREADS" value="135" />
   <default name="DISTRO" value="win7sp1-x86" />
   <default name="NUMBEROFSLAVESTOREBOOT" value="4" />
 
@@ -15,7 +15,7 @@
     <QUICKLOGS>yes</QUICKLOGS>
     <NO_GUEST_LOGS>yes</NO_GUEST_LOGS>
     <NO_TC_HOST_SERIAL_LOGS>yes</NO_TC_HOST_SERIAL_LOGS>
-    <NTHREADS>50</NTHREADS>
+    <NTHREADS>135</NTHREADS>
     <FLAT_VM_DIST>no</FLAT_VM_DIST>
   </variables>
 

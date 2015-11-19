@@ -398,14 +398,6 @@ class _VDIPerVM(xenrt.TestCase):
         self.vdis = []
         self.cli = None
         
-    def vbdTypeCDDestroy(self):
-        cd_vbds = self.host.minimalList("vbd-list",args="vm-uuid=%s type=CD" % 
-                                                       (self.guest.getUUID()))
-        for vbd in cd_vbds:
-            if self.host.genParamGet("vbd",vbd,"currently-attached") == "true":
-                self.cli.execute("vbd-unplug", "uuid=%s" % (vbd))
-                self.cli.execute("vbd-destroy", "uuid=%s" % (vbd))
-    
     def prepare(self, arglist=None):
         # Get a host to install on
         self.host = self.getDefaultHost()
@@ -505,11 +497,6 @@ class _VDIPerVM(xenrt.TestCase):
                 self.cli.execute("vdi-destroy uuid=%s" % (vdi))
             except:
                 xenrt.TEC().warning("Exception destroying VDI %s" % (vdi))
-        # Delete Virtual CD drive
-        try:
-            self.vbdTypeCDDestroy()
-        except:
-            xenrt.TEC().warning("Exception destroying Virtual CD")
         del self.vdis[:]
 
 class TC18842(_VDIPerVM):

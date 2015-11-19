@@ -2114,7 +2114,7 @@ exit /B 1
                 args.append("cd-name=\"%s\"" % (isoname))
                 cli.execute("vm-cd-insert", string.join(args))
 
-    def removeCD(self, device=None):
+    def removeCD(self):
         """Remove the CD device from the VM."""
         cli = self.getCLIInstance()
         
@@ -2124,8 +2124,6 @@ exit /B 1
                 args = []
                 args.append("uuid=%s" % (self.getUUID()))
                 cli.execute("vm-cd-eject", string.join(args))
-        
-       
         
 
     def createVIF(self, eth=None, bridge=None, mac=None, plug=False):
@@ -4111,7 +4109,7 @@ exit /B 1
         self.enlightenedDrivers=True
         self.execguest("umount /mnt")
         xenrt.sleep(10)
-        self.removeCD(device=device)
+        self.removeCD()
         
         if reboot or ((self.distro and (self.distro.startswith("centos4") or self.distro.startswith("rhel4"))) and updateKernel):
             # RHEL/CentOS 4.x update the kernel, so need to be rebooted

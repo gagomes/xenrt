@@ -1,0 +1,45 @@
+#!/usr/bin/expect
+
+# Add or remove zones from the active zoneset to prepare/cleanup from running XenCert
+
+set timeout 10
+set ip [lindex $argv 0]
+set user [lindex $argv 1]
+set password [lindex $argv 2]
+set zoneset [lindex $argv 3]
+set zone [lindex $argv 4]
+set ena [lindex $argv 5]
+
+spawn telnet $ip
+
+expect "login: "
+send "$user\n"
+
+expect "Password: "
+send "$password\n"
+
+expect "#> "
+send "admin cancel\n"
+
+expect "Please confirm (y/n): \\\[n\\\] "
+send "y\n"
+
+expect "#> "
+send "admin begin\n"
+
+expect "(admin) #> "
+send "zoning edit\n"
+
+expect "(admin-zoning) #> "
+
+send "zoneset $ena $zoneset $zone\n"
+
+expect "(admin-zoning) #> "
+send "zoning save\n"
+
+expect "(admin) #> "
+send "zoneset activate $zoneset\n"
+
+expect "(admin) #> "
+send "exit\n"
+interact

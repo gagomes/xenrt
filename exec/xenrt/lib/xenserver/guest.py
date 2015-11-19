@@ -2118,12 +2118,11 @@ exit /B 1
         """Remove the CD device from the VM."""
         cli = self.getCLIInstance()
         
-        cdvbds = self.getHost().minimalList("vbd-list","empty","vm-uuid=%s type=CD" % (self.getUUID()))
+        cdvbds = self.getHost().minimalList("vbd-list", args="vm-uuid=%s type=CD empty=false" % (self.getUUID()))
         if cdvbds:
-            if cdvbds[0] == "false":
-                args = []
-                args.append("uuid=%s" % (self.getUUID()))
-                cli.execute("vm-cd-eject", string.join(args))
+            args = []
+            args.append("uuid=%s" % (self.getUUID()))
+            cli.execute("vm-cd-eject", string.join(args))
         
 
     def createVIF(self, eth=None, bridge=None, mac=None, plug=False):

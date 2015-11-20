@@ -383,23 +383,28 @@ class TC18847(xenrt.TestCase):
 
 class _VDIPerVM(xenrt.TestCase):
     """Class to test VDIs per VM (VDI and Virtual CDs)"""
-    VDIs = []
     VDI = False
     MAX = False
     VCD_COUNT = 0
     SR_TYPE = "lvm"
     VDI_COUNT = 0
     MAX_SIZE = 0
-    cli = None
+    DISTRO = "generic-linux"
     
+    def __init__(self,tcid = None):
+        xenrt.TestCase.__init__(self,tcid=tcid)
+        self.vdis = []
+        self.cli = None
+        
     def prepare(self, arglist=None):
         # Get a host to install on
         self.host = self.getDefaultHost()
         # Install the VM
         xenrt.TEC().logverbose("Installing VM...")
-        self.guest = self.host.createGenericLinuxGuest()
+        self.guest = self.host.createBasicGuest(distro = self.DISTRO)
         self.uninstallOnCleanup(self.guest)
         xenrt.TEC().logverbose("...VM installed successfully")
+        self.cli = self.host.getCLIInstance()
         if self.MAX == True:
             self.MAX_SIZE = int(xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"),"MAX_VDI_SIZE_%s" % (self.SR_TYPE)]))
         else:
@@ -425,8 +430,6 @@ class _VDIPerVM(xenrt.TestCase):
             raise xenrt.XRTError("SR is not big enough (%u MB) to test"
                                          " %u required VDIs" % (psize,requiredVBDs))
         
-        # Get the CLI
-        self.cli = self.host.getCLIInstance()
         # Determine how many VBDs we can add to the guest
         vbddevices = self.host.genParamGet("vm",
                                       self.guest.getUUID(),
@@ -446,7 +449,7 @@ class _VDIPerVM(xenrt.TestCase):
                 args.append("virtual-size=%s"%(self.MAX_SIZE*1048576))
                 args.append("type=user")
                 uuid = self.cli.execute("vdi-create", string.join(args), strip=True)
-                self.VDIs.append(uuid)
+                self.vdis.append(uuid)
                 vdiCount += 1
             except xenrt.XRTFailure, e:
                 xenrt.TEC().comment("Failed to create VDI %u: %s" % 
@@ -456,22 +459,16 @@ class _VDIPerVM(xenrt.TestCase):
         # Plug vbds until we reach allowed VBDs
         for i in range(requiredVBDs):
             try:
-                if xenrt.TEC().lookup("WORKAROUND_CA176781", False, boolean=True):
-                    self.guest.createDisk(userdevice=i+1, vdiuuid=self.VDIs[i])
-                else:
-                    self.guest.createDisk(vdiuuid=self.VDIs[i])
+                self.guest.createDisk(vdiuuid=self.vdis[i])
             except xenrt.XRTFailure, e:
                 xenrt.TEC().comment("Failed to create/plug VBD for VDI %u: %s" %
                                     (i+1,e))
-                break
+                break   
+            
   
         # Add CD VDI
         if self.VCD_COUNT >= 1:
-            args = []
-            args.append("uuid=%s" % (self.guest.getUUID()))
-            args.append("cd-name=\"xs-tools.iso\"")
-            args.append("device=autodetect")
-            self.cli.execute("vm-cd-add",string.join(args))
+            self.guest.changeCD("xs-tools.iso","autodetect")
             
         # Restart VM and verify number of VDIs and size
         xenrt.TEC().logverbose("rebooting VM...")
@@ -484,7 +481,7 @@ class _VDIPerVM(xenrt.TestCase):
                 raise xenrt.XRTFailure("VDIs not AS EXPECTED. Found %s VDI" %(len(existingVDIs)))
             
         # Check The Size of the VDI
-        for uuid in self.VDIs:
+        for uuid in self.vdis:
             sizeBytes = self.host.genParamGet("vdi", uuid, "virtual-size")
             if abs((int(sizeBytes))/xenrt.MEGA - self.MAX_SIZE) <= 1:
                 xenrt.TEC().logverbose("VDI created successfully as expected")
@@ -493,27 +490,18 @@ class _VDIPerVM(xenrt.TestCase):
             
     def postRun(self):
         # Delete the VDIs
-        for vdi in self.VDIs:
+        for vdi in self.vdis:
             try:
                 self.cli.execute("vdi-destroy uuid=%s" % (vdi))
             except:
                 xenrt.TEC().warning("Exception destroying VDI %s" % (vdi))
-        # Delete Virtual CD drive
-        try:
-            cd_vbds = self.host.minimalList("vbd-list",args="vm-uuid=%s type=CD" % 
-                                                       (self.guest.getUUID()))
-            for vbd in cd_vbds:
-                if self.host.genParamGet("vbd",vbd,"currently-attached") == "true":
-                    self.cli.execute("vbd-unplug", "uuid=%s" % (vbd))
-                self.cli.execute("vbd-destroy", "uuid=%s" % (vbd))
-        except:
-            xenrt.TEC().warning("Exception destroying Virtual CD")
-        del self.VDIs[:]
+        del self.vdis[:]
 
 class TC18842(_VDIPerVM):
     """Class to test VDIs per VM (16 including CD-ROM)"""
     VDI = True
     VCD_COUNT = 1
+    DISTRO = "generic-linux"
 
 class TC18843(_VDIPerVM):
     """Class to test VDI virtual size (NFS, EXT SR)"""
@@ -524,6 +512,11 @@ class TC18844(_VDIPerVM):
     """Class to test VDI virtual size (LVM SR)"""
     SR_TYPE = "LVM"
     MAX = True
+    
+class TCWinVDIScalability(_VDIPerVM):
+    VDI =  True
+    VCD_COUNT = 1
+    DISTRO = "generic-windows"
     
 class VLANsPerHost(xenrt.TestCase):
     """Base class for maximum VLANS per Host test"""

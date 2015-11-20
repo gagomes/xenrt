@@ -1190,7 +1190,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Dundee"]["TEMPLATE_NAME_SLES_114_64"] = "SUSE Linux Enterprise Server 11 SP3 (64-bit),SUSE Linux Enterprise Server 11 SP3 x64"
         self.config["VERSION_CONFIG"]["Dundee"]["TEMPLATE_NAME_SLED_12_64"] = "SUSE Linux Enterprise Desktop 12 (64-bit)"
         self.config["VERSION_CONFIG"]["Dundee"]["MAX_VBDS_PER_HOST"] = "4096"
-        self.config["VERSION_CONFIG"]["Dundee"]["MAX_VDIS_PER_VM"] = "255"
+        self.config["VERSION_CONFIG"]["Dundee"]["MAX_VDIS_PER_VM"] = "254"
         self.config["VERSION_CONFIG"]["Dundee"]["TEMPLATE_NAME_DEBIAN_80"] = "Debian Jessie 8.0"
         self.config["VERSION_CONFIG"]["Dundee"]["TEMPLATE_NAME_DEBIAN_80_64"] = "Debian Jessie 8.0"
 

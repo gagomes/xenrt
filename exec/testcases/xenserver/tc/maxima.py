@@ -383,14 +383,12 @@ class TC18847(xenrt.TestCase):
 
 class _VDIPerVM(xenrt.TestCase):
     """Class to test VDIs per VM (VDI and Virtual CDs)"""
-    VDIs = []
     VDI = False
     MAX = False
     VCD_COUNT = 0
     SR_TYPE = "lvm"
     VDI_COUNT = 0
     MAX_SIZE = 0
-    cli = None
     DISTRO = "generic-linux"
     
     def __init__(self,tcid = None):

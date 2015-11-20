@@ -247,6 +247,8 @@ class CentOSLinux(RHELBasedLinux):
                     "sed 's/CentOS release /centos/' | "
                     "sed 's/CentOS Linux release /centos/' | "
                     "awk '{print $1}'").strip()
+        if not distro.startswith("centos"):
+            raise OSNotDetected("OS it not CentOS")
         dd = distro.split(".")
         distro = dd[0]
         if dd[1] != "0":

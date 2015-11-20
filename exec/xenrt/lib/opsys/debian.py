@@ -214,7 +214,7 @@ class DebianLinux(DebianBasedLinux):
         else:
             release = obj.execSSH("cat /etc/debian_version").strip()
             release = release.split(".")[0]
-            if re.match("^debian\d+$", release):
+            if re.match("^\d+$", release):
                 return cls("debian%s0_%s" % (release, obj.getArch()), parent, obj.password)
             else:
                 raise OSNotDetected("Couldn't determine Debian version")
@@ -249,7 +249,7 @@ class UbuntuLinux(DebianBasedLinux):
             raise OSNotDetected("OS is not Ubuntu")
         else:
             release = obj.execSSH("cat /etc/lsb-release | grep DISTRIB_RELEASE | cut -d = -f 2 | tr -d .")
-            if re.match("^ubuntu\d+$", release):
+            if re.match("^\d+$", release):
                 return cls("ubuntu%s0_%s" % (release, obj.getArch()), parent, obj.password)
             else:
                 raise OSNotDetected("Could not determine Ubuntu version")

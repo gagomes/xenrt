@@ -53,7 +53,7 @@ class _CIMInterface(object):
             self._startCimLogging()
             return
 
-        suppPack = xenrt.TEC().getFile("xe-phase-2/%s" % (self.PACK),self.PACK)
+        suppPack = xenrt.TEC().getFile("xe-phase-2/%s" % self.PACK, self.PACK, "../xe-phase-2/%s" % self.PACK)
         try:
             xenrt.checkFileExists(suppPack)
         except:

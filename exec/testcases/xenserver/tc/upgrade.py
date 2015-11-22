@@ -1150,13 +1150,13 @@ class TCAutoInstaller(xenrt.TestCase):
     def prepare(self, arglist):
         self.host = self.getDefaultHost()
         for f in string.split(xenrt.TEC().lookup(["INSTALLER_PATCH", "INSTALLER"]), ","):
-            self.host.applyPatch(xenrt.TEC().getFile("xe-phase-1/" + f), returndata=True)
+            self.host.applyPatch(xenrt.TEC().getFile("xe-phase-1/" + f, "../xe-phase-1/" + f), returndata=True)
 
     def run(self, arglist):
         # Check that the image ISO exists
         imageName = xenrt.TEC().lookup("CARBON_CD_IMAGE_NAME", 'main.iso')
         xenrt.TEC().logverbose("Using XS install image name: %s" % (imageName))
-        cd = xenrt.TEC().getFile("xe-phase-1/%s" % (imageName), imageName)
+        cd = xenrt.TEC().getFile("xe-phase-1/%s" % (imageName), "../xe-phase-1/%s" % (imageName), imageName)
         xenrt.checkFileExists(cd)
 
         # Create a temp directory for the image

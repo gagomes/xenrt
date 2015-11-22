@@ -53,7 +53,7 @@ class _CIMInterface(object):
             self._startCimLogging()
             return
 
-        suppPack = xenrt.TEC().getFile("xe-phase-2/%s" % self.PACK, self.PACK, "../xe-phase-2/%s" % self.PACK)
+        suppPack = xenrt.TEC().getFile("xe-phase-2/%s" % self.PACK, xenrt.TEC().lookup("INTEGRATION_SUITE"))
         try:
             xenrt.checkFileExists(suppPack)
         except Exception, ex:
@@ -1334,7 +1334,7 @@ class _CimBase(xenrt.TestCase,_CIMInterface):
         if flag == False:
             return
 
-        suppPack = xenrt.TEC().getFile("xe-phase-2/%s" % pack,pack, "../xe-phase-2/%s" % pack)
+        suppPack = xenrt.TEC().getFile("xe-phase-2/%s" % pack,pack, xenrt.TEC().lookup("INTEGRATION_SUITE"))
         try:
             xenrt.checkFileExists(suppPack)
         except Exception, ex:
@@ -3960,7 +3960,7 @@ class _KvpBase(xenrt.TestCase):
         self.wsmanTimings['setup']['threshold'] = 120
 
     def _installSuppPack(self, host):
-        suppPack = xenrt.TEC().getFile("xe-phase-2/%s" % (self.SUPP_PACK_NAME), "../xe-phase-2/%s" % (self.SUPP_PACK_NAME))
+        suppPack = xenrt.TEC().getFile("xe-phase-2/%s" % (self.SUPP_PACK_NAME), xenrt.TEC().lookup("INTEGRATION_SUITE"))
         if not suppPack:
             raise xenrt.XRTError("xenserver-integration-suite iso file not found in xe-phase-2")
 

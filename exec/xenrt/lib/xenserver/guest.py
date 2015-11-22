@@ -5800,6 +5800,10 @@ class TampaGuest(BostonGuest):
         # wait for reboot
         xenrt.sleep(6 * 60)
 
+        deadline = xenrt.util.timenow() + 1800
+        while not self.xmlrpcIsAlive() and xenrt.util.timenow() < deadline:
+            xenrt.sleep(30)
+
         if not self.xmlrpcIsAlive():
             raise xenrt.XRTFailure("XML-RPC not alive after tools uninstallation")
 

@@ -1201,6 +1201,9 @@ class TCAutoInstaller(xenrt.TestCase):
         if self.host.productVersion == "Sanibel" and xenrt.TEC().lookup("PRODUCT_VERSION") == "Boston":
             # this is OK...if you put Boston in the sequence...you'll get Sanibel as the host product version
             return
+        if self.host.productVersion == "Cream" and xenrt.TEC().lookup("PRODUCT_VERSION") == "Creedence":
+            # this is OK...if you put Creedence in the sequence...you'll get Cream as the host product version
+            return
         
         if self.host.productVersion != xenrt.TEC().lookup("PRODUCT_VERSION"):
             raise xenrt.XRTFailure("Host Product Version (%s) doesn't match test Product Version (%s)" % (self.host.productVersion, xenrt.TEC().lookup("PRODUCT_VERSION")))

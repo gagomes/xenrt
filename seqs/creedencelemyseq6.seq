@@ -1,8 +1,9 @@
 <xenrt>
+  <default name="INTEGRATION_SUITE" value="xe-phase-2/xenserver-integration-suite.iso"/>
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
-    <SUPPLEMENTAL_PACK_CDS>%INTEGRATION_SUITE%</SUPPLEMENTAL_PACK_CDS>
+    <SUPPLEMENTAL_PACK_CDS>${INTEGRATION_SUITE}</SUPPLEMENTAL_PACK_CDS>
   </variables>
 
  <default name="GUESTMEMORY" value="4096"/>

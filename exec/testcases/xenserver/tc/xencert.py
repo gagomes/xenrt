@@ -51,7 +51,7 @@ class _XSStorageCertKit(xenrt.TestCase):
         if updatedXenCertLoc != None and len(updatedXenCertLoc) > 0:
             storageCertKitISO = xenrt.TEC().getFile(updatedXenCertLoc)
         else:
-            storageCertKitISO = xenrt.TEC().getFile("xe-phase-2/%s" % (self.XENCERT_ISO),self.XENCERT_ISO)
+            storageCertKitISO = xenrt.TEC().getFile("xe-phase-2/%s" % (self.XENCERT_ISO),self.XENCERT_ISO, "../xe-phase-2/%s" % (self.XENCERT_ISO))
 
         try:
             xenrt.checkFileExists(storageCertKitISO)

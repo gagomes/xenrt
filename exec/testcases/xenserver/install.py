@@ -1403,6 +1403,10 @@ class TCDom0SourceCheck(SourceISOCheck): # TC-17998
 
     def prepare(self, arglist=None):
         self.SOURCE_ISO_FILES = self.getDefaultHost().SOURCE_ISO_FILES
+        
+        if xenrt.TEC().lookup("INDIGO", False, boolean=True):
+            self.SOURCE_ISO_FILES = {'source-1.iso': '../xe-phase-3', 'source-4.iso': '../xe-phase-3'}
+
         SourceISOCheck.prepare(self, arglist)
     
     def run(self, arglist=None):

@@ -32,7 +32,8 @@ class TXTSuppPackInstaller(object):
                 self.__installSuppPack(h, suppPackIso)
         except Exception, e:
             xenrt.TEC().logverbose(str(e))
-            raise xenrt.XRTFailure("Failure installing TXT supp pack")
+            xenrt.TEC().logverbose("Failure installing TXT supp pack")
+            raise
 
     def __modifyPassword(self, host):
         pw = self.__hashPassword()

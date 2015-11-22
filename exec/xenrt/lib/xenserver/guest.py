@@ -6524,6 +6524,10 @@ class DundeeGuest(CreedenceGuest):
             self.xmlrpcWriteFile("c:\\uninst.bat", string.join(batch))
             self.xmlrpcStart("c:\\uninst.bat")
 
+        deadline = xenrt.util.timenow() + 1800
+        while not self.xmlrpcIsAlive() and xenrt.util.timenow() < deadline:
+            xenrt.sleep(30)
+        
         if not self.xmlrpcIsAlive():
             raise xenrt.XRTFailure("XML-RPC not alive after tools uninstallation")
         

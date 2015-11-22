@@ -56,8 +56,9 @@ class _CIMInterface(object):
         suppPack = xenrt.TEC().getFile("xe-phase-2/%s" % self.PACK, self.PACK, "../xe-phase-2/%s" % self.PACK)
         try:
             xenrt.checkFileExists(suppPack)
-        except:
-            raise xenrt.XRTError("xenserver-integration-suite iso file not found in xe-phase-2")
+        except Exception, ex:
+            xenrt.TEC().logverbose("xenserver-integration-suite iso file not found in xe-phase-2")
+            raise
 
         hostPath = "/tmp/%s" % (self.PACK)
         #Upload the contents of iso onto a http server 
@@ -1333,11 +1334,12 @@ class _CimBase(xenrt.TestCase,_CIMInterface):
         if flag == False:
             return
 
-        suppPack = xenrt.TEC().getFile("xe-phase-2/%s" % (pack),pack)
+        suppPack = xenrt.TEC().getFile("xe-phase-2/%s" % pack,pack, "../xe-phase-2/%s" % pack)
         try:
             xenrt.checkFileExists(suppPack)
-        except:
-            raise xenrt.XRTError("xenserver-integration-suite iso file not found in xe-phase-2")
+        except Exception, ex:
+            xenrt.TEC().logverbose("xenserver-integration-suite iso file not found in xe-phase-2")
+            raise
 
         hostPath = "/tmp/%s" % (pack)
         #Upload the contents of iso onto a http server
@@ -3958,7 +3960,7 @@ class _KvpBase(xenrt.TestCase):
         self.wsmanTimings['setup']['threshold'] = 120
 
     def _installSuppPack(self, host):
-        suppPack = xenrt.TEC().getFile("xe-phase-2/%s" % (self.SUPP_PACK_NAME))
+        suppPack = xenrt.TEC().getFile("xe-phase-2/%s" % (self.SUPP_PACK_NAME), "../xe-phase-2/%s" % (self.SUPP_PACK_NAME))
         if not suppPack:
             raise xenrt.XRTError("xenserver-integration-suite iso file not found in xe-phase-2")
 

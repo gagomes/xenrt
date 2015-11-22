@@ -2516,7 +2516,7 @@ Add-WindowsFeature as-net-framework"""
     def installPowerShellSnapIn(self, snapInDirName="XenServerPSSnapIn"):
         """Install the XenCenter PowerShell snap-in."""
         if isinstance(self, xenrt.lib.xenserver.guest.ClearwaterGuest):
-            sdk = xenrt.TEC().getFile("xe-phase-2/XenServer-SDK.zip")
+            sdk = xenrt.TEC().getFile("xe-phase-2/XenServer-SDK.zip", "../xe-phase-2/XenServer-SDK.zip")
             tempDir = xenrt.TEC().tempDir()
             xenrt.command("cp %s %s" % (sdk, tempDir))
             xenrt.command("cd %s && unzip XenServer-SDK.zip" % tempDir)

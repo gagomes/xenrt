@@ -4466,9 +4466,9 @@ fi
             
         if not ddkiso:
             # Try the same directory as the ISO
-            ddkiso = xenrt.TEC().getFile("ddk.iso", "xe-phase-2/ddk.iso")
+            ddkiso = xenrt.TEC().getFile("ddk.iso", "xe-phase-2/ddk.iso", "../xe-phase-2/ddk.iso")
         if not ddkiso:
-            ddkzip = xenrt.TEC().getFile("ddk.zip", "xe-phase-2/ddk.zip")
+            ddkzip = xenrt.TEC().getFile("ddk.zip", "xe-phase-2/ddk.zip", "../xe-phase-2/ddk.zip")
         if not ddkiso and not ddkzip:
             raise xenrt.XRTError("No DDK ISO/ZIP file given")
         try:

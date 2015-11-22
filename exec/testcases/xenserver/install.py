@@ -1451,6 +1451,10 @@ class TCDLVMSourceCheck(SourceISOCheck): # TC-17999
     IGNORE_BASE_RPM_PACKAGES = IGNORE_EXTRA_RPM_PACKAGES = [] # notihng to ignore as base+extra packages.
 
     def prepare(self, arglist=None):
+        
+        if xenrt.TEC().lookup("INDIGO", False, boolean=True):
+            self.SOURCE_ISO_FILES = {'source-dlvm.iso': '../xe-phase-3'}
+
         # Calling base class prepare first.
         SourceISOCheck.prepare(self, arglist)
 
@@ -1462,7 +1466,7 @@ class TCDLVMSourceCheck(SourceISOCheck): # TC-17999
         self.vpx_os_version = xenrt.TEC().lookup("VPX_OS_VERSION", "CentOS5")
         g.host = self.host
         self.demolinuxvm = xenrt.DLVMApplianceFactory().create(g, self.vpx_os_version)
-        g.importVM(self.host, xenrt.TEC().getFile("xe-phase-1/dlvm.xva"))
+        g.importVM(self.host, xenrt.TEC().getFile("xe-phase-1/dlvm.xva", "../xe-phase-1/dlvm.xva"))
         g.windows = False
         g.hasSSH = False # here we should support both old (CentOS5) and new (CentOS7) DLVM, disable sshcheck
         g.tailored = True
@@ -1504,6 +1508,10 @@ class TCVPXWLBSourceCheck(SourceISOCheck): # TC-18000
     IGNORE_BASE_RPM_PACKAGES = IGNORE_EXTRA_RPM_PACKAGES = [] # notihng to ignore as base+extra packages.
 
     def prepare(self, arglist=None):
+        
+        if xenrt.TEC().lookup("INDIGO", False, boolean=True):
+            self.SOURCE_ISO_FILES = {'source-wlb.iso': '../xe-phase-3'}
+
         # Calling base class prepare first.
         SourceISOCheck.prepare(self, arglist)
 
@@ -1518,7 +1526,7 @@ class TCVPXWLBSourceCheck(SourceISOCheck): # TC-18000
         xenrt.TEC().registry.guestPut(self.APPLIANCE_NAME, g)
         g.host = self.host
         self.wlbserver = xenrt.WlbApplianceFactory().create(g, self.vpx_os_version)
-        g.importVM(self.host, xenrt.TEC().getFile("xe-phase-1/vpx-wlb.xva"))
+        g.importVM(self.host, xenrt.TEC().getFile("xe-phase-1/vpx-wlb.xva", "../xe-phase-1/vpx-wlb.xva"))
         g.windows = False
         g.hasSSH = False # here we should support both old (CentOS5) and new (CentOS7) WLB, disable sshcheck
         g.tailored = True # We do not need tailor for WLB, and old (CentOS5) WLB does not have ssh.
@@ -1566,6 +1574,10 @@ class TCVPXConversionSourceCheck(SourceISOCheck): # TC-18001
     IGNORE_EXTRA_RPM_PACKAGES = ['texinfo', 'xe-guest-utilities']
 
     def prepare(self, arglist=None):
+    
+        if xenrt.TEC().lookup("INDIGO", False, boolean=True):
+            self.SOURCE_ISO_FILES = {'source-conversion.iso': '../xe-phase-3'}
+        
         # Calling base class prepare first.
         SourceISOCheck.prepare(self, arglist)
 
@@ -1583,7 +1595,7 @@ class TCVPXConversionSourceCheck(SourceISOCheck): # TC-18001
         # Import VPX
         self.convServer = xenrt.ConversionManagerApplianceFactory().create(g, self.vpx_os_version)
         xenrt.TEC().logverbose("Importing Conversion VPX")
-        g.importVM(self.host, xenrt.TEC().getFile("xe-phase-1/vpx-conversion.xva"))
+        g.importVM(self.host, xenrt.TEC().getFile("xe-phase-1/vpx-conversion.xva", "../xe-phase-1/vpx-conversion.xva"))
         xenrt.TEC().logverbose("Conversion VPX Imported")
         g.windows = False
         g.hasSSH = False # here we should support both old (CentOS5) and new (CentOS7) XCM, disable sshcheck
@@ -1650,6 +1662,13 @@ class TCDVSControllerSourceCheck(SourceISOCheck): # TC-18002
     IGNORE_BASE_RPM_PACKAGES = ['openvswitch'] # missing from tampa onwards.
     IGNORE_EXTRA_RPM_PACKAGES = ['nox_6'] # package nox_6.1.0.15430 is controller itself.
 
+    def prepare(self, arglist):
+        
+        if xenrt.TEC().lookup("INDIGO", False, boolean=True):
+            self.SOURCE_ISO_FILES = {'source-dvsc.iso': '../xe-phase-3'}
+        
+        SourceISOCheck.prepare(self, arglist)
+    
     def formatPackagesForComparison(self):
         """Format the DVSC packages as required by the test"""
 
